@@ -41,7 +41,10 @@ fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Resu
     WebviewWindowBuilder::new(
         &app,
         "output",
-        WebviewUrl::External(url.parse().map_err(|e| e.to_string())?),
+        WebviewUrl::External({
+            use std::str::FromStr;
+            url::Url::from_str(&url).map_err(|e| e.to_string())?
+        }),
     )
     .title("Auralith — Stream Output")
     .inner_size(width.min(1920) as f64, height.min(1080) as f64)

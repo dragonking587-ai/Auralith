@@ -143,7 +143,10 @@ fn windows_loopback(app: AppHandle, gen: u64) -> Result<(), String> {
     use std::time::Duration;
     use wasapi::*;
 
-    initialize_mta().map_err(|e| format!("{e:?}"))?;
+    let mta = initialize_mta();
+    if mta.is_err() {
+        return Err(format!("WASAPI MTA init failed: {mta:?}"));
+    }
     let device = open_render_device()?;
     let mut audio_client = device.get_iaudioclient().map_err(|e| format!("{e:?}"))?;
     let sample_rate = 48000usize;
