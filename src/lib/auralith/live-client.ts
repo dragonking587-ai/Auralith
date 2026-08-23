@@ -1,0 +1,282 @@
+import { BC_NAME, bandsToMsg, msgToBands, type BandsMsg, type LiveMsg } from "./live-protocol";
+import type { LiveBands, Scene } from "./types";
+
+export interface LiveViewState {
+  bands: LiveBands | null;
+  scene: Scene | null;
+  sceneRev: number;
+  imageRev: number;
+  imageUrl: string | null;
+  connected: boolean;
+  transport: "ws" | "broadcast" | "http" | "none";
+  seq: number;
+}
+
+type Handler = (state: LiveViewState) => void;
+
+function wsUrl(session: string, role: "editor" | "view"): string {
+  const proto = location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${location.host}/ws/auralith?session=${encodeURIComponent(session)}&role=${role}`;
+}
+
+export class LivePublisher {
+  private ws: WebSocket | null = null;
+  private bc: BroadcastChannel | null = null;
+  private session: string;
+  private sceneRev = 0;
+  private imageRev = 0;
+  private lastImageId = "";
+  private closed = false;
+  private retry = 0;
+
+  constructor(session: string) {
+    this.session = session;
+    try {
+      this.bc = new BroadcastChannel(BC_NAME);
+    } catch {
+      this.bc = null;
+    }
+    this.connect();
+  }
+
+  private connect(): void {
+    if (this.closed) return;
+    try {
+      const ws = new WebSocket(wsUrl(this.session, "editor"));
+      this.ws = ws;
+      ws.onopen = () => {
+        this.retry = 0;
+      };
+      ws.onclose = () => {
+        this.ws = null;
+        if (this.closed) return;
+        const wait = Math.min(4000, 250 * 2 ** this.retry++);
+        setTimeout(() => this.connect(), wait);
+      };
+      ws.onerror = () => ws.close();
+    } catch {
+      /* ws unavailable */
+    }
+  }
+
+  publishBands(bands: LiveBands, intensity: number): void {
+    const msg = bandsToMsg(this.session, bands, intensity);
+    this.send(msg);
+    this.bc?.postMessage(msg);
+  }
+
+  publishScene(scene: Scene): void {
+    this.sceneRev += 1;
+    const msg = { op: "scene" as const, session: this.session, rev: this.sceneRev, scene, imageRev: this.imageRev };
+    this.send(msg);
+    this.bc?.postMessage(msg);
+    void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ session: this.session, scene, rev: this.sceneRev }),
+    }).catch(() => undefined);
+  }
+
+  async publishImage(dataUrl: string, imageId: string): Promise<void> {
+    if (imageId === this.lastImageId) return;
+    this.lastImageId = imageId;
+    await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}`, {
+      method: "POST",
+      headers: { "content-type": "text/plain" },
+      body: dataUrl,
+    })
+      .then((r) => r.json())
+      .then((j: { imageRev?: number }) => {
+        if (typeof j.imageRev === "number") this.imageRev = j.imageRev;
+      })
+      .catch(() => undefined);
+    this.bc?.postMessage({ op: "image", session: this.session, imageRev: this.imageRev, dataUrl });
+  }
+
+  close(): void {
+    this.closed = true;
+    this.ws?.close();
+    this.bc?.close();
+  }
+
+  private send(msg: object): void {
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (ws.bufferedAmount > 8192) return;
+    try {
+      ws.send(JSON.stringify(msg));
+    } catch {
+      /* drop stale */
+    }
+  }
+}
+
+export class LiveViewer {
+  private ws: WebSocket | null = null;
+  private bc: BroadcastChannel | null = null;
+  private session: string;
+  private poll: number | null = null;
+  private closed = false;
+  private retry = 0;
+  private handlers = new Set<Handler>();
+  private state: LiveViewState = {
+    bands: null,
+    scene: null,
+    sceneRev: 0,
+    imageRev: 0,
+    imageUrl: null,
+    connected: false,
+    transport: "none",
+    seq: 0,
+  };
+  private lastImage: string | null = null;
+
+  constructor(session: string) {
+    this.session = session;
+    try {
+      this.bc = new BroadcastChannel(BC_NAME);
+      this.bc.onmessage = (ev) => this.onMsg(ev.data, "broadcast");
+    } catch {
+      this.bc = null;
+    }
+    this.connect();
+    this.startPoll();
+  }
+
+  subscribe(fn: Handler): () => void {
+    this.handlers.add(fn);
+    fn(this.state);
+    return () => this.handlers.delete(fn);
+  }
+
+  getState(): LiveViewState {
+    return this.state;
+  }
+
+  close(): void {
+    this.closed = true;
+    this.ws?.close();
+    this.bc?.close();
+    if (this.poll) window.clearInterval(this.poll);
+  }
+
+  private connect(): void {
+    if (this.closed) return;
+    try {
+      const ws = new WebSocket(wsUrl(this.session, "view"));
+      this.ws = ws;
+      ws.onopen = () => {
+        this.retry = 0;
+        this.patch({ connected: true, transport: "ws" });
+      };
+      ws.onmessage = (ev) => {
+        try {
+          this.onMsg(JSON.parse(String(ev.data)), "ws");
+        } catch {
+          /* ignore */
+        }
+      };
+      ws.onclose = () => {
+        this.ws = null;
+        this.patch({ connected: false });
+        if (this.closed) return;
+        const wait = Math.min(4000, 250 * 2 ** this.retry++);
+        setTimeout(() => this.connect(), wait);
+      };
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private startPoll(): void {
+    const tick = () => {
+      if (this.closed) return;
+      if (this.ws?.readyState === WebSocket.OPEN) return;
+      void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, { cache: "no-store" })
+        .then((r) => r.json())
+        .then((j) => {
+          if (j.bands && (j.bands.seq ?? 0) >= this.state.seq) {
+            this.patch({
+              bands: {
+                bass: j.bands.b,
+                low: j.bands.l,
+                mid: j.bands.m,
+                high: j.bands.h,
+                t: j.bands.t,
+                seq: j.bands.seq,
+                dim: j.bands.dim,
+                intensity: j.bands.intensity,
+              },
+              seq: j.bands.seq,
+              transport: this.state.transport === "ws" ? "ws" : "http",
+            });
+          }
+          if (j.scene && (j.sceneRev ?? 0) >= this.state.sceneRev) {
+            this.patch({ scene: j.scene, sceneRev: j.sceneRev ?? this.state.sceneRev });
+          }
+          if (typeof j.imageRev === "number" && j.imageRev !== this.state.imageRev) {
+            this.patch({ imageRev: j.imageRev });
+            void this.pullImage(j.imageRev);
+          }
+        })
+        .catch(() => undefined);
+    };
+    this.poll = window.setInterval(tick, 250);
+    tick();
+  }
+
+  private onMsg(msg: LiveMsg | (BandsMsg & { dataUrl?: string }) | { op: string; [k: string]: unknown }, via: LiveViewState["transport"]): void {
+    if (!msg || typeof msg !== "object") return;
+    if (msg.op === "bands") {
+      const bands = msgToBands(msg as BandsMsg);
+      if (bands.seq < this.state.seq) return;
+      this.patch({ bands, seq: bands.seq, connected: true, transport: via });
+      return;
+    }
+    if (msg.op === "scene") {
+      const m = msg as { scene: Scene; rev: number; imageRev?: number };
+      if ((m.rev ?? 0) < this.state.sceneRev) return;
+      const imageRev = m.imageRev ?? this.state.imageRev;
+      this.patch({
+        scene: m.scene,
+        sceneRev: m.rev ?? this.state.sceneRev,
+        imageRev,
+        connected: true,
+        transport: via,
+      });
+      if (imageRev && !this.lastImage) void this.pullImage(imageRev);
+      return;
+    }
+    if (msg.op === "image") {
+      const m = msg as { imageRev: number; dataUrl?: string };
+      if (m.dataUrl) {
+        this.lastImage = m.dataUrl;
+        this.patch({ imageUrl: m.dataUrl, imageRev: m.imageRev ?? this.state.imageRev });
+        return;
+      }
+      if (typeof m.imageRev === "number") {
+        this.patch({ imageRev: m.imageRev });
+        if (!this.lastImage) void this.pullImage(m.imageRev);
+      }
+    }
+  }
+
+  private async pullImage(rev: number): Promise<void> {
+    try {
+      const text = await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}`, {
+        cache: "no-store",
+      }).then((r) => (r.ok ? r.text() : ""));
+      if (text) {
+        this.lastImage = text;
+        this.patch({ imageUrl: text, imageRev: rev });
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  private patch(p: Partial<LiveViewState>): void {
+    this.state = { ...this.state, ...p };
+    for (const fn of this.handlers) fn(this.state);
+  }
+}
