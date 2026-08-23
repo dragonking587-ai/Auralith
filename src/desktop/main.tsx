@@ -1,8 +1,7 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { DesktopApp } from "./DesktopApp";
-import "../styles.css";
-import "./desktop.css";
+import "./auralith-styles.css";
 
 async function boot() {
   try {

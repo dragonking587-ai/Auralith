@@ -1,10 +1,10 @@
+/* Desktop production stylesheet — same theme as web, explicit sources for Vite desktop root. */
 @import "tailwindcss";
 
-/* Explicit sources for desktop Vite (root=src/desktop) and full app tree */
-@source "./components";
-@source "./lib";
-@source "./desktop";
-@source "./routes";
+/* Paths relative to this file (src/desktop/) */
+@source "../components";
+@source "../lib";
+@source ".";
 
 @theme {
   --color-bg: #09090b;
@@ -19,8 +19,8 @@
   --color-accent-fg: #0a0a0b;
   --color-warm: #e8c4a0;
   --color-danger: #c45c4a;
-  --font-sans: "Figtree", ui-sans-serif, system-ui, sans-serif;
-  --font-display: "Newsreader", ui-serif, Georgia, serif;
+  --font-sans: "Figtree", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+  --font-display: "Newsreader", ui-serif, Georgia, "Times New Roman", serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
   --radius-xs: 4px;
   --radius-sm: 8px;
@@ -36,9 +36,10 @@
   }
   html,
   body,
-  #app,
   #root {
     min-height: 100%;
+    height: 100%;
+    margin: 0;
     background: var(--color-bg);
     color: var(--color-fg);
   }
