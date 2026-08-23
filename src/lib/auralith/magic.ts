@@ -40,6 +40,21 @@ interface Wisp {
   color: string;
 }
 
+interface Mote {
+  live: boolean;
+  x: number;
+  y: number;
+  ox: number;
+  oy: number;
+  theta: number;
+  radius: number;
+  yOff: number;
+  spin: number;
+  life: number;
+  maxLife: number;
+  color: string;
+}
+
 export const MAGIC_LIMITS = {
   minAura: 0.85,
   maxAura: 2.45,
@@ -56,6 +71,7 @@ export const MAGIC_LIMITS = {
 const SPARK_POOL = MAGIC_LIMITS.maxSparks;
 const WISP_POOL = 28;
 const WISP_LEN = 18;
+const MOTE_POOL = 96;
 
 function hash2(ix: number, iy: number): number {
   let n = Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263);
@@ -153,6 +169,7 @@ export function magicTargets(energy: number, surge: number, spread = 0.6): { aur
 export class MagicSim {
   private sparks: Spark[] = [];
   private wisps: Wisp[] = [];
+  private motes: Mote[] = [];
   private field: Float32Array;
   private cr: Uint8Array;
   private cg: Uint8Array;
@@ -221,6 +238,11 @@ export class MagicSim {
         len: WISP_LEN, life: 0, maxLife: 1, width: 1, color: "#88a0ff",
       });
     }
+    for (let i = 0; i < MOTE_POOL; i++) {
+      this.motes.push({
+        live: false, x: 0, y: 0, ox: 0, oy: 0, theta: 0, radius: 0.05, yOff: 0, spin: 1, life: 0, maxLife: 1, color: "#88a0ff",
+      });
+    }
   }
 
   reset(): void {
@@ -230,6 +252,7 @@ export class MagicSim {
     this.peak = 0;
     for (const p of this.sparks) p.live = false;
     for (const w of this.wisps) w.live = false;
+    for (const m of this.motes) m.live = false;
   }
 
   private rand(): number {
@@ -331,9 +354,10 @@ export class MagicSim {
     const flow = clamp(magic.flow, 0, 1);
     const spread = clamp(magic.spread, 0, 1);
     const energy = clamp(magic.energy, 0, 1);
-    this.style = magic.style === "dense" ? "dense" : "flowing";
+    this.style = magic.style === "dense" || magic.style === "ribbons" ? magic.style : "flowing";
     this.density = clamp(magic.density ?? 0.65, 0, 1);
     const dense = this.style === "dense";
+    const ribbons = this.style === "ribbons";
 
     const decay = Math.exp(-dt * (1.4 + (1 - energy) * 0.4));
     for (let i = 0; i < this.field.length; i++) this.field[i]! *= decay;
@@ -363,9 +387,13 @@ export class MagicSim {
       avgImpulse += b.impulse;
 
       const share = cluster.get(region.id) ?? 1;
-      const amount = clamp(b.env * (0.35 + intensity * 0.4) * share * (dense ? 0.82 + this.density * 0.28 : 1), 0, 0.85);
+      const amount = clamp(
+        b.env * (0.35 + intensity * 0.4) * share * (dense ? 0.82 + this.density * 0.28 : ribbons ? 0.7 + this.density * 0.2 : 1),
+        0,
+        0.85,
+      );
       const rad0 = region.kind === "stamp" ? region.r * b.aura * (0.9 + spread * 0.35) : region.width * b.aura;
-      const rad = rad0 * (dense ? 1.18 + this.density * 0.32 + b.surge * 0.16 : 1);
+      const rad = rad0 * (dense ? 1.18 + this.density * 0.32 + b.surge * 0.16 : ribbons ? 1.05 + this.density * 0.2 : 1);
       if (region.kind === "stamp") {
         this.splat(region.x, region.y, rad, amount, b.seed, region.color);
       } else {
@@ -386,6 +414,7 @@ export class MagicSim {
     this.updateCurl(flow, energy);
     this.syncWisps(magRegions, energy, flow, dt);
     this.stepWisps(dt, flow);
+    if (ribbons) this.stepMotes(magRegions, dt, flow, energy);
 
     this.peak = 0;
     for (let i = 0; i < this.field.length; i++) if (this.field[i]! > this.peak) this.peak = this.field[i]!;
@@ -429,7 +458,7 @@ export class MagicSim {
   }
 
   draw(ctx: CanvasRenderingContext2D, rect: ImageRect, magic: MagicConfig, master: number): void {
-    if (this.peak < 0.015 && this.liveCount() === 0 && !this.wisps.some((w) => w.live)) return;
+    if (this.peak < 0.015 && this.liveCount() === 0 && !this.wisps.some((w) => w.live) && !this.motes.some((m) => m.live)) return;
     const side = minSide(rect);
     const intensity = clamp(magic.intensity, 0, 1);
     const flow = clamp(magic.flow, 0, 1);
@@ -444,8 +473,13 @@ export class MagicSim {
     const usedGl = this.drawVolume(ctx, rect, magic, bright);
     if (!usedGl) this.drawFieldFallback(ctx, rect, bright);
 
-    this.drawWisps(ctx, rect, side, flow, energy, bright);
-    this.drawSparks(ctx, rect, side, bright);
+    if (this.style === "ribbons") {
+      if (!usedGl) this.drawWisps(ctx, rect, side, flow, energy, bright);
+      this.drawMotes(ctx, rect, side, bright);
+    } else {
+      this.drawWisps(ctx, rect, side, flow, energy, bright);
+      this.drawSparks(ctx, rect, side, bright);
+    }
     ctx.restore();
   }
 
@@ -482,11 +516,17 @@ export class MagicSim {
       const b = this.bodies.get(region.id);
       if (!b || b.env < 0.03) continue;
       const rgb = hexToRgb(region.color);
-      const grow = this.style === "dense" ? 1.18 + this.density * 0.38 + b.surge * 0.16 : 1;
+      const grow =
+        this.style === "dense"
+          ? 1.18 + this.density * 0.38 + b.surge * 0.16
+          : this.style === "ribbons"
+            ? 1.08 + this.density * 0.22 + b.surge * 0.12
+            : 1;
       const rad = (region.kind === "stamp" ? region.r * b.aura * 0.95 : region.width * b.aura * 1.1) * grow;
       if (region.kind === "stamp") {
+        const tall = this.style === "ribbons" ? 1.7 + b.reach * 0.25 + b.surge * 0.2 : 0.9;
         out.push({
-          x: region.x, y: region.y, rx: rad * 0.85, ry: rad * 0.9,
+          x: region.x, y: region.y, rx: rad * (this.style === "ribbons" ? 0.72 : 0.85), ry: rad * tall,
           env: b.env, surge: b.surge, seed: b.seed, r: rgb.r, g: rgb.g, b: rgb.b,
         });
       } else {
@@ -495,7 +535,9 @@ export class MagicSim {
         for (let i = 0; i < pts.length && out.length < 16; i += stepN) {
           const p = pts[i]!;
           out.push({
-            x: p.x, y: p.y, rx: rad * 0.7, ry: rad * 0.75,
+            x: p.x, y: p.y,
+            rx: rad * (this.style === "ribbons" ? 0.85 : 0.7),
+            ry: rad * (this.style === "ribbons" ? 1.35 : 0.75),
             env: b.env * 0.9, surge: b.surge, seed: b.seed + i * 0.02,
             r: rgb.r, g: rgb.g, b: rgb.b,
           });
@@ -540,7 +582,9 @@ export class MagicSim {
       const want =
         this.style === "dense"
           ? 1 + Math.round(this.density * 2 + b.surge * 2 + b.env)
-          : 2 + Math.round(energy * 3 + b.surge * 3 + b.env * 2);
+          : this.style === "ribbons"
+            ? 3 + Math.round(this.density * 2 + b.surge)
+            : 2 + Math.round(energy * 3 + b.surge * 3 + b.env * 2);
       let have = 0;
       for (const w of this.wisps) if (w.live && w.regionId === region.id) have++;
       for (let k = have; k < want; k++) {
@@ -555,8 +599,8 @@ export class MagicSim {
         slot.regionId = region.id;
         slot.color = region.color;
         slot.life = 0;
-        slot.maxLife = 1.4 + this.rand() * 1.8;
-        slot.width = this.style === "dense" ? 1.35 + this.rand() * 1.05 : 0.7 + this.rand() * 0.8;
+        slot.width = this.style === "dense" ? 1.35 + this.rand() * 1.05 : this.style === "ribbons" ? 2.2 + this.rand() * 1.4 : 0.7 + this.rand() * 0.8;
+        slot.maxLife = this.style === "ribbons" ? 2.2 + this.rand() * 1.6 : 1.4 + this.rand() * 1.8;
         for (let i = 0; i < WISP_LEN; i++) {
           slot.xs[i] = ox;
           slot.ys[i] = oy;
@@ -637,6 +681,10 @@ export class MagicSim {
         draw(28, col, 0.08);
         draw(13, col, 0.15);
         draw(4.4, hi, 0.28);
+      } else if (this.style === "ribbons") {
+        draw(42, col, 0.09);
+        draw(18, col, 0.16);
+        draw(5.5, hi, 0.3);
       } else {
         draw(14, col, 0.07);
         draw(5.5, col, 0.18);
@@ -694,6 +742,66 @@ export class MagicSim {
       }
       ctx.restore();
     } catch { /* tainted */ }
+  }
+
+  private stepMotes(regions: Region[], dt: number, flow: number, energy: number): void {
+    let live = 0;
+    for (const m of this.motes) if (m.live) live++;
+    for (const region of regions) {
+      const b = this.bodies.get(region.id);
+      if (!b || b.env < 0.08) continue;
+      const want = Math.min(48, 8 + Math.round(energy * 18 + b.env * 12 + b.surge * 10));
+      if (live >= want) continue;
+      const nSpawn = Math.min(4, want - live);
+      const nx = region.kind === "stamp" ? region.x : region.points[Math.floor(this.rand() * Math.max(1, region.points.length - 1))]!.x;
+      const ny = region.kind === "stamp" ? region.y : region.points[0]!.y;
+      const rad = region.kind === "stamp" ? region.r * b.aura : region.width * b.aura;
+      for (let s = 0; s < nSpawn; s++) {
+        const slot = this.motes.find((m) => !m.live);
+        if (!slot) return;
+        slot.live = true;
+        slot.ox = nx;
+        slot.oy = ny;
+        slot.theta = this.rand() * Math.PI * 2;
+        slot.radius = rad * (0.7 + this.rand() * 1.6);
+        slot.yOff = -(this.rand() * 0.04);
+        slot.spin = (this.rand() > 0.5 ? 1 : -1) * (0.55 + this.rand() * 0.9);
+        slot.maxLife = 1.1 + this.rand() * 1.7;
+        slot.life = slot.maxLife;
+        slot.color = region.color;
+        slot.x = nx + Math.cos(slot.theta) * slot.radius;
+        slot.y = ny + slot.yOff;
+        live++;
+      }
+    }
+    for (const m of this.motes) {
+      if (!m.live) continue;
+      m.life -= dt;
+      m.theta += dt * m.spin * (0.7 + flow * 0.8);
+      m.radius += Math.sin(m.theta * 2.2 + this.timeSec) * dt * 0.015;
+      m.radius = clamp(m.radius, 0.015, 0.32);
+      m.yOff -= dt * (0.045 + flow * 0.07 + energy * 0.04);
+      m.x = m.ox + Math.cos(m.theta) * m.radius * (0.75 + 0.25 * Math.sin(m.theta * 1.7));
+      m.y = m.oy + m.yOff + Math.sin(m.theta * 0.6) * m.radius * 0.18;
+      if (m.life <= 0 || m.yOff < -0.48) m.live = false;
+    }
+  }
+
+  private drawMotes(ctx: CanvasRenderingContext2D, rect: ImageRect, side: number, bright: number): void {
+    ctx.globalCompositeOperation = "lighter";
+    const rr = Math.max(0.35, side / 1800);
+    for (const m of this.motes) {
+      if (!m.live) continue;
+      const fade = Math.sin(Math.min(1, m.life / m.maxLife) * Math.PI);
+      const pos = imageNormToCanvas(m.x, m.y, rect);
+      const col = plasmaColor(m.color, 0.68);
+      ctx.globalAlpha = bright * fade * 0.32;
+      ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},1)`;
+      ctx.beginPath();
+      ctx.arc(pos.x, pos.y, rr, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
   }
 
   private allocSpark(): Spark | null {

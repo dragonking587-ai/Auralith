@@ -6,14 +6,15 @@ export type ToolId = "stamp" | "trace" | "move" | "erase" | "pan";
 export type FitMode = "fill" | "fit" | "stretch";
 export type AudioSourceId = "none" | "demo" | "track" | "mic" | "system";
 export type OutputMethod = "browser" | "window";
-export type MagicStyleId = "flowing" | "dense";
+export type MagicStyleId = "flowing" | "dense" | "ribbons";
 
 /** Registered Magic looks. Add an id here, a label, then a renderer branch. */
-export const MAGIC_STYLES: MagicStyleId[] = ["flowing", "dense"];
+export const MAGIC_STYLES: MagicStyleId[] = ["flowing", "dense", "ribbons"];
 
 export const MAGIC_STYLE_LABEL: Record<MagicStyleId, string> = {
   flowing: "Flowing",
   dense: "Dense Spell",
+  ribbons: "Ethereal Ribbons",
 };
 
 export function isMagicStyle(v: unknown): v is MagicStyleId {

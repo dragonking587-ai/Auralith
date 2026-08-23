@@ -19,7 +19,7 @@ export interface MagicGLParams {
   energy: number;
   intensity: number;
   bright: number;
-  style?: "flowing" | "dense";
+  style?: "flowing" | "dense" | "ribbons";
   density?: number;
 }
 
@@ -309,6 +309,150 @@ void main() {
 }
 `;
 
+const FRAG_RIBBONS = `
+precision mediump float;
+varying vec2 vUv;
+uniform float uTime;
+uniform float uFlow;
+uniform float uEnergy;
+uniform float uIntensity;
+uniform float uBright;
+uniform float uDensity;
+uniform int uCount;
+uniform vec4 uA[16];
+uniform vec4 uB[16];
+uniform vec4 uC[16];
+uniform sampler2D uPrev;
+uniform vec2 uInv;
+
+float hash(vec2 p) {
+  return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
+}
+float noise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  f = f * f * (3.0 - 2.0 * f);
+  return mix(mix(hash(i), hash(i + vec2(1.0, 0.0)), f.x), mix(hash(i + vec2(0.0, 1.0)), hash(i + vec2(1.0, 1.0)), f.x), f.y);
+}
+float fbm(vec2 p) {
+  float s = 0.0;
+  float a = 0.5;
+  for (int i = 0; i < 4; i++) {
+    s += a * noise(p);
+    p *= 2.07;
+    a *= 0.5;
+  }
+  return s;
+}
+vec2 curl(vec2 p) {
+  float e = 0.16;
+  float n1 = fbm(p + vec2(0.0, e));
+  float n2 = fbm(p - vec2(0.0, e));
+  float n3 = fbm(p + vec2(e, 0.0));
+  float n4 = fbm(p - vec2(e, 0.0));
+  return vec2(n1 - n2, n4 - n3);
+}
+
+void main() {
+  vec2 uv = vUv;
+  float t = uTime;
+  float flow = uFlow;
+  float densAmt = clamp(uDensity, 0.0, 1.0);
+  vec2 adv = curl(uv * 1.15 + vec2(t * 0.035, t * 0.028)) * (0.006 + flow * 0.01);
+  vec4 hist = texture2D(uPrev, clamp(uv - adv, 0.0, 1.0));
+
+  float vol = 0.0;
+  float curr = 0.0;
+  vec3 pigment = vec3(0.0);
+  float pigmentW = 0.0;
+
+  for (int i = 0; i < 16; i++) {
+    if (i >= uCount) break;
+    vec4 a = uA[i];
+    vec4 b = uB[i];
+    vec4 c = uC[i];
+    vec2 origin = a.xy;
+    float amp = max(a.z, 0.03);
+    float rise = max(a.w, 0.08);
+    float env = b.x;
+    float surge = b.y;
+    float seed = b.z;
+    if (env < 0.02) continue;
+
+    vec2 p = uv - origin;
+    vec2 warp = curl(p * 0.95 + vec2(seed, t * (0.07 + flow * 0.1)));
+    p += warp * (0.1 + env * 0.08 + surge * 0.05);
+
+    float local = 0.0;
+    float inner = 0.0;
+    float hMax = rise * (2.35 + surge * 0.9 + densAmt * 0.45);
+
+    for (int r = 0; r < 4; r++) {
+      float rf = float(r);
+      float phase = seed * 6.283185 + rf * 1.5708;
+      for (int s = 0; s < 8; s++) {
+        float k = float(s) / 7.0;
+        float twist = k * (2.55 + flow * 1.35 + surge * 0.4) + t * (0.22 + flow * 0.38) + phase;
+        float widen = mix(0.62, 1.18, k) * (0.82 + 0.18 * sin(k * 5.2 + phase + t * 0.12));
+        float fold = sin(twist * 0.5 + t * 0.11) * 0.32;
+        vec2 cpos = vec2(
+          sin(twist) * amp * widen + cos(twist * 0.47 + phase) * amp * fold,
+          -k * hMax
+        );
+        vec2 dlt = p - cpos;
+        float width = amp * mix(0.62, 0.2, k);
+        width *= (1.05 + densAmt * 0.7 + 0.28 * sin(k * 9.0 + phase));
+        width *= (0.9 + env * 0.25);
+        float dist = length(dlt);
+        float body = smoothstep(width * 1.65, width * 0.1, dist);
+        if (body < 0.01) continue;
+        float grain = 0.4 + 0.6 * fbm(cpos * 5.5 + vec2(t * 0.18, rf));
+        float fade = (1.0 - k * 0.38) * env;
+        fade *= smoothstep(-0.02, 0.1, k);
+        local += body * grain * fade;
+        float stream = smoothstep(width * 0.42, 0.0, dist) * fade * (0.35 + 0.65 * grain);
+        inner += stream;
+      }
+    }
+
+    float base = smoothstep(amp * 1.7, 0.0, length(p)) * env;
+    local += base * 0.5;
+    inner += base * 0.28;
+
+    vol += local;
+    curr += inner;
+    float w = local + inner;
+    pigment += c.rgb * w;
+    pigmentW += w;
+  }
+
+  vol = min(vol, 1.35);
+  curr = min(curr, 1.15);
+  vec3 baseCol = pigmentW > 0.001 ? pigment / pigmentW : vec3(0.35, 0.85, 0.45);
+  vec3 deep = baseCol * 0.28;
+  vec3 mid = baseCol * 0.92;
+  vec3 alt = clamp(baseCol * vec3(0.72, 1.05, 1.28), 0.0, 1.0);
+  vec3 hi = mix(mix(mid, alt, 0.45), vec3(0.93, 0.95, 0.86), 0.16);
+
+  float bodyMix = smoothstep(0.04, 0.55, vol);
+  float coreMix = smoothstep(0.12, 0.72, curr);
+  vec3 color = mix(deep, mix(mid, alt, 0.35), bodyMix);
+  color = mix(color, hi, coreMix * 0.55);
+  color += hi * smoothstep(0.5, 0.92, curr) * 0.16 * uBright;
+
+  float alpha = vol * 0.36 + curr * 0.28;
+  alpha = min(alpha * uIntensity * uBright, 0.84);
+
+  float persist = hist.a * (0.91 - uEnergy * 0.03);
+  float outA = max(alpha, persist * 0.93);
+  vec3 outC = color;
+  if (persist > 0.02) {
+    outC = mix(hist.rgb, color, clamp(alpha / max(outA, 0.001), 0.12, 1.0));
+  }
+  gl_FragColor = vec4(outC * outA, outA);
+}
+`;
+
 function compile(gl: WebGLRenderingContext, type: number, src: string): WebGLShader | null {
   const sh = gl.createShader(type);
   if (!sh) return null;
@@ -363,8 +507,10 @@ export class MagicGL {
   private gl: WebGLRenderingContext;
   private progFlow: WebGLProgram;
   private progDense: WebGLProgram;
+  private progRibbons: WebGLProgram;
   private locFlow: Record<string, WebGLUniformLocation | null>;
   private locDense: Record<string, WebGLUniformLocation | null>;
+  private locRibbons: Record<string, WebGLUniformLocation | null>;
   private buf: WebGLBuffer;
   private prev: WebGLTexture;
   private packA = new Float32Array(MAX * 4);
@@ -389,16 +535,18 @@ export class MagicGL {
       const vs = compile(gl, gl.VERTEX_SHADER, VERT);
       const fsFlow = compile(gl, gl.FRAGMENT_SHADER, FRAG);
       const fsDense = compile(gl, gl.FRAGMENT_SHADER, FRAG_DENSE);
+      const fsRibbons = compile(gl, gl.FRAGMENT_SHADER, FRAG_RIBBONS);
       if (!vs || !fsFlow) return null;
       const progFlow = linkProgram(gl, vs, fsFlow);
       if (!progFlow) return null;
       const progDense = fsDense ? linkProgram(gl, vs, fsDense) : progFlow;
-      if (!progDense) return null;
+      const progRibbons = fsRibbons ? linkProgram(gl, vs, fsRibbons) : progFlow;
+      if (!progDense || !progRibbons) return null;
       const buf = gl.createBuffer();
       if (!buf) return null;
       gl.bindBuffer(gl.ARRAY_BUFFER, buf);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-      const inst = new MagicGL(canvas, gl, progFlow, progDense, buf);
+      const inst = new MagicGL(canvas, gl, progFlow, progDense, progRibbons, buf);
       if (!inst.alloc(640, 360)) return null;
       return inst;
     } catch {
@@ -411,16 +559,19 @@ export class MagicGL {
     gl: WebGLRenderingContext,
     progFlow: WebGLProgram,
     progDense: WebGLProgram,
+    progRibbons: WebGLProgram,
     buf: WebGLBuffer,
   ) {
     this.canvas = canvas;
     this.gl = gl;
     this.progFlow = progFlow;
     this.progDense = progDense;
+    this.progRibbons = progRibbons;
     this.buf = buf;
     this.prev = gl.createTexture()!;
     this.locFlow = locMap(gl, progFlow);
     this.locDense = locMap(gl, progDense);
+    this.locRibbons = locMap(gl, progRibbons);
   }
 
   private alloc(w: number, h: number): boolean {
@@ -450,8 +601,9 @@ export class MagicGL {
     if (!this.alloc(w, h)) return false;
 
     const dense = params.style === "dense";
-    const prog = dense ? this.progDense : this.progFlow;
-    const loc = dense ? this.locDense : this.locFlow;
+    const ribbons = params.style === "ribbons";
+    const prog = ribbons ? this.progRibbons : dense ? this.progDense : this.progFlow;
+    const loc = ribbons ? this.locRibbons : dense ? this.locDense : this.locFlow;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     gl.viewport(0, 0, this.w, this.h);

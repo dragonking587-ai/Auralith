@@ -361,7 +361,7 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
         <Slider label="Flow" value={scene.magic.flow} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("flow", v)} />
         <Slider label="Spread" value={scene.magic.spread} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("spread", v)} />
         <Slider label="Energy" value={scene.magic.energy} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("energy", v)} />
-        {scene.magic.style === "dense" ? (
+        {scene.magic.style === "dense" || scene.magic.style === "ribbons" ? (
           <Slider label="Density" value={scene.magic.density} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("density", v)} />
         ) : null}
         <p className="mb-1 mt-1 text-[11px] text-subtle">Distortion</p>
@@ -378,7 +378,9 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
             ? "Localized air-warp under Magic only. The rest of the photograph stays still."
             : scene.magic.style === "dense"
               ? "Dense Spell is a heavier volumetric look. Nearby stamps still share a field so they blend, not blow out."
-              : "Nearby Magic stamps share an energy field so they blend, not blow out. The source image stays pixel-locked."}
+              : scene.magic.style === "ribbons"
+                ? "Ethereal Ribbons: broad silk-like volumes that rise, twist and fold. Fine motes orbit as a secondary layer."
+                : "Nearby Magic stamps share an energy field so they blend, not blow out. The source image stays pixel-locked."}
         </p>
       </Section>
 

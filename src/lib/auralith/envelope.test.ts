@@ -178,6 +178,32 @@ describe("bounded magic envelope", () => {
     assert.ok(sim.fieldCoverage() > 40);
     assert.ok(sim.liveCount() < sim.fieldCoverage());
   });
+
+  it("ethereal ribbons stays bounded and still uses a field", () => {
+    const sim = new MagicSim();
+    const region = {
+      id: "stamp_ribbons",
+      kind: "stamp" as const,
+      x: 0.5,
+      y: 0.72,
+      r: 0.08,
+      band: "bass" as const,
+      effect: "magic" as const,
+      color: "#3fd18a",
+      intensity: 1,
+    };
+    const loud = { bass: 1, low: 0.3, mid: 0, high: 0 };
+    const cfg = { intensity: 1, flow: 0.8, spread: 0.8, energy: 0.8, style: "ribbons" as const, density: 0.8, distortion: false };
+    for (let i = 1; i <= 60; i++) {
+      sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
+      const s = sim.bodyScale("stamp_ribbons");
+      assert.ok(s);
+      assert.ok(s.aura <= MAGIC_LIMITS.maxAura + 1e-6);
+      assert.ok(s.reach <= MAGIC_LIMITS.maxReach + 1e-6);
+    }
+    assert.ok(sim.fieldCoverage() > 40);
+    assert.ok(sim.liveCount() < sim.fieldCoverage());
+  });
 });
 
 describe("scene schema", () => {
@@ -232,6 +258,16 @@ describe("scene schema", () => {
     assert.ok(s);
     assert.equal(s.magic.style, "dense");
     assert.equal(s.magic.density, 0.88);
+  });
+
+  it("preserves Ethereal Ribbons style in saved scenes", () => {
+    const s = parseScene({
+      schemaVersion: 1,
+      magic: { style: "ribbons", density: 0.7, energy: 0.5, intensity: 0.6 },
+    });
+    assert.ok(s);
+    assert.equal(s.magic.style, "ribbons");
+    assert.equal(s.magic.density, 0.7);
   });
 
   it("ignores unknown Magic styles", () => {
