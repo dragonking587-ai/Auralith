@@ -1,6 +1,7 @@
 import { analyzeBands, ZERO_BANDS } from "./bands";
 import { makeDemoBuffer } from "./demo-audio";
 import { overallEnergy, stepBands } from "./envelope";
+import { isDesktopApp } from "./platform";
 import type { AudioSourceId, Bands, LiveBands } from "./types";
 
 const FFT = 2048;
@@ -29,6 +30,8 @@ class AudioEngine {
   private monitorGain = 0.7;
   private muted = false;
   private owner = false;
+  private nativeUnlisten: (() => void) | null = null;
+  private nativeActive = false;
 
   getSource(): AudioSourceId {
     return this.source;
@@ -57,6 +60,9 @@ class AudioEngine {
   }
 
   tick(now = performance.now()): LiveBands {
+    if (this.nativeActive) {
+      return this.getBands();
+    }
     if (!this.analyser || !this.ctx) {
       return this.getBands();
     }
@@ -142,6 +148,10 @@ class AudioEngine {
     }
 
     if (next === "system") {
+      if (isDesktopApp()) {
+        await this.startNativeLoopback();
+        return;
+      }
       const stream = await navigator.mediaDevices.getDisplayMedia({
         video: true,
         audio: true,
@@ -152,6 +162,68 @@ class AudioEngine {
         throw new Error("System audio is not available in this browser. Use Window Capture or a Track instead.");
       }
       this.attachStream(stream, false);
+    }
+  }
+
+  ingestNative(raw: Bands, now = performance.now()): void {
+    const dt = this.lastT ? Math.min(0.05, (now - this.lastT) / 1000) : 0.016;
+    this.lastT = now;
+    const s = this.sensitivity;
+    const scaled: Bands = {
+      bass: Math.min(1, raw.bass * s),
+      low: Math.min(1, raw.low * s),
+      mid: Math.min(1, raw.mid * s),
+      high: Math.min(1, raw.high * s),
+    };
+    this.env = stepBands(this.env, scaled, dt);
+    this.seq += 1;
+    const live: LiveBands = {
+      ...this.env,
+      t: now,
+      seq: this.seq,
+      dim: 1 - overallEnergy(this.env),
+      intensity: 1,
+    };
+    for (const fn of this.listeners) fn(live);
+  }
+
+  private nativeDeviceId: string | null = null;
+  private nativeErrorUnlisten: (() => void) | null = null;
+
+  setNativeDevice(id: string | null): void {
+    this.nativeDeviceId = id && id !== "default" ? id : null;
+    if (this.nativeActive) void this.startNativeLoopback();
+  }
+
+  private async startNativeLoopback(): Promise<void> {
+    const { invoke } = await import("@tauri-apps/api/core");
+    const { listen } = await import("@tauri-apps/api/event");
+    this.nativeUnlisten?.();
+    this.nativeErrorUnlisten?.();
+    await invoke("start_loopback", { deviceId: this.nativeDeviceId });
+    this.nativeActive = true;
+    this.nativeUnlisten = await listen<Bands>("loopback-bands", (ev) => {
+      if (!this.nativeActive) return;
+      this.ingestNative(ev.payload);
+    });
+    this.nativeErrorUnlisten = await listen<string>("loopback-error", (ev) => {
+      this.nativeActive = false;
+      console.warn("[auralith] loopback", ev.payload);
+    });
+  }
+
+  private async stopNativeLoopback(): Promise<void> {
+    this.nativeActive = false;
+    this.nativeUnlisten?.();
+    this.nativeUnlisten = null;
+    this.nativeErrorUnlisten?.();
+    this.nativeErrorUnlisten = null;
+    if (!isDesktopApp()) return;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("stop_loopback");
+    } catch {
+      /* not running */
     }
   }
 
@@ -178,6 +250,7 @@ class AudioEngine {
   }
 
   private async disconnectSource(): Promise<void> {
+    await this.stopNativeLoopback();
     try {
       this.bufferSource?.stop();
     } catch {
@@ -249,9 +322,27 @@ export function getAudioEngine(): AudioEngine {
 }
 
 export function hasSystemAudio(): boolean {
+  if (isDesktopApp()) return true;
   return typeof navigator !== "undefined" && !!navigator.mediaDevices?.getDisplayMedia;
 }
 
 export function hasMic(): boolean {
   return typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 }
+
+export interface LoopbackDeviceInfo {
+  id: string;
+  name: string;
+  isDefault: boolean;
+}
+
+export async function listLoopbackDevices(): Promise<LoopbackDeviceInfo[]> {
+  if (!isDesktopApp()) return [];
+  try {
+    const { invoke } = await import("@tauri-apps/api/core");
+    return await invoke<LoopbackDeviceInfo[]>("list_loopback_devices");
+  } catch {
+    return [];
+  }
+}
+

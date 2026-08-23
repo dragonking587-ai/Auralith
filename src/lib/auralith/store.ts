@@ -35,6 +35,7 @@ import type {
 import { BAND_LABEL, BANDS } from "./types";
 import { presetById } from "./presets";
 import { DEMO_STAGE_URL } from "./schema";
+import { desktopRead, loadDesktopLiveScene } from "./desktop-store";
 
 const history = new RegionHistory();
 let publisher: LivePublisher | null = null;
@@ -171,8 +172,23 @@ export const useAuralith = create<AuralithState>((set, get) => ({
   hydrate: async () => {
     const sessionId = getOrCreateSessionId();
     publisher = new LivePublisher(sessionId);
-    const stored = loadSceneFromStorage();
-    const library = loadLibrary();
+    let stored = loadSceneFromStorage();
+    if (!stored) {
+      const disk = await loadDesktopLiveScene();
+      if (disk) stored = parseScene(JSON.stringify(disk));
+    }
+    let library = loadLibrary();
+    if (!library.length) {
+      try {
+        const raw = await desktopRead("library.json");
+        if (raw) {
+          const parsed = JSON.parse(raw) as SavedSceneMeta[];
+          if (Array.isArray(parsed)) library = parsed;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
     if (stored?.image) {
       const blob = await loadImageBlob(stored.image.id);
       if (blob) {

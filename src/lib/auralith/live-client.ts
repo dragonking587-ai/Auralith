@@ -1,5 +1,6 @@
 import { BC_NAME, bandsToMsg, msgToBands, type BandsMsg, type LiveMsg } from "./live-protocol";
 import { shouldReplaceImage, preferHttpImage } from "./live-rev";
+import { liveHttpBase, liveWsBase } from "./live-origin";
 import { loadLiveActive, saveLiveActive } from "./storage";
 import type { LiveBands, Scene } from "./types";
 
@@ -20,8 +21,11 @@ export interface LiveViewState {
 type Handler = (state: LiveViewState) => void;
 
 function wsUrl(session: string, role: "editor" | "view"): string {
-  const proto = location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${location.host}/ws/auralith?session=${encodeURIComponent(session)}&role=${role}`;
+  return `${liveWsBase()}/ws/auralith?session=${encodeURIComponent(session)}&role=${role}`;
+}
+
+function apiUrl(path: string, session: string, extra = ""): string {
+  return `${liveHttpBase()}${path}?session=${encodeURIComponent(session)}${extra}`;
 }
 
 export class LivePublisher {
@@ -95,7 +99,7 @@ export class LivePublisher {
       sceneRev: this.sceneRev,
       updatedAt: Date.now(),
     });
-    void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
+    void fetch(`${liveHttpBase()}/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ session: this.session, scene, rev: this.sceneRev }),
@@ -124,7 +128,7 @@ export class LivePublisher {
     }
     this.notifyImage(imageId, dataUrl);
     try {
-      const j = await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}&id=${encodeURIComponent(imageId)}&rev=${localRev}`, {
+      const j = await fetch(`${liveHttpBase()}/api/auralith/image?session=${encodeURIComponent(this.session)}&id=${encodeURIComponent(imageId)}&rev=${localRev}`, {
         method: "POST",
         headers: { "content-type": "text/plain", "cache-control": "no-store" },
         body: dataUrl,
@@ -185,7 +189,7 @@ export class LivePublisher {
       this.pendingBands = null;
       if (!payload || this.closed) return;
       this.lastBandPost = typeof performance !== "undefined" ? performance.now() : Date.now();
-      void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
+      void fetch(`${liveHttpBase()}/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
@@ -331,7 +335,7 @@ export class LiveViewer {
     const tick = () => {
       if (this.closed) return;
       const wsOpen = this.ws?.readyState === WebSocket.OPEN;
-      void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, { cache: "no-store" })
+      void fetch(`${liveHttpBase()}/api/auralith/live?session=${encodeURIComponent(this.session)}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((j) => {
           if (!wsOpen && j.bands && (j.bands.seq ?? 0) >= this.state.seq) {
@@ -438,7 +442,7 @@ export class LiveViewer {
     const gen = ++this.pullGen;
     try {
       const text = await fetch(
-        `/api/auralith/image?session=${encodeURIComponent(this.session)}&rev=${encodeURIComponent(String(rev))}`,
+        `${liveHttpBase()}/api/auralith/image?session=${encodeURIComponent(this.session)}&rev=${encodeURIComponent(String(rev))}`,
         { cache: "no-store" },
       ).then((r) => (r.ok ? r.text() : ""));
       if (gen !== this.pullGen) return;

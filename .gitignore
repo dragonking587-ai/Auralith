@@ -18,4 +18,7 @@ artifacts
 .env.*
 coverage
 *.tsbuildinfo
+dist-desktop
+src-tauri/target
+src-tauri/gen
 public/__grok/manifest.webmanifest

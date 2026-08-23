@@ -6,5 +6,9 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
-  return <EditorShell />;
+  return (
+    <div className="h-dvh">
+      <EditorShell />
+    </div>
+  );
 }

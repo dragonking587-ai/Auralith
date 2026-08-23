@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Circle,
   Copy,
+  Download,
   Eraser,
   Hand,
   ImagePlus,
@@ -21,12 +22,14 @@ import {
 import { APP_NAME, APP_VERSION } from "@/lib/auralith/version";
 import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, type ToolId } from "@/lib/auralith/types";
 import { DETECT_MODE_LABEL, DETECT_MODES } from "@/lib/auralith/detect-lights";
-import { getAudioEngine, hasMic, hasSystemAudio } from "@/lib/auralith/audio-engine";
+import { getAudioEngine, hasMic, hasSystemAudio, listLoopbackDevices, type LoopbackDeviceInfo } from "@/lib/auralith/audio-engine";
 import { groupedPresets } from "@/lib/auralith/presets";
 import { ZERO_BANDS } from "@/lib/auralith/bands";
 import { useAuralith } from "@/lib/auralith/store";
 import { EditorCanvas } from "./EditorCanvas";
 import type { LiveBands } from "@/lib/auralith/types";
+import { DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
+import { resolveWindowsInstallerUrl } from "@/lib/auralith/desktop-release";
 
 const TOOLS: { id: ToolId; label: string; icon: typeof Circle }[] = [
   { id: "stamp", label: "Stamp", icon: Circle },
@@ -78,11 +81,25 @@ export function EditorShell() {
   }, []);
 
   const sessionId = useAuralith((s) => s.sessionId);
-  const sourceUrl = typeof window === "undefined" ? "" : `${window.location.origin}/source/${sessionId}`;
+  const sourceUrl =
+    typeof window === "undefined"
+      ? ""
+      : `${isDesktopApp() ? desktopHttpOrigin() : window.location.origin}/source/${sessionId}`;
 
   const openOutput = () => {
     const w = scene.output.width;
     const h = scene.output.height;
+    useAuralith.getState().getPublisher()?.pushSnapshot();
+    if (isDesktopApp()) {
+      void import("@tauri-apps/api/core").then(({ invoke }) =>
+        invoke("open_output", {
+          session: sessionId,
+          width: w,
+          height: h,
+        }).catch(() => undefined),
+      );
+      return;
+    }
     const maxW = Math.min(w, window.screen.availWidth * 0.9);
     const scale = maxW / w;
     const rev = scene.image?.rev ?? 0;
@@ -94,7 +111,6 @@ export function EditorShell() {
     } catch {
       /* popup just created */
     }
-    useAuralith.getState().getPublisher()?.pushSnapshot();
   };
 
   const copyUrl = async () => {
@@ -108,7 +124,7 @@ export function EditorShell() {
   };
 
   return (
-    <div className="flex h-dvh min-h-0 flex-col bg-bg text-fg">
+    <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <p className="font-display text-xl italic leading-tight tracking-tight">Auralith</p>
@@ -120,6 +136,7 @@ export function EditorShell() {
             <ImagePlus className="size-3.5" />
             Image
           </GhostBtn>
+          {!isDesktopApp() ? <DownloadWindowsBtn /> : null}
           <input
             ref={fileRef}
             type="file"
@@ -220,7 +237,7 @@ export function EditorShell() {
 
       <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-2 text-[11px] text-subtle">
         <span>
-          {APP_NAME} {APP_VERSION}
+          {APP_NAME} {isDesktopApp() ? DESKTOP_VERSION : APP_VERSION}
         </span>
         <span className="tabular-nums">
           {scene.output.width}×{scene.output.height} · {scene.output.fps} FPS
@@ -274,8 +291,11 @@ function AudioPane({ trackRef }: { trackRef: React.RefObject<HTMLInputElement | 
           }}
         />
         <p className="text-[11px] leading-relaxed text-subtle">
-          One engine. Changing source disconnects the previous input. Mic and system audio are not monitored, to avoid feedback.
+          {isDesktopApp()
+            ? "One engine. System audio is WASAPI loopback of the selected Windows output — YouTube, Chrome, Spotify, and games. Nothing is uploaded."
+            : "One engine. Changing source disconnects the previous input. Mic and system audio are not monitored, to avoid feedback."}
         </p>
+        {isDesktopApp() ? <LoopbackDeviceSelect /> : null}
       </Section>
       <Meters />
       <Section title="Response">
@@ -509,6 +529,7 @@ function OutputPane({
         </GhostBtn>
         <p className="text-[11px] leading-relaxed text-subtle">
           OBS / Streamlabs / TikTok LIVE Studio: add a Browser Source, paste this URL, match the resolution above. The source renders locally — it never receives video frames.
+          {isDesktopApp() ? " This desktop URL is bound to 127.0.0.1 and does not use the cloud." : ""}
         </p>
       </Section>
 
@@ -547,6 +568,40 @@ function OutputPane({
         </ul>
       </Section>
     </div>
+  );
+}
+
+function LoopbackDeviceSelect() {
+  const [devices, setDevices] = useState<LoopbackDeviceInfo[]>([]);
+  const [selected, setSelected] = useState("default");
+  useEffect(() => {
+    void listLoopbackDevices().then((list) => {
+      setDevices(list);
+      const def = list.find((d) => d.isDefault);
+      if (def) setSelected(def.id);
+    });
+  }, []);
+  if (!devices.length) return null;
+  return (
+    <label className="mt-2 flex flex-col gap-1 text-[11px] text-muted">
+      Output to monitor
+      <select
+        className="min-h-10 rounded-[8px] border border-border bg-bg-elevated px-2 text-sm text-fg"
+        value={selected}
+        onChange={(e) => {
+          const id = e.target.value;
+          setSelected(id);
+          getAudioEngine().setNativeDevice(id);
+        }}
+      >
+        {devices.map((d) => (
+          <option key={d.id} value={d.id}>
+            {d.name}
+            {d.isDefault ? " (default)" : ""}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
@@ -591,6 +646,26 @@ function Section({ title, icon, children }: { title: string; icon?: React.ReactN
       </h2>
       {children}
     </section>
+  );
+}
+
+function DownloadWindowsBtn() {
+  const [busy, setBusy] = useState(false);
+  return (
+    <GhostBtn
+      onClick={() => {
+        if (busy) return;
+        setBusy(true);
+        void resolveWindowsInstallerUrl()
+          .then((url) => {
+            window.open(url, "_blank", "noopener,noreferrer");
+          })
+          .finally(() => setBusy(false));
+      }}
+    >
+      <Download className="size-3.5" />
+      {busy ? "Opening…" : "Download for Windows"}
+    </GhostBtn>
   );
 }
 

@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "auralith"
+description = "Auralith desktop IPC"
+commands.allow = [
+  "local_port",
+  "start_loopback",
+  "stop_loopback",
+  "list_loopback_devices",
+  "open_output",
+  "save_live_scene",
+  "load_live_scene",
+  "save_app_file",
+  "load_app_file"
+]

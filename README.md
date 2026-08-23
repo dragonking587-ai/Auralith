@@ -25,6 +25,7 @@ Permanent source of truth: [https://github.com/dragonking587-ai/Auralith](https:
 - Browser Source output (recommended, low latency)
 - Window Capture output (`Auralith — Stream Output`) as the compatibility fallback
 - Desktop, phone, and tablet (mouse, touch, stylus)
+- Optional Windows desktop app (local WASAPI loopback + localhost Browser Source) — see [DESKTOP.md](DESKTOP.md). Web **Download for Windows** points at the GitHub pre-release installer.
 
 ## Installation
 

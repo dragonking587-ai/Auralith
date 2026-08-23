@@ -1,6 +1,7 @@
 import { parseScene } from "./schema";
 import type { SavedSceneMeta, Scene } from "./types";
 import { makeSessionId, uid } from "./id";
+import { desktopRead, desktopWrite } from "./desktop-store";
 
 const LS_SESSION = "auralith.session";
 const LS_SCENE = "auralith.scene";
@@ -76,14 +77,18 @@ export function saveSceneToStorage(scene: Scene): void {
   } catch {
     /* quota */
   }
+  void desktopWrite("live-scene.json", JSON.stringify(scene));
 }
 
 export async function saveImageBlob(id: string, dataUrl: string): Promise<void> {
   await idbSet(`image:${id}`, dataUrl);
+  void desktopWrite(`images-${id}.txt`, dataUrl);
 }
 
 export async function loadImageBlob(id: string): Promise<string | null> {
-  return idbGet(`image:${id}`);
+  const local = await idbGet(`image:${id}`);
+  if (local) return local;
+  return desktopRead(`images-${id}.txt`);
 }
 
 export interface LiveActiveState {
@@ -136,6 +141,7 @@ function saveLibrary(list: SavedSceneMeta[]): void {
   } catch {
     /* quota */
   }
+  void desktopWrite("library.json", JSON.stringify(list));
 }
 
 export async function saveNamedScene(scene: Scene, imageDataUrl: string | null): Promise<SavedSceneMeta> {
@@ -145,19 +151,25 @@ export async function saveNamedScene(scene: Scene, imageDataUrl: string | null):
     name: scene.name || "Untitled",
     updatedAt: Date.now(),
   };
-  await idbSet(`scene:${id}`, JSON.stringify(scene));
-  if (imageDataUrl) await idbSet(`scene-image:${id}`, imageDataUrl);
+  const raw = JSON.stringify(scene);
+  await idbSet(`scene:${id}`, raw);
+  void desktopWrite(`scene-${id}.json`, raw);
+  if (imageDataUrl) {
+    await idbSet(`scene-image:${id}`, imageDataUrl);
+    void desktopWrite(`scene-image-${id}.txt`, imageDataUrl);
+  }
   const list = [meta, ...loadLibrary().filter((s) => s.name !== meta.name)].slice(0, 40);
   saveLibrary(list);
   return meta;
 }
 
 export async function loadNamedScene(id: string): Promise<{ scene: Scene; image: string | null } | null> {
-  const raw = await idbGet(`scene:${id}`);
+  let raw = await idbGet(`scene:${id}`);
+  if (!raw) raw = await desktopRead(`scene-${id}.json`);
   if (!raw) return null;
   const scene = parseScene(raw);
   if (!scene) return null;
-  const image = await idbGet(`scene-image:${id}`);
+  const image = (await idbGet(`scene-image:${id}`)) ?? (await desktopRead(`scene-image-${id}.txt`));
   return { scene, image };
 }
 
