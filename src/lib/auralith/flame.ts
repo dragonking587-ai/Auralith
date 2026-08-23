@@ -3,7 +3,7 @@ import type { Bands, FlameConfig, ImageRect, Region, StampRegion } from "./types
 import { imageNormToCanvas, minSide } from "./coords.ts";
 import { bandLevel, stepEnvelope } from "./envelope.ts";
 
-interface Particle {
+interface Ember {
   live: boolean;
   x: number;
   y: number;
@@ -35,8 +35,8 @@ export const FLAME_LIMITS = {
   minLife: 0.12,
   maxTravelScale: 1.1,
   maxGlowScale: 1.65,
-  maxParticles: 420,
-  maxSpawns: 16,
+  maxParticles: 72,
+  maxSpawns: 5,
   maxVy: 0.85,
   maxTongues: 6,
   maxBright: 0.9,
@@ -44,27 +44,65 @@ export const FLAME_LIMITS = {
 
 const POOL = FLAME_LIMITS.maxParticles;
 
+
+function hash2(ix: number, iy: number): number {
+  let n = Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263);
+  n = Math.imul(n ^ (n >>> 13), 1274126177);
+  return ((n ^ (n >>> 16)) >>> 0) / 4294967296;
+}
+
+function valueNoise(x: number, y: number): number {
+  const ix = Math.floor(x);
+  const iy = Math.floor(y);
+  const fx = x - ix;
+  const fy = y - iy;
+  const u = fx * fx * (3 - 2 * fx);
+  const v = fy * fy * (3 - 2 * fy);
+  const a = hash2(ix, iy);
+  const b = hash2(ix + 1, iy);
+  const c = hash2(ix, iy + 1);
+  const d = hash2(ix + 1, iy + 1);
+  return lerp(lerp(a, b, u), lerp(c, d, u), v);
+}
+
+function fbm(x: number, y: number): number {
+  let s = 0;
+  let a = 0.52;
+  let f = 1;
+  s += valueNoise(x * f, y * f) * a;
+  f *= 2.03;
+  a *= 0.5;
+  s += valueNoise(x * f + 19.1, y * f + 8.4) * a;
+  f *= 2.11;
+  a *= 0.5;
+  s += valueNoise(x * f + 41.2, y * f + 27.7) * a;
+  return s;
+}
+
+function smooth01(edge0: number, edge1: number, x: number): number {
+  const t = clamp((x - edge0) / (edge1 - edge0 || 1), 0, 1);
+  return t * t * (3 - 2 * t);
+}
+
 export function flameColor(t: number, heat: number): { r: number; g: number; b: number } {
-  const h = clamp(t * (0.65 + heat * 0.35), 0, 1);
-  // Cap well below white so grouped flames never blow out.
-  if (h < 0.25) {
-    const k = h / 0.25;
-    return { r: lerp(40, 160, k), g: lerp(8, 28, k), b: lerp(2, 6, k) };
+  const h = clamp(t * (0.68 + heat * 0.32), 0, 1);
+  if (h < 0.16) {
+    const k = h / 0.16;
+    return { r: lerp(48, 178, k), g: lerp(4, 22, k), b: lerp(0, 4, k) };
   }
-  if (h < 0.55) {
-    const k = (h - 0.25) / 0.3;
-    return { r: lerp(160, 230, k), g: lerp(28, 90, k), b: lerp(6, 18, k) };
+  if (h < 0.4) {
+    const k = (h - 0.16) / 0.24;
+    return { r: lerp(178, 232, k), g: lerp(22, 72, k), b: lerp(4, 10, k) };
   }
-  if (h < 0.82) {
-    const k = (h - 0.55) / 0.27;
-    return { r: lerp(230, 240, k), g: lerp(90, 150, k), b: lerp(18, 40, k) };
+  if (h < 0.72) {
+    const k = (h - 0.4) / 0.32;
+    return { r: lerp(232, 246, k), g: lerp(72, 148, k), b: lerp(10, 32, k) };
   }
-  const k = (h - 0.82) / 0.18;
-  return { r: lerp(240, 248, k), g: lerp(150, 190, k), b: lerp(40, 88, k) };
+  const k = (h - 0.72) / 0.28;
+  return { r: lerp(246, 252, k), g: lerp(148, 198, k), b: lerp(32, 78, k) };
 }
 
 export function heatContribute(existing: number, add: number): number {
-  // Max (lighten) so overlapping stamps grow area, not stacked brightness.
   return existing > add ? existing : add;
 }
 
@@ -89,7 +127,7 @@ function hashId(id: string): number {
 }
 
 export class FlameSim {
-  private particles: Particle[] = [];
+  private embers: Ember[] = [];
   private heat: Float32Array;
   private hw: number;
   private hh: number;
@@ -100,25 +138,37 @@ export class FlameSim {
   private heatCanvas: OffscreenCanvas | HTMLCanvasElement | null = null;
   private heatCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
   private pixels: ImageData | null = null;
+  private shimmer: HTMLCanvasElement | OffscreenCanvas | null = null;
+  private shimmerCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
+  private timeSec = 0;
+  private peakHeat = 0;
 
-  constructor(heatW = 160, heatH = 90) {
+  constructor(heatW = 240, heatH = 136) {
     this.hw = heatW;
     this.hh = heatH;
     this.heat = new Float32Array(heatW * heatH);
     if (typeof OffscreenCanvas !== "undefined") {
       this.heatCanvas = new OffscreenCanvas(heatW, heatH);
+      this.shimmer = new OffscreenCanvas(160, 96);
     } else if (typeof document !== "undefined") {
       const c = document.createElement("canvas");
       c.width = heatW;
       c.height = heatH;
       this.heatCanvas = c;
+      const s = document.createElement("canvas");
+      s.width = 160;
+      s.height = 96;
+      this.shimmer = s;
     }
     this.heatCtx = this.heatCanvas
-      ? (this.heatCanvas.getContext("2d") as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null)
+      ? (this.heatCanvas.getContext("2d", { alpha: true }) as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null)
+      : null;
+    this.shimmerCtx = this.shimmer
+      ? (this.shimmer.getContext("2d") as OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null)
       : null;
     if (this.heatCtx) this.pixels = this.heatCtx.createImageData(heatW, heatH);
     for (let i = 0; i < POOL; i++) {
-      this.particles.push({
+      this.embers.push({
         live: false,
         x: 0,
         y: 0,
@@ -129,7 +179,7 @@ export class FlameSim {
         life: 0,
         maxLife: 1,
         maxDist: 0.1,
-        size: 4,
+        size: 2,
         heat: 0.5,
       });
     }
@@ -139,7 +189,8 @@ export class FlameSim {
     this.heat.fill(0);
     this.bodies.clear();
     this.lastT = 0;
-    for (const p of this.particles) p.live = false;
+    this.peakHeat = 0;
+    for (const p of this.embers) p.live = false;
   }
 
   private rand(): number {
@@ -147,32 +198,62 @@ export class FlameSim {
     return (this.rng & 2147483647) / 2147483647;
   }
 
-  /** Vertical teardrop kernel — size is the current envelope, not an accumulator. */
-  private stampTeardrop(nx: number, ny: number, halfW: number, height: number, amount: number): void {
+  /**
+   * Procedural fire kernel: broad anchored base, tapering body, noise-warped
+   * tongues. Deposits into the shared heat field with max-blend.
+   */
+  private stampFlame(
+    nx: number,
+    ny: number,
+    halfW: number,
+    height: number,
+    amount: number,
+    seed: number,
+    turb: number,
+    speed: number,
+    roar: number,
+  ): void {
     const hw = this.hw;
     const hh = this.hh;
     const cx = nx * hw;
     const cy = ny * hh;
-    const rise = Math.max(2, height * hh);
-    const base = Math.max(1.1, halfW * hw);
-    const x0 = Math.max(0, Math.floor(cx - base * 1.15));
-    const x1 = Math.min(hw - 1, Math.ceil(cx + base * 1.15));
-    const y0 = Math.max(0, Math.floor(cy - rise));
-    const y1 = Math.min(hh - 1, Math.ceil(cy + base * 0.35));
+    const rise = Math.max(3, height * hh);
+    const base = Math.max(1.4, halfW * hw);
+    const pad = 1.35 + turb * 0.25 + roar * 0.2;
+    const x0 = Math.max(0, Math.floor(cx - base * pad));
+    const x1 = Math.min(hw - 1, Math.ceil(cx + base * pad));
+    const y0 = Math.max(0, Math.floor(cy - rise * 1.08));
+    const y1 = Math.min(hh - 1, Math.ceil(cy + base * 0.28));
     const add = clamp(amount, 0, 1);
+    const t = this.timeSec * (0.55 + speed * 1.15);
+    const s1 = seed * 13.7;
+    const s2 = seed * 27.3;
+
     for (let y = y0; y <= y1; y++) {
-      const t = clamp((cy - (y + 0.5)) / rise, -0.2, 1);
-      const flare = t < 0 ? 1 + t * 2 : Math.pow(1 - t, 0.65);
-      const rad = base * Math.max(0.08, flare);
-      const r2 = rad * rad;
+      const v = (cy - (y + 0.5)) / rise;
+      if (v < -0.18 || v > 1.14) continue;
+      const vy = v < 0 ? 0 : v;
       for (let x = x0; x <= x1; x++) {
-        const dx = x + 0.5 - cx;
-        const d2 = dx * dx;
-        if (d2 > r2) continue;
-        const fall = 1 - d2 / r2;
-        const vertical = t < 0 ? 0.35 : Math.pow(1 - t, 0.45);
+        const u = (x + 0.5 - cx) / base;
+        const n1 = fbm(u * 2.15 + s1, vy * 1.55 - t * 1.35 + s1);
+        const n2 = fbm(u * 4.8 + s2, vy * 3.4 - t * 2.2 + s2);
+        const warp = (n1 - 0.5) * (0.18 + vy * 0.95) * turb;
+        const split = vy > 0.58 ? (n2 - 0.5) * (vy - 0.58) * (0.9 + roar * 0.85) * turb : 0;
+        const curl = (n2 - 0.5) * vy * vy * 0.35 * turb;
+        const uw = u + warp + split + curl;
+        let half = Math.pow(Math.max(0, 1 - vy), 0.56) * (0.88 + roar * 0.55);
+        half *= 0.72 + 0.4 * n1;
+        if (v < 0) half *= Math.max(0.15, 1 + v * 2.4);
+        half = Math.max(0.07, half);
+        const edge = 1 - Math.abs(uw) / half;
+        if (edge <= 0) continue;
+        const mask = smooth01(0, 0.38, edge);
+        const core = Math.exp(-uw * uw * 4.4) * Math.exp(-vy * 1.05) * mask;
+        const shell = mask * Math.exp(-vy * 0.85);
+        const halo = Math.exp(-(uw * uw) / (half * half * 3.4) - Math.max(0, vy) * 2.4) * 0.22;
+        const energy = clamp(shell * 0.8 + core * 0.88 + halo, 0, 1);
         const i = y * hw + x;
-        this.heat[i] = heatContribute(this.heat[i]!, add * fall * fall * vertical);
+        this.heat[i] = heatContribute(this.heat[i]!, add * energy);
       }
     }
   }
@@ -199,17 +280,20 @@ export class FlameSim {
     if (!Number.isFinite(dt) || dt <= 0) dt = dtHint || 1 / 60;
     dt = clamp(dt, 0.001, 0.05);
     this.lastT = time;
+    this.timeSec = time * 0.001;
 
-    const heat = clamp(flame.heat, 0, 1);
+    const heatAmt = clamp(flame.heat, 0, 1);
     const density = clamp(flame.density, 0, 1);
     const speed = clamp(flame.speed, 0, 1);
 
-    const decay = Math.exp(-dt * (2.4 + (1 - heat) * 0.7));
+    const decay = Math.exp(-dt * (3.1 + (1 - heatAmt) * 0.8));
     for (let i = 0; i < this.heat.length; i++) this.heat[i]! *= decay;
 
     const seen = new Set<string>();
     const flameRegions = regions.filter((r) => r.effect === "flame");
     this.activeRegions = flameRegions;
+    const cluster = this.clusterScale();
+
     for (const region of flameRegions) {
       seen.add(region.id);
       const level = clamp(bandLevel(bands, region.band) * region.intensity * master, 0, 1);
@@ -217,21 +301,43 @@ export class FlameSim {
       b.env = stepEnvelope(b.env, level, dt, 0.045, 0.26);
       const roarTarget = b.env > 0.58 ? clamp((b.env - 0.5) / 0.5, 0, 1) : 0;
       b.roar = stepEnvelope(b.roar, roarTarget, dt, 0.22, 0.38);
-      const t = flameTargets(b.env, b.roar, heat);
+      const t = flameTargets(b.env, b.roar, heatAmt);
       b.height = stepEnvelope(b.height, t.height, dt, 0.05, 0.22);
       b.width = stepEnvelope(b.width, t.width, dt, 0.055, 0.24);
       b.height = clamp(b.height, FLAME_LIMITS.minHeight, FLAME_LIMITS.maxHeight);
       b.width = clamp(b.width, FLAME_LIMITS.minWidth, FLAME_LIMITS.maxWidth);
 
-      const amount = clamp(b.env * (0.4 + density * 0.35) * (0.7 + b.roar * 0.3), 0, 0.92);
+      const share = cluster.get(region.id) ?? 1;
+      const amount = clamp(b.env * (0.55 + density * 0.4) * (0.72 + b.roar * 0.38) * share, 0, 0.96);
+      const turb = clamp(0.32 + heatAmt * 0.35 + speed * 0.28 + b.roar * 0.45 + density * 0.12, 0, 1.15);
       if (region.kind === "stamp") {
-        this.stampTeardrop(region.x, region.y, region.r * b.width, region.r * b.height, amount);
+        this.stampFlame(
+          region.x,
+          region.y,
+          region.r * b.width,
+          region.r * b.height,
+          amount,
+          b.seed,
+          turb,
+          speed,
+          b.roar,
+        );
       } else {
         const pts = region.points;
-        const step = Math.max(1, Math.ceil(pts.length / 8));
-        for (let i = 0; i < pts.length; i += step) {
+        const stepN = Math.max(1, Math.ceil(pts.length / 10));
+        for (let i = 0; i < pts.length; i += stepN) {
           const p = pts[i]!;
-          this.stampTeardrop(p.x, p.y, region.width * b.width * 0.9, region.width * b.height * 1.6, amount * 0.75);
+          this.stampFlame(
+            p.x,
+            p.y,
+            region.width * b.width * 0.95,
+            region.width * b.height * 1.55,
+            amount * 0.82,
+            b.seed + i * 0.017,
+            turb,
+            speed,
+            b.roar,
+          );
         }
       }
     }
@@ -239,59 +345,55 @@ export class FlameSim {
       if (!seen.has(id)) this.bodies.delete(id);
     }
 
+    this.peakHeat = 0;
+    for (let i = 0; i < this.heat.length; i++) {
+      const v = this.heat[i]!;
+      if (v > this.peakHeat) this.peakHeat = v;
+    }
+
     let spawned = 0;
-    const budget = Math.round(FLAME_LIMITS.maxSpawns * (0.3 + density * 0.7));
+    const budget = Math.round(FLAME_LIMITS.maxSpawns * (0.15 + density * 0.45 + (this.peakHeat > 0.4 ? 0.2 : 0)));
     for (const region of flameRegions) {
       if (spawned >= budget) break;
       const b = this.bodies.get(region.id);
-      if (!b || b.env < 0.03) continue;
-      const n = Math.min(
-        4,
-        Math.ceil(b.env * (1 + density * 2.4) * (0.55 + b.roar * 0.7) * (region.kind === "trace" ? 1.3 : 1)),
-      );
-      const heightN =
-        region.kind === "stamp" ? region.r * b.height : region.width * b.height * 1.6;
+      if (!b || b.env < 0.12) continue;
+      const n = b.roar > 0.35 && this.rand() < 0.55 + density * 0.3 ? 1 : this.rand() < 0.35 + b.env * 0.25 ? 1 : 0;
+      if (!n) continue;
+      const heightN = region.kind === "stamp" ? region.r * b.height : region.width * b.height * 1.55;
       const widthN = region.kind === "stamp" ? region.r * b.width : region.width * b.width;
-      for (let k = 0; k < n && spawned < budget; k++) {
-        const p = this.alloc();
-        if (!p) break;
-        let nx: number;
-        let ny: number;
-        if (region.kind === "stamp") {
-          const ang = (this.rand() - 0.5) * Math.PI;
-          const rad = widthN * (0.1 + this.rand() * 0.55);
-          nx = region.x + Math.cos(ang) * rad;
-          ny = region.y + Math.sin(ang) * rad * 0.25;
-        } else {
-          const pts = region.points;
-          const idx = Math.floor(this.rand() * Math.max(1, pts.length - 1));
-          const a = pts[idx]!;
-          const c = pts[idx + 1] ?? a;
-          const t = this.rand();
-          nx = lerp(a.x, c.x, t);
-          ny = lerp(a.y, c.y, t);
-        }
-        const maxDist = clamp(heightN * FLAME_LIMITS.maxTravelScale, 0.02, 0.45);
-        const rise = clamp((0.12 + b.env * 0.22 + speed * 0.18) * (0.7 + this.rand() * 0.5), 0.04, FLAME_LIMITS.maxVy);
-        p.live = true;
-        p.x = nx;
-        p.y = ny;
-        p.ox = nx;
-        p.oy = ny;
-        p.vx = (this.rand() - 0.5) * (0.04 + b.roar * 0.05) * (0.4 + speed);
-        p.vy = -rise;
-        p.maxLife = clamp(0.16 + b.env * 0.18 + heat * 0.08 + this.rand() * 0.12, FLAME_LIMITS.minLife, FLAME_LIMITS.maxLife);
-        p.life = p.maxLife;
-        p.maxDist = maxDist;
-        p.size = 3 + this.rand() * 5 * (0.45 + density * 0.55);
-        p.heat = clamp(0.35 + b.env * 0.35 + heat * 0.25, 0, 1);
-        spawned++;
+      const p = this.alloc();
+      if (!p) break;
+      let nx: number;
+      let ny: number;
+      if (region.kind === "stamp") {
+        nx = region.x + (this.rand() - 0.5) * widthN * 0.45;
+        ny = region.y - heightN * (0.55 + this.rand() * 0.25);
+      } else {
+        const pts = region.points;
+        const idx = Math.floor(this.rand() * Math.max(1, pts.length - 1));
+        const a = pts[idx]!;
+        nx = a.x + (this.rand() - 0.5) * region.width * 0.3;
+        ny = a.y - heightN * (0.4 + this.rand() * 0.3);
       }
+      const maxDist = clamp(heightN * 0.55, 0.015, 0.22);
+      const rise = clamp((0.08 + b.env * 0.12 + speed * 0.12) * (0.7 + this.rand() * 0.4), 0.03, 0.42);
+      p.live = true;
+      p.x = nx;
+      p.y = ny;
+      p.ox = nx;
+      p.oy = ny;
+      p.vx = (this.rand() - 0.5) * (0.03 + b.roar * 0.04);
+      p.vy = -rise;
+      p.maxLife = clamp(0.18 + this.rand() * 0.22, FLAME_LIMITS.minLife, FLAME_LIMITS.maxLife);
+      p.life = p.maxLife;
+      p.maxDist = maxDist;
+      p.size = 1.1 + this.rand() * 1.8;
+      p.heat = clamp(0.45 + b.env * 0.25 + heatAmt * 0.2, 0, 1);
+      spawned++;
     }
 
-    const turb = clamp(0.35 + heat * 0.4 + speed * 0.35, 0, 1);
-    const tSec = time * 0.001;
-    for (const p of this.particles) {
+    const turb = clamp(0.35 + heatAmt * 0.4 + speed * 0.35, 0, 1);
+    for (const p of this.embers) {
       if (!p.live) continue;
       p.life -= dt;
       const dx = p.x - p.ox;
@@ -303,30 +405,30 @@ export class FlameSim {
       }
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      p.x += Math.sin(tSec * (5 + speed * 7) + p.heat * 14 + p.ox * 20) * turb * 0.012 * dt;
-      p.vx *= Math.max(0, 1 - 0.55 * dt);
-      p.vy *= Math.max(0, 1 - 0.35 * dt);
+      p.x += Math.sin(this.timeSec * (4 + speed * 5) + p.ox * 18) * turb * 0.01 * dt;
+      p.vx *= Math.max(0, 1 - 0.7 * dt);
+      p.vy *= Math.max(0, 1 - 0.28 * dt);
       if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) p.live = false;
     }
   }
 
   draw(ctx: CanvasRenderingContext2D, rect: ImageRect, flame: FlameConfig, master: number): void {
+    if (this.peakHeat < 0.02 && this.liveCount() === 0) return;
     const side = minSide(rect);
     const heatAmt = clamp(flame.heat, 0, 1);
-    const density = clamp(flame.density, 0, 1);
-    const speed = clamp(flame.speed, 0, 1);
-    const bright = clamp(master * (0.72 + heatAmt * 0.22), 0, FLAME_LIMITS.maxBright);
+    const bright = clamp(master * (0.78 + heatAmt * 0.2), 0, FLAME_LIMITS.maxBright);
+
+    this.drawShimmer(ctx, rect, heatAmt, bright);
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";
-    ctx.globalAlpha = bright;
 
     if (this.heatCtx && this.pixels && this.heatCanvas) {
       const data = this.pixels.data;
       for (let i = 0; i < this.heat.length; i++) {
         const v = normalizeHeat(this.heat[i] ?? 0);
         const o = i * 4;
-        if (v < 0.04) {
+        if (v < 0.035) {
           data[o] = 0;
           data[o + 1] = 0;
           data[o + 2] = 0;
@@ -337,49 +439,103 @@ export class FlameSim {
         data[o] = col.r;
         data[o + 1] = col.g;
         data[o + 2] = col.b;
-        data[o + 3] = Math.min(165, v * 175);
+        const a = v < 0.18 ? v * 420 : 110 + v * 120;
+        data[o + 3] = Math.min(210, a * bright);
       }
       this.heatCtx.putImageData(this.pixels, 0, 0);
       ctx.imageSmoothingEnabled = true;
-      ctx.globalAlpha = bright * 0.55;
+      ctx.imageSmoothingQuality = "high";
+      ctx.globalAlpha = 1;
       ctx.drawImage(this.heatCanvas as CanvasImageSource, rect.x, rect.y, rect.w, rect.h);
-      ctx.globalAlpha = bright;
     }
 
-    const tSec = this.lastT * 0.001;
-    const cluster = this.clusterScale();
-
-    for (const [id, body] of this.bodies) {
-      const region = this.findRegion(id);
-      if (!region) continue;
-      const share = cluster.get(id) ?? 1;
-      this.drawRegionFlames(ctx, rect, side, region, body, heatAmt, density, speed, tSec, share);
-    }
-
-    for (const p of this.particles) {
+    ctx.globalCompositeOperation = "lighter";
+    for (const p of this.embers) {
       if (!p.live) continue;
       const age = 1 - p.life / p.maxLife;
       const fade = Math.sin(Math.min(1, p.life / p.maxLife) * Math.PI);
       const pos = imageNormToCanvas(p.x, p.y, rect);
-      const col = flameColor(p.heat * (1 - age * 0.55), heatAmt);
-      const radius = (p.size * (1 - age * 0.35) * side) / 520;
-      ctx.globalAlpha = bright * fade * 0.45;
+      const col = flameColor(p.heat * (1 - age * 0.7), heatAmt);
+      const radius = Math.max(0.6, (p.size * (1 - age * 0.4) * side) / 900);
+      ctx.globalAlpha = bright * fade * 0.55;
       ctx.fillStyle = `rgba(${col.r | 0},${col.g | 0},${col.b | 0},1)`;
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, Math.max(0.8, radius), 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
       ctx.fill();
     }
 
     ctx.restore();
   }
 
-  private findRegion(id: string): Region | null {
-    for (const r of this.activeRegions) if (r.id === id) return r;
-    return null;
+  /** Subtle local warp of the already-drawn plate, only above active flame. */
+  private drawShimmer(ctx: CanvasRenderingContext2D, rect: ImageRect, heatAmt: number, bright: number): void {
+    if (!this.shimmer || !this.shimmerCtx || this.peakHeat < 0.12) return;
+    const box = this.heatAabb();
+    if (!box) return;
+    const x = rect.x + box.x0 * rect.w;
+    const y = rect.y + box.y0 * rect.h;
+    const w = (box.x1 - box.x0) * rect.w;
+    const h = (box.y1 - box.y0) * rect.h;
+    if (w < 8 || h < 8) return;
+    const top = y - h * 0.12;
+    const regionH = h * 0.55;
+    const regionY = Math.max(0, top);
+    const sw = 160;
+    const sh = 96;
+    const amp = (1.6 + heatAmt * 2.4) * (0.45 + bright * 0.55);
+    try {
+      this.shimmerCtx.clearRect(0, 0, sw, sh);
+      this.shimmerCtx.drawImage(ctx.canvas, x, regionY, w, regionH, 0, 0, sw, sh);
+      ctx.save();
+      ctx.globalAlpha = 0.22 + heatAmt * 0.18;
+      const slices = 12;
+      const sliceH = sh / slices;
+      for (let i = 0; i < slices; i++) {
+        const t = i / slices;
+        const ox = Math.sin(this.timeSec * 7.2 + i * 0.85 + box.x0 * 8) * amp * (1 - t);
+        ctx.drawImage(
+          this.shimmer as CanvasImageSource,
+          0,
+          i * sliceH,
+          sw,
+          sliceH + 0.6,
+          x + ox,
+          regionY + (i * regionH) / slices,
+          w,
+          regionH / slices + 0.6,
+        );
+      }
+      ctx.restore();
+    } catch {
+      /* canvas read can fail on tainted images; skip haze */
+    }
   }
 
-  private alloc(): Particle | null {
-    for (const p of this.particles) if (!p.live) return p;
+  private heatAabb(): { x0: number; y0: number; x1: number; y1: number } | null {
+    const hw = this.hw;
+    const hh = this.hh;
+    let x0 = hw;
+    let y0 = hh;
+    let x1 = 0;
+    let y1 = 0;
+    let found = false;
+    for (let y = 0; y < hh; y++) {
+      const row = y * hw;
+      for (let x = 0; x < hw; x++) {
+        if ((this.heat[row + x] ?? 0) < 0.1) continue;
+        found = true;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+    if (!found) return null;
+    return { x0: x0 / hw, y0: y0 / hh, x1: (x1 + 1) / hw, y1: (y1 + 1) / hh };
+  }
+
+  private alloc(): Ember | null {
+    for (const p of this.embers) if (!p.live) return p;
     return null;
   }
 
@@ -394,25 +550,31 @@ export class FlameSim {
         if (i === j) continue;
         const b = stamps[j]!;
         const d = Math.hypot(a.x - b.x, a.y - b.y);
-        if (d < (a.r + b.r) * 2.2) neighbors++;
+        if (d < (a.r + b.r) * 2.4) neighbors++;
       }
-      if (neighbors > 0) scale.set(a.id, clamp(1 / (1 + neighbors * 0.45), 0.42, 0.78));
+      if (neighbors > 0) scale.set(a.id, clamp(0.82 + Math.min(neighbors, 8) * 0.03, 0.82, 1));
     }
     return scale;
   }
 
   liveCount(): number {
     let n = 0;
-    for (const p of this.particles) if (p.live) n++;
+    for (const p of this.embers) if (p.live) n++;
     return n;
   }
 
-  /** Test helper: particle Y stays near the spawn base. */
+  heatCoverage(): number {
+    let n = 0;
+    for (let i = 0; i < this.heat.length; i++) if ((this.heat[i] ?? 0) > 0.12) n++;
+    return n;
+  }
+
+  /** Test helper: ember Y stays near the spawn base. */
   extents(): { live: number; minY: number; maxY: number } {
     let live = 0;
     let minY = 1;
     let maxY = 0;
-    for (const p of this.particles) {
+    for (const p of this.embers) {
       if (!p.live) continue;
       live++;
       if (p.y < minY) minY = p.y;
@@ -426,97 +588,4 @@ export class FlameSim {
     if (!b) return null;
     return { height: b.height, width: b.width, env: b.env, roar: b.roar };
   }
-
-  private drawRegionFlames(
-    ctx: CanvasRenderingContext2D,
-    rect: ImageRect,
-    side: number,
-    region: Region,
-    body: Body,
-    heatAmt: number,
-    density: number,
-    speed: number,
-    tSec: number,
-    share: number,
-  ): void {
-    const tongues = clamp(2 + Math.round(density * 3 + body.roar * 2), 2, FLAME_LIMITS.maxTongues);
-    const turb = clamp(0.25 + heatAmt * 0.4 + speed * 0.35 + body.roar * 0.25, 0, 1);
-    const flicker = 0.93 + 0.07 * Math.sin(tSec * (7 + speed * 9) + body.seed * 12);
-
-    const drawAt = (nx: number, ny: number, baseR: number, glowShare: number) => {
-      const origin = imageNormToCanvas(nx, ny, rect);
-      const rPx = baseR * side;
-      const hPx = clamp(body.height * rPx * flicker, 4, rPx * FLAME_LIMITS.maxHeight);
-      const wPx = clamp(body.width * rPx, 3, rPx * FLAME_LIMITS.maxWidth);
-      const glowR = clamp(wPx * (1.15 + body.env * 0.35), 4, rPx * FLAME_LIMITS.maxGlowScale);
-
-      ctx.save();
-      const g0 = flameColor(0.55, heatAmt);
-      const glow = ctx.createRadialGradient(origin.x, origin.y, 0, origin.x, origin.y, glowR);
-      glow.addColorStop(0, `rgba(${g0.r},${g0.g},${Math.min(g0.b, 70)},${0.42 * glowShare * (0.45 + body.env * 0.55)})`);
-      glow.addColorStop(1, `rgba(${g0.r},16,0,0)`);
-      ctx.fillStyle = glow;
-      ctx.beginPath();
-      ctx.arc(origin.x, origin.y, glowR, 0, Math.PI * 2);
-      ctx.fill();
-
-      for (let i = 0; i < tongues; i++) {
-        const u = tongues === 1 ? 0 : i / (tongues - 1) - 0.5;
-        const lean =
-          Math.sin(tSec * (3.2 + speed * 5) + body.seed * 20 + i * 1.7) * turb * wPx * 0.42 + u * wPx * 0.55;
-        const h = hPx * (0.72 + 0.28 * (0.5 + 0.5 * Math.sin(body.seed * 9 + i * 2.1))) * (i === 0 ? 1 : 0.82);
-        const w = wPx * (0.55 + (1 - Math.abs(u)) * 0.5) * (0.85 + body.roar * 0.2);
-        drawTongue(ctx, origin.x, origin.y, w, h, lean, heatAmt, 0.55 + body.env * 0.35, false);
-      }
-      const coreH = hPx * 0.62;
-      const coreW = wPx * 0.38;
-      const coreLean = Math.sin(tSec * (4 + speed * 6) + body.seed * 8) * turb * wPx * 0.12;
-      drawTongue(ctx, origin.x, origin.y, coreW, coreH, coreLean, heatAmt, 0.8, true);
-      ctx.restore();
-    };
-
-    if (region.kind === "stamp") {
-      drawAt(region.x, region.y, region.r, share);
-    } else {
-      const pts = region.points;
-      if (pts.length < 2) return;
-      const step = Math.max(1, Math.ceil(pts.length / 6));
-      for (let i = 0; i < pts.length; i += step) {
-        const p = pts[i]!;
-        drawAt(p.x, p.y, region.width * 0.9, share * 0.85);
-      }
-    }
-  }
-}
-
-function drawTongue(
-  ctx: CanvasRenderingContext2D,
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  lean: number,
-  heatAmt: number,
-  alpha: number,
-  core: boolean,
-): void {
-  const tipX = x + lean;
-  const tipY = y - h;
-  const left = x - w;
-  const right = x + w;
-  ctx.beginPath();
-  ctx.moveTo(left, y);
-  ctx.bezierCurveTo(left - w * 0.12, y - h * 0.28, tipX - w * 0.42, y - h * 0.62, tipX, tipY);
-  ctx.bezierCurveTo(tipX + w * 0.42, y - h * 0.62, right + w * 0.12, y - h * 0.28, right, y);
-  ctx.closePath();
-  const g = ctx.createLinearGradient(x, y, tipX, tipY);
-  const c0 = flameColor(core ? 0.98 : 0.78, heatAmt);
-  const c1 = flameColor(core ? 0.7 : 0.48, heatAmt);
-  const c2 = flameColor(core ? 0.4 : 0.18, heatAmt);
-  const a = clamp(alpha, 0, 0.92);
-  g.addColorStop(0, `rgba(${c0.r},${c0.g},${c0.b},${a})`);
-  g.addColorStop(0.42, `rgba(${c1.r},${c1.g},${c1.b},${a * 0.7})`);
-  g.addColorStop(1, `rgba(${c2.r},${c2.g},${Math.min(c2.b, 40)},0)`);
-  ctx.fillStyle = g;
-  ctx.fill();
 }

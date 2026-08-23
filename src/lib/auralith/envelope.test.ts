@@ -116,6 +116,28 @@ describe("bounded flame envelope", () => {
     assert.ok(afterQuiet.height <= FLAME_LIMITS.minHeight + 0.35);
     assert.ok(sim.liveCount() < 80);
   });
+
+  it("builds a continuous heat body rather than relying on particles", () => {
+    const sim = new FlameSim();
+    const region = {
+      id: "stamp_body",
+      kind: "stamp" as const,
+      x: 0.5,
+      y: 0.75,
+      r: 0.08,
+      band: "bass" as const,
+      effect: "flame" as const,
+      color: "#e8a060",
+      intensity: 1,
+    };
+    const loud = { bass: 1, low: 0.4, mid: 0, high: 0 };
+    const cfg = { density: 0.8, speed: 0.7, heat: 0.7 };
+    for (let i = 1; i <= 45; i++) {
+      sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
+    }
+    assert.ok(sim.heatCoverage() > 80, `expected a filled flame body, got ${sim.heatCoverage()} cells`);
+    assert.ok(sim.liveCount() < sim.heatCoverage(), "embers must stay secondary to the body");
+  });
 });
 
 describe("scene schema", () => {
