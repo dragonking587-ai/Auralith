@@ -148,11 +148,11 @@ export const DEFAULT_AUDIO: AudioSettings = {
 };
 
 export const DEFAULT_SURGE: SurgeConfig = {
-  intensity: 0.78,
-  spread: 0.55,
-  bloom: 0.62,
-  response: 0.7,
-  decay: 0.45,
+  intensity: 0.84,
+  spread: 0.66,
+  bloom: 0.74,
+  response: 0.82,
+  decay: 0.4,
 };
 
 export const BAND_RANGES: Record<BandId, [number, number]> = {

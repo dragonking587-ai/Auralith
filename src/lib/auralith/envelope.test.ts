@@ -3,6 +3,8 @@ import { describe, it } from "node:test";
 import { applySensitivity, stepEnvelope } from "./envelope.ts";
 import { computeImageRect, canvasToImageNorm, imageNormToCanvas, snapRect } from "./coords.ts";
 import { parseScene, emptyScene } from "./schema.ts";
+import { DEFAULT_SURGE } from "./types.ts";
+import { stepSurgeDrive } from "./surge.ts";
 
 describe("envelope", () => {
   it("attacks faster than it releases", () => {
@@ -117,3 +119,67 @@ describe("scene schema", () => {
     assert.ok(s.surge.spread >= 0);
   });
 });
+
+describe("light surge drive", () => {
+  it("default mid-energy is clearly visible", () => {
+    let d = { env: 0, swell: 0, amount: 0 };
+    for (let i = 0; i < 45; i++) {
+      d = stepSurgeDrive({
+        level: 0.62,
+        env: d.env,
+        swell: d.swell,
+        intensity: DEFAULT_SURGE.intensity,
+        response: DEFAULT_SURGE.response,
+        decay: DEFAULT_SURGE.decay,
+        strength: 0.45,
+        dt: 1 / 60,
+      });
+    }
+    assert.ok(d.amount > 0.35, `default should be useful, got ${d.amount}`);
+    assert.ok(d.amount < 1.2, `default should not clip, got ${d.amount}`);
+  });
+
+  it("max is dramatically stronger than low", () => {
+    const run = (intensity: number, response: number, strength: number, level: number) => {
+      let d = { env: 0, swell: 0, amount: 0 };
+      for (let i = 0; i < 90; i++) {
+        d = stepSurgeDrive({
+          level,
+          env: d.env,
+          swell: d.swell,
+          intensity,
+          response,
+          decay: 0.4,
+          strength,
+          dt: 1 / 60,
+        });
+      }
+      return d;
+    };
+    const low = run(0.2, 0.2, 0.4, 0.55);
+    const mid = run(DEFAULT_SURGE.intensity, DEFAULT_SURGE.response, 0.6, 0.7);
+    const max = run(1, 1, 1, 1);
+    assert.ok(mid.amount > low.amount * 1.35, `mid ${mid.amount} vs low ${low.amount}`);
+    assert.ok(max.amount > mid.amount * 1.25, `max ${max.amount} vs mid ${mid.amount}`);
+    assert.ok(max.amount <= 1.42);
+    assert.ok(max.swell <= 1);
+  });
+
+  it("low detected strength cannot veto a maxed surge", () => {
+    let d = { env: 0, swell: 0, amount: 0 };
+    for (let i = 0; i < 60; i++) {
+      d = stepSurgeDrive({
+        level: 0.9,
+        env: d.env,
+        swell: d.swell,
+        intensity: 1,
+        response: 1,
+        decay: 0.4,
+        strength: 0.25,
+        dt: 1 / 60,
+      });
+    }
+    assert.ok(d.amount > 0.55, `user max should override weak detect, got ${d.amount}`);
+  });
+});
+

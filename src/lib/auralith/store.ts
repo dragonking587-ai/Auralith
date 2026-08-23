@@ -221,7 +221,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       effect: scene.defaultEffect,
       color: scene.defaultColor,
       intensity: 1,
-      strength: 0.6,
+      strength: 0.72,
     };
     setRegions([...scene.regions, stamp]);
     set({ selectedId: stamp.id });
@@ -250,7 +250,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       effect: scene.defaultEffect,
       color: scene.defaultColor,
       intensity: 1,
-      strength: 0.6,
+      strength: 0.72,
     };
     setRegions([...scene.regions, trace]);
     set({ selectedId: trace.id });

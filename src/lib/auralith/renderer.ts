@@ -1,6 +1,7 @@
 import { computeImageRect, imageNormToCanvas, minSide, snapRect } from "./coords";
-import { bandLevel, overallEnergy, stepEnvelope } from "./envelope";
+import { bandLevel, overallEnergy } from "./envelope";
 import { clamp } from "./id";
+import { stepSurgeDrive, surgeBloomScale, surgeSpillScale } from "./surge";
 import type {
   Bands,
   EffectId,
@@ -161,7 +162,7 @@ function drawEffect(
   effect: EffectId,
   image: CanvasImageSource | null,
   surge: SurgeConfig,
-  envMap: Map<string, number>,
+  envMap: Map<string, { env: number; swell: number }>,
   dt: number,
 ): void {
   const base = levelFor(region, bands, master);
@@ -200,26 +201,31 @@ function drawSurge(
   level: number,
   image: CanvasImageSource | null,
   surge: SurgeConfig,
-  envMap: Map<string, number>,
+  envMap: Map<string, { env: number; swell: number }>,
   dt: number,
 ): void {
-  const strength = clamp(region.strength ?? 0.6, 0.15, 1);
-  const attack = 0.055 + (1 - surge.response) * 0.08;
-  const release = 0.16 + surge.decay * 0.42;
-  const target = level < 0.08 ? 0 : Math.pow(clamp(level, 0, 1), 0.82);
-  const prev = envMap.get(region.id) ?? 0;
-  const env = clamp(stepEnvelope(prev, target, dt, attack, release), 0, 1);
-  envMap.set(region.id, env);
-  const amount = clamp(env * surge.intensity * strength * (0.55 + surge.response * 0.55), 0, 0.92);
-  if (amount < 0.02) return;
+  const prev = envMap.get(region.id) ?? { env: 0, swell: 0 };
+  const drive = stepSurgeDrive({
+    level,
+    env: prev.env,
+    swell: prev.swell,
+    intensity: surge.intensity,
+    response: surge.response,
+    decay: surge.decay,
+    strength: region.strength ?? 0.7,
+    dt,
+  });
+  envMap.set(region.id, { env: drive.env, swell: drive.swell });
+  const amount = drive.amount;
+  if (amount < 0.018) return;
 
   const side = minSide(rect);
 
   if (region.kind === "stamp") {
     const p = imageNormToCanvas(region.x, region.y, rect);
-    const rad = region.r * side;
-    const spillR = rad * (1.35 + surge.spread * 2.4 * amount);
-    const bloomR = rad * (1.05 + surge.bloom * 1.8 * amount);
+    const rad = Math.max(2, region.r * side);
+    const spillR = Math.min(rad * surgeSpillScale(surge.spread, amount), side * 0.34);
+    const bloomR = Math.min(rad * surgeBloomScale(surge.bloom, amount), side * 0.38);
 
     if (image && spillR > 2) {
       ctx.save();
@@ -227,16 +233,30 @@ function drawSurge(
       ctx.arc(p.x, p.y, spillR, 0, Math.PI * 2);
       ctx.clip();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = amount * 0.42;
+      ctx.globalAlpha = clamp(0.3 + amount * 0.52, 0, 0.84);
       ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
       ctx.restore();
     }
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";
+    const lift = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, spillR);
+    lift.addColorStop(0, rgba(region.color, clamp(amount * 0.42, 0, 0.62)));
+    lift.addColorStop(0.28, rgba(region.color, amount * 0.2));
+    lift.addColorStop(0.62, `rgba(255,246,220,${clamp(amount * 0.1, 0, 0.18)})`);
+    lift.addColorStop(1, "rgba(255,246,220,0)");
+    ctx.fillStyle = lift;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, spillR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
     const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bloomR);
-    g.addColorStop(0, rgba(region.color, Math.min(0.55, amount * 0.62)));
-    g.addColorStop(0.4, rgba(region.color, amount * 0.22));
+    g.addColorStop(0, rgba(region.color, clamp(amount * 0.72, 0, 0.8)));
+    g.addColorStop(0.2, rgba(region.color, amount * 0.42));
+    g.addColorStop(0.5, rgba(region.color, amount * 0.16));
     g.addColorStop(1, rgba(region.color, 0));
     ctx.fillStyle = g;
     ctx.beginPath();
@@ -246,12 +266,14 @@ function drawSurge(
 
     ctx.save();
     ctx.globalCompositeOperation = "lighter";
-    const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 0.7);
-    core.addColorStop(0, rgba(region.color, Math.min(0.38, amount * 0.4)));
+    const coreR = rad * (0.82 + amount * 0.28);
+    const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, coreR);
+    core.addColorStop(0, rgba(region.color, Math.min(0.58, amount * 0.5)));
+    core.addColorStop(0.45, rgba(region.color, amount * 0.16));
     core.addColorStop(1, rgba(region.color, 0));
     ctx.fillStyle = core;
     ctx.beginPath();
-    ctx.arc(p.x, p.y, rad * 0.7, 0, Math.PI * 2);
+    ctx.arc(p.x, p.y, coreR, 0, Math.PI * 2);
     ctx.fill();
     ctx.restore();
     return;
@@ -261,20 +283,24 @@ function drawSurge(
   if (pts.length < 2) return;
   if (image) {
     const stepN = Math.max(1, Math.ceil(pts.length / 8));
+    const rr = region.width * side * (1.35 + easeSpread(surge.spread) * 2.4 * amount);
     for (let i = 0; i < pts.length; i += stepN) {
       const p = imageNormToCanvas(pts[i]!.x, pts[i]!.y, rect);
-      const rr = region.width * side * (1.2 + surge.spread * 1.8 * amount);
       ctx.save();
       ctx.beginPath();
       ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);
       ctx.clip();
       ctx.globalCompositeOperation = "screen";
-      ctx.globalAlpha = amount * 0.34;
+      ctx.globalAlpha = clamp(0.26 + amount * 0.48, 0, 0.78);
       ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
       ctx.restore();
     }
   }
-  drawTraceGlow(ctx, region, rect, region.color, amount * 0.68, 0.9 + amount * 0.65 + surge.bloom * 0.35);
+  drawTraceGlow(ctx, region, rect, region.color, clamp(amount * 0.82, 0, 0.95), 1.05 + amount * 0.95 + easeSpread(surge.bloom) * 0.55);
+}
+
+function easeSpread(v: number): number {
+  return Math.pow(clamp(v, 0, 1), 0.68);
 }
 
 function drawGuides(
@@ -380,7 +406,7 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
   let cw = canvas.width;
   let ch = canvas.height;
   const stream = opts?.stream ?? false;
-  const surgeEnv = new Map<string, number>();
+  const surgeEnv = new Map<string, { env: number; swell: number }>();
   let lastNow = 0;
 
   const resize = (w: number, h: number) => {
