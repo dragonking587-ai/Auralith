@@ -10,6 +10,7 @@ import {
   MonitorUp,
   Move,
   Redo2,
+  ScanSearch,
   Spline,
   Trash2,
   Undo2,
@@ -19,6 +20,7 @@ import {
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/auralith/version";
 import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, type ToolId } from "@/lib/auralith/types";
+import { DETECT_MODE_LABEL, DETECT_MODES } from "@/lib/auralith/detect-lights";
 import { getAudioEngine, hasMic, hasSystemAudio } from "@/lib/auralith/audio-engine";
 import { groupedPresets } from "@/lib/auralith/presets";
 import { ZERO_BANDS } from "@/lib/auralith/bands";
@@ -282,6 +284,11 @@ function AudioPane({ trackRef }: { trackRef: React.RefObject<HTMLInputElement | 
 
 function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getState>["scene"]["regions"][number] | null }) {
   const scene = useAuralith((s) => s.scene);
+  const detectMode = useAuralith((s) => s.detectMode);
+  const detectStatus = useAuralith((s) => s.detectStatus);
+  const suggestions = useAuralith((s) => s.suggestions);
+  const picked = suggestions.filter((s) => s.picked).length;
+  const showSurge = scene.defaultEffect === "surge" || selected?.effect === "surge";
   return (
     <div className="flex flex-col gap-4">
       <Section title="Paint with">
@@ -309,6 +316,48 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
           />
         </label>
       </Section>
+
+      <Section title="Smart Detect" icon={<ScanSearch className="size-3.5" />}>
+        <p className="mb-1 text-[11px] text-subtle">Find likely lamps and fixtures in the photo. Review before accepting.</p>
+        <div className="flex flex-wrap gap-1">
+          {DETECT_MODES.map((m) => (
+            <Chip key={m} active={detectMode === m} onClick={() => useAuralith.getState().setDetectMode(m)}>
+              {DETECT_MODE_LABEL[m]}
+            </Chip>
+          ))}
+        </div>
+        <button
+          type="button"
+          className="mt-2 min-h-9 w-full rounded-[8px] bg-accent px-3 text-xs font-medium text-accent-fg disabled:opacity-50"
+          disabled={detectStatus === "running"}
+          onClick={() => void useAuralith.getState().runSmartDetect()}
+        >
+          {detectStatus === "running" ? "Detecting…" : "Detect lights"}
+        </button>
+        {suggestions.length ? (
+          <div className="mt-2 flex flex-col gap-1.5">
+            <p className="text-[11px] text-muted">
+              {suggestions.length} suggestion{suggestions.length === 1 ? "" : "s"} · {picked} selected. Click a ring to toggle.
+            </p>
+            <div className="grid grid-cols-2 gap-1">
+              <GhostBtn onClick={() => useAuralith.getState().acceptSuggestions(false)}>Accept all</GhostBtn>
+              <GhostBtn onClick={() => useAuralith.getState().acceptSuggestions(true)}>Accept selected</GhostBtn>
+            </div>
+            <GhostBtn onClick={() => useAuralith.getState().rejectSuggestions()}>Reject</GhostBtn>
+          </div>
+        ) : null}
+      </Section>
+
+      {showSurge ? (
+        <Section title="Light Surge">
+          <p className="mb-1 text-[11px] text-subtle">Sustained energy makes the real light bloom and spill. The photograph stays still.</p>
+          <Slider label="Intensity" value={scene.surge.intensity} min={0} max={1} onChange={(v) => useAuralith.getState().setSurge("intensity", v)} />
+          <Slider label="Spread" value={scene.surge.spread} min={0} max={1} onChange={(v) => useAuralith.getState().setSurge("spread", v)} />
+          <Slider label="Bloom" value={scene.surge.bloom} min={0} max={1} onChange={(v) => useAuralith.getState().setSurge("bloom", v)} />
+          <Slider label="Response" value={scene.surge.response} min={0} max={1} onChange={(v) => useAuralith.getState().setSurge("response", v)} />
+          <Slider label="Decay" value={scene.surge.decay} min={0} max={1} onChange={(v) => useAuralith.getState().setSurge("decay", v)} />
+        </Section>
+      ) : null}
 
       {selected ? (
         <Section title="Selected region">

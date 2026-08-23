@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import { getAudioEngine } from "@/lib/auralith/audio-engine";
 import { canvasToImageNorm, canvasToImageNormUnclamped, computeImageRect } from "@/lib/auralith/coords";
-import { createRenderer, hitTest, stampHandleHit } from "@/lib/auralith/renderer";
+import { createRenderer, hitTest, stampHandleHit, suggestionHit } from "@/lib/auralith/renderer";
 import { useAuralith } from "@/lib/auralith/store";
 import type { StampRegion } from "@/lib/auralith/types";
 
@@ -56,6 +56,7 @@ export function EditorCanvas() {
           tool: state.tool,
           draftTrace: state.draftTrace,
           hoverId: state.hoverId,
+          suggestions: state.suggestions,
         },
       });
     };
@@ -105,6 +106,13 @@ export function EditorCanvas() {
       return;
     }
     if (!n) return;
+    if (state.suggestions.length) {
+      const sug = suggestionHit(state.suggestions, n.x, n.y);
+      if (sug) {
+        state.toggleSuggestion(sug.id);
+        return;
+      }
+    }
     if (state.tool === "stamp") {
       const selected = state.scene.regions.find((r) => r.id === state.selectedId);
       if (selected?.kind === "stamp" && stampHandleHit(selected, n.x, n.y)) {

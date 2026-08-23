@@ -104,4 +104,16 @@ describe("scene schema", () => {
     assert.equal(s.regions[1]?.effect, "flicker");
     assert.equal(s.regions[2]?.effect, "strobe");
   });
+
+  it("migrates missing Light Surge settings and region strength", () => {
+    const s = parseScene({
+      schemaVersion: 1,
+      regions: [{ kind: "stamp", x: 0.2, y: 0.3, effect: "surge" }],
+    });
+    assert.ok(s);
+    assert.equal(s.regions[0]?.effect, "surge");
+    assert.ok((s.regions[0]?.strength ?? 0) > 0);
+    assert.ok(s.surge.intensity > 0);
+    assert.ok(s.surge.spread >= 0);
+  });
 });

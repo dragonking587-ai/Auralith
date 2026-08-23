@@ -3,6 +3,7 @@ import {
   BANDS,
   DEFAULT_AUDIO,
   DEFAULT_FRAMING,
+  DEFAULT_SURGE,
   EFFECTS,
   type BandId,
   type EffectId,
@@ -23,6 +24,7 @@ export function emptyScene(name = "Untitled"): Scene {
     regions: [],
     framing: { ...DEFAULT_FRAMING },
     audio: { ...DEFAULT_AUDIO },
+    surge: { ...DEFAULT_SURGE },
     output: defaultOutput(),
     defaultBand: "bass",
     defaultEffect: "pulse",
@@ -67,6 +69,7 @@ function parseRegion(v: unknown): Region | null {
   const effect = parseEffect(r.effect);
   const color = str(r.color, "#e8c4a0");
   const intensity = num(r.intensity, 1, 0, 2);
+  const strength = num(r.strength, 0.6, 0.15, 1);
   const id = str(r.id, uid("r"));
   if (r.kind === "trace" || Array.isArray(r.points)) {
     const pts = Array.isArray(r.points)
@@ -82,6 +85,7 @@ function parseRegion(v: unknown): Region | null {
       effect,
       color,
       intensity,
+      strength,
     };
     return trace;
   }
@@ -95,6 +99,7 @@ function parseRegion(v: unknown): Region | null {
     effect,
     color,
     intensity,
+    strength,
   };
   return stamp;
 }
@@ -110,6 +115,7 @@ export function parseScene(raw: unknown): Scene | null {
     }
     const framingIn = (o.framing ?? {}) as Record<string, unknown>;
     const audioIn = (o.audio ?? {}) as Record<string, unknown>;
+    const surgeIn = (o.surge ?? {}) as Record<string, unknown>;
     const outputIn = (o.output ?? {}) as Record<string, unknown>;
     const imageIn = o.image && typeof o.image === "object" ? (o.image as Record<string, unknown>) : null;
     const regions = Array.isArray(o.regions)
@@ -139,6 +145,13 @@ export function parseScene(raw: unknown): Scene | null {
         sensitivity: num(audioIn.sensitivity, DEFAULT_AUDIO.sensitivity, 0.05, 4),
         masterIntensity: num(audioIn.masterIntensity, DEFAULT_AUDIO.masterIntensity, 0, 1.5),
         roomDim: num(audioIn.roomDim, DEFAULT_AUDIO.roomDim, 0, 1),
+      },
+      surge: {
+        intensity: num(surgeIn.intensity, DEFAULT_SURGE.intensity, 0, 1),
+        spread: num(surgeIn.spread, DEFAULT_SURGE.spread, 0, 1),
+        bloom: num(surgeIn.bloom, DEFAULT_SURGE.bloom, 0, 1),
+        response: num(surgeIn.response, DEFAULT_SURGE.response, 0, 1),
+        decay: num(surgeIn.decay, DEFAULT_SURGE.decay, 0, 1),
       },
       output: {
         ...base.output,
@@ -180,6 +193,7 @@ export function demoRegions(): Region[] {
     effect: "pulse",
     color: "#f0c48a",
     intensity: 1,
+    strength: 0.62,
   });
   return [
     bulb("demo_bulb_l", 0.2, 0.18, "bass"),
@@ -195,6 +209,7 @@ export function demoRegions(): Region[] {
       effect: "hue",
       color: "#b7c8d8",
       intensity: 0.85,
+      strength: 0.7,
     },
     {
       id: "demo_neon",
@@ -209,6 +224,7 @@ export function demoRegions(): Region[] {
       effect: "flicker",
       color: "#e8b86a",
       intensity: 1,
+      strength: 0.6,
     },
     {
       id: "demo_led",
@@ -224,6 +240,7 @@ export function demoRegions(): Region[] {
       effect: "strobe",
       color: "#d9c39a",
       intensity: 0.7,
+      strength: 0.55,
     },
     {
       id: "demo_light_a",
@@ -235,6 +252,7 @@ export function demoRegions(): Region[] {
       effect: "pulse",
       color: "#7ec8ff",
       intensity: 1,
+      strength: 0.72,
     },
     {
       id: "demo_light_b",
@@ -246,6 +264,7 @@ export function demoRegions(): Region[] {
       effect: "pulse",
       color: "#b48cff",
       intensity: 1,
+      strength: 0.7,
     },
     {
       id: "demo_light_c",
@@ -257,6 +276,7 @@ export function demoRegions(): Region[] {
       effect: "pulse",
       color: "#7ec8ff",
       intensity: 1,
+      strength: 0.68,
     },
     {
       id: "demo_candle_r",
@@ -268,6 +288,7 @@ export function demoRegions(): Region[] {
       effect: "pulse",
       color: "#e8c47a",
       intensity: 1,
+      strength: 0.64,
     },
   ];
 }

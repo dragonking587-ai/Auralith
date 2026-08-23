@@ -1,14 +1,16 @@
 import { computeImageRect, imageNormToCanvas, minSide, snapRect } from "./coords";
-import { bandLevel, overallEnergy } from "./envelope";
+import { bandLevel, overallEnergy, stepEnvelope } from "./envelope";
 import { clamp } from "./id";
 import type {
   Bands,
   EffectId,
   ImageRect,
+  LightSuggestion,
   LiveBands,
   Region,
   Scene,
   StampRegion,
+  SurgeConfig,
   TraceRegion,
 } from "./types";
 
@@ -17,6 +19,7 @@ export interface DrawGuides {
   tool: string;
   draftTrace: { x: number; y: number }[] | null;
   hoverId: string | null;
+  suggestions?: LightSuggestion[];
 }
 
 export interface Renderer {
@@ -156,8 +159,17 @@ function drawEffect(
   master: number,
   now: number,
   effect: EffectId,
+  image: CanvasImageSource | null,
+  surge: SurgeConfig,
+  envMap: Map<string, number>,
+  dt: number,
 ): void {
   const base = levelFor(region, bands, master);
+
+  if (effect === "surge") {
+    drawSurge(ctx, region, rect, base, image, surge, envMap, dt);
+    return;
+  }
 
   let alpha = base;
   let color = region.color;
@@ -179,6 +191,90 @@ function drawEffect(
 
   if (region.kind === "stamp") drawStampGlow(ctx, region, rect, color, alpha, scale);
   else drawTraceGlow(ctx, region, rect, color, alpha, 0.85 + alpha * 0.5);
+}
+
+function drawSurge(
+  ctx: CanvasRenderingContext2D,
+  region: Region,
+  rect: ImageRect,
+  level: number,
+  image: CanvasImageSource | null,
+  surge: SurgeConfig,
+  envMap: Map<string, number>,
+  dt: number,
+): void {
+  const strength = clamp(region.strength ?? 0.6, 0.15, 1);
+  const attack = 0.055 + (1 - surge.response) * 0.08;
+  const release = 0.16 + surge.decay * 0.42;
+  const target = level < 0.08 ? 0 : Math.pow(clamp(level, 0, 1), 0.82);
+  const prev = envMap.get(region.id) ?? 0;
+  const env = clamp(stepEnvelope(prev, target, dt, attack, release), 0, 1);
+  envMap.set(region.id, env);
+  const amount = clamp(env * surge.intensity * strength * (0.55 + surge.response * 0.55), 0, 0.92);
+  if (amount < 0.02) return;
+
+  const side = minSide(rect);
+
+  if (region.kind === "stamp") {
+    const p = imageNormToCanvas(region.x, region.y, rect);
+    const rad = region.r * side;
+    const spillR = rad * (1.35 + surge.spread * 2.4 * amount);
+    const bloomR = rad * (1.05 + surge.bloom * 1.8 * amount);
+
+    if (image && spillR > 2) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, spillR, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = amount * 0.42;
+      ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const g = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, bloomR);
+    g.addColorStop(0, rgba(region.color, Math.min(0.55, amount * 0.62)));
+    g.addColorStop(0.4, rgba(region.color, amount * 0.22));
+    g.addColorStop(1, rgba(region.color, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, bloomR, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const core = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, rad * 0.7);
+    core.addColorStop(0, rgba(region.color, Math.min(0.38, amount * 0.4)));
+    core.addColorStop(1, rgba(region.color, 0));
+    ctx.fillStyle = core;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad * 0.7, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    return;
+  }
+
+  const pts = region.points;
+  if (pts.length < 2) return;
+  if (image) {
+    const stepN = Math.max(1, Math.ceil(pts.length / 8));
+    for (let i = 0; i < pts.length; i += stepN) {
+      const p = imageNormToCanvas(pts[i]!.x, pts[i]!.y, rect);
+      const rr = region.width * side * (1.2 + surge.spread * 1.8 * amount);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, rr, 0, Math.PI * 2);
+      ctx.clip();
+      ctx.globalCompositeOperation = "screen";
+      ctx.globalAlpha = amount * 0.34;
+      ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
+      ctx.restore();
+    }
+  }
+  drawTraceGlow(ctx, region, rect, region.color, amount * 0.68, 0.9 + amount * 0.65 + surge.bloom * 0.35);
 }
 
 function drawGuides(
@@ -248,6 +344,34 @@ function drawGuides(
     ctx.stroke();
     ctx.restore();
   }
+  if (guides.suggestions?.length) drawSuggestions(ctx, rect, guides.suggestions);
+}
+
+function drawSuggestions(ctx: CanvasRenderingContext2D, rect: ImageRect, suggestions: LightSuggestion[]): void {
+  const side = minSide(rect);
+  suggestions.forEach((s, i) => {
+    const p = imageNormToCanvas(s.x, s.y, rect);
+    const rad = s.r * side;
+    ctx.save();
+    ctx.strokeStyle = s.picked ? "rgba(232, 196, 160, 0.95)" : "rgba(180, 186, 196, 0.55)";
+    ctx.lineWidth = s.picked ? 2 : 1;
+    ctx.setLineDash([4, 3]);
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    const label = String(i + 1);
+    ctx.fillStyle = s.picked ? "rgba(18, 16, 14, 0.85)" : "rgba(18, 16, 14, 0.55)";
+    ctx.beginPath();
+    ctx.arc(p.x, p.y - rad - 8, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = s.picked ? "#f4e6d4" : "#c8ccd4";
+    ctx.font = "10px ui-sans-serif, system-ui, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(label, p.x, p.y - rad - 8);
+    ctx.restore();
+  });
 }
 
 export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: boolean }): Renderer {
@@ -256,6 +380,8 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
   let cw = canvas.width;
   let ch = canvas.height;
   const stream = opts?.stream ?? false;
+  const surgeEnv = new Map<string, number>();
+  let lastNow = 0;
 
   const resize = (w: number, h: number) => {
     if (w < 1 || h < 1) return;
@@ -291,10 +417,12 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
     }
 
     const master = scene.audio.masterIntensity;
+    const dt = lastNow ? clamp((now - lastNow) / 1000, 0.001, 0.05) : 1 / 60;
+    lastNow = now;
     ctx.save();
     ctx.globalCompositeOperation = "screen";
     for (const region of scene.regions) {
-      drawEffect(ctx, region, rect, bands, master, now, region.effect);
+      drawEffect(ctx, region, rect, bands, master, now, region.effect, image, scene.surge, surgeEnv, dt);
     }
     ctx.restore();
 
@@ -310,8 +438,18 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
     drawFrame,
     resize,
     setSize: resize,
-    dispose: () => undefined,
+    dispose: () => {
+      surgeEnv.clear();
+    },
   };
+}
+
+export function suggestionHit(suggestions: LightSuggestion[], nx: number, ny: number): LightSuggestion | null {
+  for (let i = suggestions.length - 1; i >= 0; i--) {
+    const s = suggestions[i]!;
+    if (Math.hypot(s.x - nx, s.y - ny) <= s.r) return s;
+  }
+  return null;
 }
 
 export function hitTest(scene: Scene, nx: number, ny: number): Region | null {

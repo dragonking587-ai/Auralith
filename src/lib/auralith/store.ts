@@ -1,7 +1,8 @@
 import { create } from "zustand";
 import { getAudioEngine } from "./audio-engine";
 import { cloneRegions, RegionHistory } from "./history";
-import { uid } from "./id";
+import { analyzeImage, type DetectMode } from "./detect-lights";
+import { clamp, uid } from "./id";
 import { LivePublisher } from "./live-client";
 import { matchPhotoColors } from "./match-photo";
 import { createDemoScene, emptyScene, parseScene } from "./schema";
@@ -21,6 +22,7 @@ import type {
   BandId,
   EffectId,
   FitMode,
+  LightSuggestion,
   OutputMethod,
   Region,
   SavedSceneMeta,
@@ -54,6 +56,9 @@ export interface AuralithState {
   status: string;
   canUndo: boolean;
   canRedo: boolean;
+  detectMode: DetectMode;
+  detectStatus: "idle" | "running" | "done" | "error";
+  suggestions: LightSuggestion[];
   hydrate: () => Promise<void>;
   setTool: (tool: ToolId) => void;
   select: (id: string | null) => void;
@@ -76,6 +81,12 @@ export interface AuralithState {
   setSensitivity: (v: number) => void;
   setMaster: (v: number) => void;
   setRoomDim: (v: number) => void;
+  setSurge: (key: "intensity" | "spread" | "bloom" | "response" | "decay", v: number) => void;
+  setDetectMode: (mode: DetectMode) => void;
+  runSmartDetect: () => Promise<void>;
+  toggleSuggestion: (id: string) => void;
+  acceptSuggestions: (onlyPicked?: boolean) => void;
+  rejectSuggestions: () => void;
   setFit: (fit: FitMode) => void;
   setPan: (x: number, y: number) => void;
   setOutputMethod: (method: OutputMethod) => void;
@@ -142,6 +153,9 @@ export const useAuralith = create<AuralithState>((set, get) => ({
   status: "Load a background or start the demo scene.",
   canUndo: false,
   canRedo: false,
+  detectMode: "balanced" as DetectMode,
+  detectStatus: "idle" as const,
+  suggestions: [] as LightSuggestion[],
 
   hydrate: async () => {
     const sessionId = getOrCreateSessionId();
@@ -207,6 +221,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       effect: scene.defaultEffect,
       color: scene.defaultColor,
       intensity: 1,
+      strength: 0.6,
     };
     setRegions([...scene.regions, stamp]);
     set({ selectedId: stamp.id });
@@ -235,6 +250,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       effect: scene.defaultEffect,
       color: scene.defaultColor,
       intensity: 1,
+      strength: 0.6,
     };
     setRegions([...scene.regions, trace]);
     set({ selectedId: trace.id });
@@ -338,6 +354,73 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       persistScene(scene);
       return { scene };
     }),
+  setSurge: (key, v) =>
+    set((s) => {
+      const scene = { ...s.scene, surge: { ...s.scene.surge, [key]: v } };
+      persistScene(scene);
+      return { scene };
+    }),
+  setDetectMode: (mode) => set({ detectMode: mode }),
+  runSmartDetect: async () => {
+    const img = imageEl;
+    if (!img) {
+      set({ status: "Load an image before Smart Detect.", detectStatus: "error" });
+      return;
+    }
+    set({ detectStatus: "running", status: "Detecting lights…" });
+    await new Promise((r) => setTimeout(r, 0));
+    try {
+      const found = analyzeImage(img, get().detectMode);
+      const suggestions: LightSuggestion[] = found.map((d) => ({
+        ...d,
+        id: uid("sug"),
+        picked: true,
+      }));
+      set({
+        suggestions,
+        detectStatus: "done",
+        status: suggestions.length
+          ? `Found ${suggestions.length} likely light${suggestions.length === 1 ? "" : "s"}. Accept or reject.`
+          : "No obvious lights found. Try Sensitive, or stamp manually.",
+      });
+    } catch {
+      set({ detectStatus: "error", status: "Smart Detect failed. Stamp lights manually." });
+    }
+  },
+  toggleSuggestion: (id) =>
+    set((s) => ({
+      suggestions: s.suggestions.map((g) => (g.id === id ? { ...g, picked: !g.picked } : g)),
+    })),
+  acceptSuggestions: (onlyPicked = true) => {
+    const { suggestions, scene } = get();
+    const chosen = suggestions.filter((g) => (onlyPicked ? g.picked : true));
+    if (!chosen.length) {
+      set({ suggestions: [], detectStatus: "idle", status: "No suggestions accepted." });
+      return;
+    }
+    snapshot();
+    const stamps: StampRegion[] = chosen.map((g) => ({
+      id: uid("stamp"),
+      kind: "stamp",
+      x: g.x,
+      y: g.y,
+      r: clamp(g.r, 0.012, 0.16),
+      band: scene.defaultBand,
+      effect: "surge",
+      color: g.color,
+      intensity: 1,
+      strength: g.strength,
+    }));
+    setRegions([...scene.regions, ...stamps]);
+    set({
+      suggestions: [],
+      detectStatus: "idle",
+      selectedId: stamps[stamps.length - 1]!.id,
+      status: `Accepted ${stamps.length} light${stamps.length === 1 ? "" : "s"} as Light Surge.`,
+    });
+  },
+  rejectSuggestions: () =>
+    set({ suggestions: [], detectStatus: "idle", status: "Suggestions dismissed." }),
   setFit: (fit) =>
     set((s) => {
       const scene = { ...s.scene, framing: { ...s.scene.framing, fit } };
@@ -429,6 +512,8 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       status: "Demo scene loaded. Start Demo Audio, then stamp more lights.",
       canUndo: false,
       canRedo: false,
+      suggestions: [],
+      detectStatus: "idle",
     });
     publisher?.publishScene(scene);
     const res = await fetch(DEMO_STAGE_URL);
@@ -460,6 +545,8 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       status: "Image loaded. Stamp or Trace the lights you want to react.",
       canUndo: false,
       canRedo: false,
+      suggestions: [],
+      detectStatus: "idle",
     });
     publisher?.publishScene(scene);
     await publisher?.publishImage(dataUrl, id);

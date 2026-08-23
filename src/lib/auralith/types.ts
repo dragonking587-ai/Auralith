@@ -1,7 +1,7 @@
 import type { SCHEMA_VERSION } from "./version.ts";
 
 export type BandId = "bass" | "low" | "mid" | "high";
-export type EffectId = "pulse" | "hue" | "flicker" | "strobe";
+export type EffectId = "pulse" | "hue" | "flicker" | "strobe" | "surge";
 export type ToolId = "stamp" | "trace" | "move" | "erase" | "pan";
 export type FitMode = "fill" | "fit" | "stretch";
 export type AudioSourceId = "none" | "demo" | "track" | "mic" | "system";
@@ -10,7 +10,7 @@ export type PlatformId = "obs" | "streamlabs" | "tiktok" | "custom";
 export type FpsCap = 30 | 60;
 
 export const BANDS: BandId[] = ["bass", "low", "mid", "high"];
-export const EFFECTS: EffectId[] = ["pulse", "hue", "flicker", "strobe"];
+export const EFFECTS: EffectId[] = ["pulse", "hue", "flicker", "strobe", "surge"];
 
 export interface Point {
   x: number;
@@ -27,6 +27,8 @@ export interface StampRegion {
   effect: EffectId;
   color: string;
   intensity: number;
+  /** Detected or default light power, 0.25–0.95. Used by Light Surge. */
+  strength: number;
 }
 
 export interface TraceRegion {
@@ -38,6 +40,8 @@ export interface TraceRegion {
   effect: EffectId;
   color: string;
   intensity: number;
+  /** Detected or default light power, 0.25–0.95. Used by Light Surge. */
+  strength: number;
 }
 
 export type Region = StampRegion | TraceRegion;
@@ -52,6 +56,14 @@ export interface AudioSettings {
   sensitivity: number;
   masterIntensity: number;
   roomDim: number;
+}
+
+export interface SurgeConfig {
+  intensity: number;
+  spread: number;
+  bloom: number;
+  response: number;
+  decay: number;
 }
 
 export interface OutputSettings {
@@ -77,6 +89,7 @@ export interface Scene {
   regions: Region[];
   framing: Framing;
   audio: AudioSettings;
+  surge: SurgeConfig;
   output: OutputSettings;
   defaultBand: BandId;
   defaultEffect: EffectId;
@@ -104,6 +117,17 @@ export interface LiveBands extends Bands {
   intensity: number;
 }
 
+export interface LightSuggestion {
+  id: string;
+  x: number;
+  y: number;
+  r: number;
+  color: string;
+  confidence: number;
+  strength: number;
+  picked: boolean;
+}
+
 export interface ImageRect {
   x: number;
   y: number;
@@ -121,6 +145,14 @@ export const DEFAULT_AUDIO: AudioSettings = {
   sensitivity: 1,
   masterIntensity: 0.85,
   roomDim: 0.12,
+};
+
+export const DEFAULT_SURGE: SurgeConfig = {
+  intensity: 0.78,
+  spread: 0.55,
+  bloom: 0.62,
+  response: 0.7,
+  decay: 0.45,
 };
 
 export const BAND_RANGES: Record<BandId, [number, number]> = {
@@ -142,6 +174,7 @@ export const EFFECT_LABEL: Record<EffectId, string> = {
   hue: "Hue",
   flicker: "Flicker",
   strobe: "Strobe",
+  surge: "Light Surge",
 };
 
 export const BAND_COLOR: Record<BandId, string> = {

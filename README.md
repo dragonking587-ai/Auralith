@@ -16,7 +16,9 @@ Permanent source of truth: [https://github.com/dragonking587-ai/Auralith](https:
 - Single Web Audio engine: Demo Audio, uploaded Track, Microphone, and System/computer audio (where the browser allows it)
 - Four frequency bands with fast attack and natural release
 - Stamp, Trace, Move, Erase, Undo, Redo, Clear, Match Photo
-- Effects: Pulse, Hue, Flicker, Strobe, Room Dim
+- Effects: Pulse, Hue, Flicker, Strobe, Light Surge, Room Dim
+- Smart Detect Lights: on-device analysis that suggests lamps/windows for review, then Accept / Reject
+- Light Surge: sustained musical energy makes the real light bloom and spill without moving the photograph
 - Saved scenes (versioned `schemaVersion: 1`)
 - Streaming resolutions for TikTok, OBS, Streamlabs, plus custom width/height
 - Image fit: Fill (default), Fit, Stretch, with repositioning
