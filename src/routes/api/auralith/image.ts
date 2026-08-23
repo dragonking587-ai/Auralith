@@ -11,7 +11,11 @@ export const Route = createFileRoute("/api/auralith/image")({
         const s = await hydrateSession(session);
         if (!s.image) return new Response("not found", { status: 404 });
         return new Response(s.image, {
-          headers: { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" },
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "no-store, no-cache, must-revalidate",
+            pragma: "no-cache",
+          },
         });
       },
       POST: async ({ request }) => {

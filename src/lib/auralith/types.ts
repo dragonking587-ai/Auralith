@@ -80,6 +80,8 @@ export interface SceneImage {
   width: number;
   height: number;
   mime: string;
+  /** Monotonic revision; changes whenever the source pixels change. */
+  rev: number;
 }
 
 export interface Scene {

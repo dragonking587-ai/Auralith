@@ -16,6 +16,8 @@ export function StreamView({ sessionId }: { sessionId: string }) {
     const viewer = new LiveViewer(sessionId);
     let image: HTMLImageElement | null = null;
     let imageUrl = "";
+    let imageRev = -1;
+    let loadGen = 0;
     let scene: Scene | null = null;
     let bands: LiveBands | null = null;
     let loop = 0;
@@ -24,16 +26,23 @@ export function StreamView({ sessionId }: { sessionId: string }) {
     const unsub = viewer.subscribe((st) => {
       scene = st.scene;
       bands = st.bands;
-      if (st.imageUrl && st.imageUrl !== imageUrl) {
-        imageUrl = st.imageUrl;
+      const nextUrl = st.imageUrl;
+      if (nextUrl && (nextUrl !== imageUrl || st.imageRev !== imageRev)) {
+        imageUrl = nextUrl;
+        imageRev = st.imageRev;
+        const gen = ++loadGen;
         const img = new Image();
-        if (!st.imageUrl.startsWith("data:") && !st.imageUrl.startsWith("blob:")) {
+        if (!nextUrl.startsWith("data:") && !nextUrl.startsWith("blob:")) {
           img.crossOrigin = "anonymous";
         }
         img.onload = () => {
+          if (gen !== loadGen) return;
           image = img;
         };
-        img.src = st.imageUrl;
+        img.onerror = () => {
+          if (gen !== loadGen) return;
+        };
+        img.src = nextUrl;
       }
     });
 

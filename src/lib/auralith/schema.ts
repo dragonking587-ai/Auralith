@@ -133,6 +133,7 @@ export function parseScene(raw: unknown): Scene | null {
             width: num(imageIn.width, 1920, 1, 8192),
             height: num(imageIn.height, 1080, 1, 8192),
             mime: str(imageIn.mime, "image/jpeg"),
+            rev: num(imageIn.rev, 0, 0),
           }
         : null,
       regions,
@@ -300,6 +301,7 @@ export function createDemoScene(): Scene {
     width: 1920,
     height: 1080,
     mime: "image/jpeg",
+    rev: 0,
   };
   scene.regions = demoRegions();
   scene.defaultEffect = "pulse";

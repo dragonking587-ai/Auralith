@@ -120,6 +120,15 @@ function persistScene(scene: Scene): void {
   }, 80);
 }
 
+function applyImageRev(imageId: string, rev: number): void {
+  const { scene } = useAuralith.getState();
+  if (!scene.image || scene.image.id !== imageId) return;
+  const next = { ...scene, image: { ...scene.image, rev } };
+  persistScene(next);
+  useAuralith.setState({ scene: next });
+  publisher?.publishScene(next);
+}
+
 function setRegions(regions: Region[], scenePatch?: Partial<Scene>): void {
   useAuralith.setState((s) => {
     const scene = { ...s.scene, ...scenePatch, regions };
@@ -511,7 +520,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
     const scene = createDemoScene();
     imageUrl = DEMO_STAGE_URL;
     imageEl = await loadHtmlImage(DEMO_STAGE_URL);
-    scene.image = { id: "demo-stage", width: imageEl.naturalWidth, height: imageEl.naturalHeight, mime: "image/jpeg" };
+    scene.image = { id: "demo-stage", width: imageEl.naturalWidth, height: imageEl.naturalHeight, mime: "image/jpeg", rev: 0 };
     persistScene(scene);
     set({
       scene,
@@ -528,7 +537,8 @@ export const useAuralith = create<AuralithState>((set, get) => ({
     const blob = await res.blob();
     const dataUrl = await blobToDataUrl(blob);
     await saveImageBlob("demo-stage", dataUrl);
-    await publisher?.publishImage(dataUrl, "demo-stage");
+    const rev = (await publisher?.publishImage(dataUrl, "demo-stage")) ?? 0;
+    applyImageRev("demo-stage", rev);
   },
 
   loadImageFile: async (file) => {
@@ -540,7 +550,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
     const scene: Scene = {
       ...get().scene,
       name: file.name.replace(/\.[^.]+$/, "") || "Untitled",
-      image: { id, width: img.naturalWidth, height: img.naturalHeight, mime: file.type || "image/jpeg" },
+      image: { id, width: img.naturalWidth, height: img.naturalHeight, mime: file.type || "image/jpeg", rev: 0 },
       regions: [],
     };
     imageEl = img;
@@ -557,7 +567,8 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       detectStatus: "idle",
     });
     publisher?.publishScene(scene);
-    await publisher?.publishImage(dataUrl, id);
+    const rev = (await publisher?.publishImage(dataUrl, id)) ?? 0;
+    applyImageRev(id, rev);
   },
 
   matchPhoto: () => {
@@ -587,7 +598,9 @@ export const useAuralith = create<AuralithState>((set, get) => ({
     if (packed.image) {
       imageUrl = packed.image;
       imageEl = await loadHtmlImage(packed.image);
-      await publisher?.publishImage(packed.image, scene.image?.id ?? id);
+      const imageId = scene.image?.id ?? id;
+      const rev = (await publisher?.publishImage(packed.image, imageId)) ?? 0;
+      if (scene.image) scene.image = { ...scene.image, rev };
     }
     history.reset();
     persistScene(scene);
@@ -598,6 +611,8 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       status: `Loaded “${scene.name}”.`,
       canUndo: false,
       canRedo: false,
+      suggestions: [],
+      detectStatus: "idle",
     });
     publisher?.publishScene(scene);
   },

@@ -1,11 +1,15 @@
 import { BC_NAME, bandsToMsg, msgToBands, type BandsMsg, type LiveMsg } from "./live-protocol";
+import { shouldReplaceImage } from "./live-rev";
 import type { LiveBands, Scene } from "./types";
+
+export { shouldReplaceImage } from "./live-rev";
 
 export interface LiveViewState {
   bands: LiveBands | null;
   scene: Scene | null;
   sceneRev: number;
   imageRev: number;
+  imageId: string;
   imageUrl: string | null;
   connected: boolean;
   transport: "ws" | "broadcast" | "http" | "none";
@@ -25,13 +29,12 @@ export class LivePublisher {
   private session: string;
   private sceneRev = 0;
   private imageRev = 0;
-  private lastImageId = "";
+  private imageGen = 0;
   private closed = false;
   private retry = 0;
   private lastBandPost = 0;
   private bandTimer = 0;
   private pendingBands: BandsMsg | null = null;
-
 
   constructor(session: string) {
     this.session = session;
@@ -70,7 +73,6 @@ export class LivePublisher {
     this.queueBandPost(msg);
   }
 
-
   publishScene(scene: Scene): void {
     this.sceneRev += 1;
     const msg = { op: "scene" as const, session: this.session, rev: this.sceneRev, scene, imageRev: this.imageRev };
@@ -83,20 +85,35 @@ export class LivePublisher {
     }).catch(() => undefined);
   }
 
-  async publishImage(dataUrl: string, imageId: string): Promise<void> {
-    if (imageId === this.lastImageId) return;
-    this.lastImageId = imageId;
-    await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}`, {
-      method: "POST",
-      headers: { "content-type": "text/plain" },
-      body: dataUrl,
-    })
-      .then((r) => r.json())
-      .then((j: { imageRev?: number }) => {
-        if (typeof j.imageRev === "number") this.imageRev = j.imageRev;
-      })
-      .catch(() => undefined);
-    this.bc?.postMessage({ op: "image", session: this.session, imageRev: this.imageRev, dataUrl });
+  /** Upload new pixels, bump imageRev, notify all outputs. Latest call wins. */
+  async publishImage(dataUrl: string, imageId: string): Promise<number> {
+    const gen = ++this.imageGen;
+    try {
+      const j = await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}&id=${encodeURIComponent(imageId)}`, {
+        method: "POST",
+        headers: { "content-type": "text/plain", "cache-control": "no-store" },
+        body: dataUrl,
+      }).then((r) => r.json() as Promise<{ imageRev?: number }>);
+      if (gen !== this.imageGen) return this.imageRev;
+      if (typeof j.imageRev === "number") this.imageRev = j.imageRev;
+      else this.imageRev += 1;
+    } catch {
+      if (gen !== this.imageGen) return this.imageRev;
+      this.imageRev += 1;
+    }
+    if (gen !== this.imageGen) return this.imageRev;
+    this.notifyImage(imageId, dataUrl);
+    return this.imageRev;
+  }
+
+  private notifyImage(imageId: string, dataUrl?: string): void {
+    const msg = { op: "image" as const, session: this.session, imageRev: this.imageRev, imageId };
+    this.send(msg);
+    try {
+      this.bc?.postMessage(dataUrl ? { ...msg, dataUrl } : msg);
+    } catch {
+      this.bc?.postMessage(msg);
+    }
   }
 
   close(): void {
@@ -162,12 +179,13 @@ export class LiveViewer {
     scene: null,
     sceneRev: 0,
     imageRev: 0,
+    imageId: "",
     imageUrl: null,
     connected: false,
     transport: "none",
     seq: 0,
   };
-  private lastImage: string | null = null;
+  private pullGen = 0;
 
   constructor(session: string) {
     this.session = session;
@@ -229,11 +247,11 @@ export class LiveViewer {
   private startPoll(): void {
     const tick = () => {
       if (this.closed) return;
-      if (this.ws?.readyState === WebSocket.OPEN) return;
+      const wsOpen = this.ws?.readyState === WebSocket.OPEN;
       void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, { cache: "no-store" })
         .then((r) => r.json())
         .then((j) => {
-          if (j.bands && (j.bands.seq ?? 0) >= this.state.seq) {
+          if (!wsOpen && j.bands && (j.bands.seq ?? 0) >= this.state.seq) {
             this.patch({
               bands: {
                 bass: j.bands.b,
@@ -252,18 +270,18 @@ export class LiveViewer {
           if (j.scene && (j.sceneRev ?? 0) >= this.state.sceneRev) {
             this.patch({ scene: j.scene, sceneRev: j.sceneRev ?? this.state.sceneRev });
           }
-          if (typeof j.imageRev === "number" && j.imageRev !== this.state.imageRev) {
-            this.patch({ imageRev: j.imageRev });
-            void this.pullImage(j.imageRev);
+          const nextRev = typeof j.imageRev === "number" ? j.imageRev : 0;
+          if (shouldReplaceImage(nextRev, this.state.imageRev) || (nextRev > 0 && !this.state.imageUrl)) {
+            void this.pullImage(nextRev);
           }
         })
         .catch(() => undefined);
     };
-    this.poll = window.setInterval(tick, 250);
+    this.poll = window.setInterval(tick, 280);
     tick();
   }
 
-  private onMsg(msg: LiveMsg | (BandsMsg & { dataUrl?: string }) | { op: string; [k: string]: unknown }, via: LiveViewState["transport"]): void {
+  private onMsg(msg: LiveMsg | (BandsMsg & { dataUrl?: string; imageId?: string }) | { op: string; [k: string]: unknown }, via: LiveViewState["transport"]): void {
     if (!msg || typeof msg !== "object") return;
     if (msg.op === "bands") {
       const bands = msgToBands(msg as BandsMsg);
@@ -278,36 +296,42 @@ export class LiveViewer {
       this.patch({
         scene: m.scene,
         sceneRev: m.rev ?? this.state.sceneRev,
-        imageRev,
         connected: true,
         transport: via,
       });
-      if (imageRev && !this.lastImage) void this.pullImage(imageRev);
+      if (shouldReplaceImage(imageRev, this.state.imageRev) || (imageRev > 0 && !this.state.imageUrl)) {
+        void this.pullImage(imageRev);
+      }
       return;
     }
     if (msg.op === "image") {
-      const m = msg as { imageRev: number; dataUrl?: string };
-      if (m.dataUrl) {
-        this.lastImage = m.dataUrl;
-        this.patch({ imageUrl: m.dataUrl, imageRev: m.imageRev ?? this.state.imageRev });
+      const m = msg as { imageRev: number; dataUrl?: string; imageId?: string };
+      const rev = m.imageRev ?? 0;
+      if (m.dataUrl && (shouldReplaceImage(rev, this.state.imageRev) || !this.state.imageUrl)) {
+        this.pullGen += 1;
+        this.patch({
+          imageUrl: m.dataUrl,
+          imageRev: Math.max(rev, this.state.imageRev),
+          imageId: m.imageId ?? this.state.imageId,
+        });
         return;
       }
-      if (typeof m.imageRev === "number") {
-        this.patch({ imageRev: m.imageRev });
-        if (!this.lastImage) void this.pullImage(m.imageRev);
+      if (shouldReplaceImage(rev, this.state.imageRev) || (rev > 0 && !this.state.imageUrl)) {
+        void this.pullImage(rev, m.imageId);
       }
     }
   }
 
-  private async pullImage(rev: number): Promise<void> {
+  private async pullImage(rev: number, imageId?: string): Promise<void> {
+    const gen = ++this.pullGen;
+    this.patch({ imageRev: Math.max(rev, this.state.imageRev), imageId: imageId ?? this.state.imageId });
     try {
-      const text = await fetch(`/api/auralith/image?session=${encodeURIComponent(this.session)}`, {
-        cache: "no-store",
-      }).then((r) => (r.ok ? r.text() : ""));
-      if (text) {
-        this.lastImage = text;
-        this.patch({ imageUrl: text, imageRev: rev });
-      }
+      const text = await fetch(
+        `/api/auralith/image?session=${encodeURIComponent(this.session)}&rev=${encodeURIComponent(String(rev))}`,
+        { cache: "no-store" },
+      ).then((r) => (r.ok ? r.text() : ""));
+      if (gen !== this.pullGen) return;
+      if (text) this.patch({ imageUrl: text, imageRev: Math.max(rev, this.state.imageRev) });
     } catch {
       /* ignore */
     }
