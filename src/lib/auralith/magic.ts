@@ -436,7 +436,7 @@ export class MagicSim {
     const energy = clamp(magic.energy, 0, 1);
     const bright = clamp(master * (0.72 + intensity * 0.26), 0, MAGIC_LIMITS.maxBright);
 
-    this.drawRefraction(ctx, rect, bright);
+    if (magic.distortion) this.drawRefraction(ctx, rect, bright);
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";

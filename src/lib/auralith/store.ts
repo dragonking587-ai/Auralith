@@ -79,6 +79,7 @@ export interface AuralithState {
   setRoomDim: (v: number) => void;
   setMagic: (key: "intensity" | "flow" | "spread" | "energy" | "density", v: number) => void;
   setMagicStyle: (style: MagicStyleId) => void;
+  setMagicDistortion: (on: boolean) => void;
   setFit: (fit: FitMode) => void;
   setPan: (x: number, y: number) => void;
   setOutputMethod: (method: OutputMethod) => void;
@@ -350,6 +351,12 @@ export const useAuralith = create<AuralithState>((set, get) => ({
   setMagicStyle: (style) =>
     set((s) => {
       const scene = { ...s.scene, magic: { ...s.scene.magic, style } };
+      persistScene(scene);
+      return { scene };
+    }),
+  setMagicDistortion: (on) =>
+    set((s) => {
+      const scene = { ...s.scene, magic: { ...s.scene.magic, distortion: on } };
       persistScene(scene);
       return { scene };
     }),

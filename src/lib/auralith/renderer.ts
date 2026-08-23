@@ -1,4 +1,4 @@
-import { computeImageRect, imageNormToCanvas, minSide } from "./coords";
+import { computeImageRect, imageNormToCanvas, minSide, snapRect } from "./coords";
 import { bandLevel, overallEnergy } from "./envelope";
 import { MagicSim } from "./magic";
 import { clamp } from "./id";
@@ -253,7 +253,7 @@ function drawGuides(
 }
 
 export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: boolean }): Renderer {
-  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: true });
+  const ctx = canvas.getContext("2d", { alpha: false, desynchronized: false });
   if (!ctx) throw new Error("Canvas 2D is unavailable.");
   const magic = new MagicSim();
   let cw = canvas.width;
@@ -278,8 +278,10 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
 
     const imgW = scene.image?.width ?? (image as HTMLImageElement | null)?.naturalWidth ?? w;
     const imgH = scene.image?.height ?? (image as HTMLImageElement | null)?.naturalHeight ?? h;
-    const rect = computeImageRect(imgW, imgH, w, h, scene.framing.fit, scene.framing.panX, scene.framing.panY);
+    const rect = snapRect(computeImageRect(imgW, imgH, w, h, scene.framing.fit, scene.framing.panX, scene.framing.panY));
 
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
     if (image) {
       ctx.drawImage(image, rect.x, rect.y, rect.w, rect.h);
     }

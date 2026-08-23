@@ -39,13 +39,10 @@ export function StreamView({ sessionId }: { sessionId: string }) {
 
     const fit = () => {
       const s = scene;
-      const r = wrap.getBoundingClientRect();
       const targetW = s?.output.width ?? 1920;
       const targetH = s?.output.height ?? 1080;
-      canvas.width = targetW;
-      canvas.height = targetH;
-      canvas.style.width = `${r.width}px`;
-      canvas.style.height = `${r.height}px`;
+      if (canvas.width !== targetW) canvas.width = targetW;
+      if (canvas.height !== targetH) canvas.height = targetH;
     };
     fit();
     const ro = new ResizeObserver(fit);

@@ -64,6 +64,8 @@ export interface MagicConfig {
   style: MagicStyleId;
   /** Dense Spell structure amount. Ignored by Flowing. */
   density: number;
+  /** When true, Magic may locally warp pixels under the effect. Default off — source image stays locked. */
+  distortion: boolean;
 }
 
 export interface Framing {
@@ -143,6 +145,7 @@ export const DEFAULT_MAGIC: MagicConfig = {
   energy: 0.6,
   style: "flowing",
   density: 0.65,
+  distortion: false,
 };
 
 export const DEFAULT_FRAMING: Framing = {

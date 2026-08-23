@@ -126,7 +126,7 @@ Coordinates are stored normalized to the source image (0–1), not the canvas.
 
 ## Magic
 
-Style selector (expandable): **Flowing** is the default cinematic vapor; **Dense Spell** is a heavier volumetric plasma with its own Density control. Intensity / Flow / Spread / Energy apply to both. Overlapping Magic stamps share one energy field (max blend). Sparks stay secondary. Older scenes without a style default to Flowing. Older Flame scenes migrate to Magic automatically.
+Style selector (expandable): **Flowing** is the default cinematic vapor; **Dense Spell** is a heavier volumetric plasma with its own Density control. Intensity / Flow / Spread / Energy apply to both. **Distortion** is off by default so the source photograph stays pixel-locked; enable it only for localized air-warp under Magic. Overlapping Magic stamps share one energy field (max blend). Sparks stay secondary. Older scenes without a style default to Flowing. Older Flame scenes migrate to Magic automatically.
 
 
 ## Saved scenes

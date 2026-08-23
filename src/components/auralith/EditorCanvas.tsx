@@ -27,11 +27,9 @@ export function EditorCanvas() {
     const fit = () => {
       const r = wrap.getBoundingClientRect();
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = Math.max(2, Math.floor(r.width * dpr));
-      const h = Math.max(2, Math.floor(r.height * dpr));
+      const w = Math.max(2, Math.round(r.width * dpr));
+      const h = Math.max(2, Math.round(r.height * dpr));
       renderer.resize(w, h);
-      canvas.style.width = `${r.width}px`;
-      canvas.style.height = `${r.height}px`;
     };
     fit();
     const ro = new ResizeObserver(fit);

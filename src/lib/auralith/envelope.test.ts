@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { applySensitivity, stepEnvelope } from "./envelope.ts";
 import { energyContribute, magicTargets, magicTint, MAGIC_LIMITS, MagicSim } from "./magic.ts";
-import { computeImageRect, canvasToImageNorm, imageNormToCanvas } from "./coords.ts";
+import { computeImageRect, canvasToImageNorm, imageNormToCanvas, snapRect } from "./coords.ts";
 import { parseScene, emptyScene } from "./schema.ts";
 
 describe("envelope", () => {
@@ -35,6 +35,19 @@ describe("coords stay image-normalized", () => {
     const rect = computeImageRect(1920, 1080, 1080, 1920, "fill", 0.5, 0.5);
     const aspect = rect.w / rect.h;
     assert.ok(Math.abs(aspect - 1920 / 1080) < 1e-6);
+  });
+
+  it("snaps the image rect to integer pixels identically every frame", () => {
+    const a = snapRect(computeImageRect(1920, 1080, 1280, 720, "fill", 0.5, 0.5));
+    const b = snapRect(computeImageRect(1920, 1080, 1280, 720, "fill", 0.5, 0.5));
+    assert.equal(a.x, b.x);
+    assert.equal(a.y, b.y);
+    assert.equal(a.w, b.w);
+    assert.equal(a.h, b.h);
+    assert.equal(a.x, Math.round(a.x));
+    assert.equal(a.y, Math.round(a.y));
+    assert.equal(a.w, Math.round(a.w));
+    assert.equal(a.h, Math.round(a.h));
   });
 });
 
@@ -88,7 +101,7 @@ describe("bounded magic envelope", () => {
       intensity: 1,
     };
     const loud = { bass: 1, low: 0, mid: 0, high: 0 };
-    const cfg = { intensity: 1, flow: 1, spread: 1, energy: 1, style: "flowing" as const, density: 0.65 };
+    const cfg = { intensity: 1, flow: 1, spread: 1, energy: 1, style: "flowing" as const, density: 0.65, distortion: false };
     let maxAura = 0;
     for (let i = 1; i <= 240; i++) {
       sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
@@ -132,7 +145,7 @@ describe("bounded magic envelope", () => {
       intensity: 1,
     };
     const loud = { bass: 1, low: 0.4, mid: 0, high: 0 };
-    const cfg = { intensity: 0.8, flow: 0.7, spread: 0.7, energy: 0.75, style: "flowing" as const, density: 0.65 };
+    const cfg = { intensity: 0.8, flow: 0.7, spread: 0.7, energy: 0.75, style: "flowing" as const, density: 0.65, distortion: false };
     for (let i = 1; i <= 45; i++) {
       sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
     }
@@ -154,7 +167,7 @@ describe("bounded magic envelope", () => {
       intensity: 1,
     };
     const loud = { bass: 1, low: 0.3, mid: 0, high: 0 };
-    const cfg = { intensity: 1, flow: 0.8, spread: 0.8, energy: 0.8, style: "dense" as const, density: 1 };
+    const cfg = { intensity: 1, flow: 0.8, spread: 0.8, energy: 0.8, style: "dense" as const, density: 1, distortion: false };
     for (let i = 1; i <= 60; i++) {
       sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
       const s = sim.bodyScale("stamp_dense");
@@ -184,6 +197,7 @@ describe("scene schema", () => {
     assert.equal(emptyScene().output.fps, 60);
     assert.ok(s.magic);
     assert.ok(s.magic.intensity > 0);
+    assert.equal(s.magic.distortion, false);
   });
 
   it("migrates old Flame scenes to Magic", () => {
@@ -199,6 +213,7 @@ describe("scene schema", () => {
     assert.equal(s.magic.intensity, 0.9);
     assert.ok(s.magic.spread > 0);
     assert.equal(s.magic.style, "flowing");
+    assert.equal(s.magic.distortion, false);
   });
 
   it("defaults missing Magic style to Flowing", () => {
@@ -206,6 +221,7 @@ describe("scene schema", () => {
     assert.ok(s);
     assert.equal(s.magic.style, "flowing");
     assert.ok(s.magic.density >= 0 && s.magic.density <= 1);
+    assert.equal(s.magic.distortion, false);
   });
 
   it("preserves Dense Spell style in saved scenes", () => {
@@ -222,5 +238,12 @@ describe("scene schema", () => {
     const s = parseScene({ schemaVersion: 1, magic: { style: "patronus" } });
     assert.ok(s);
     assert.equal(s.magic.style, "flowing");
+  });
+
+  it("keeps Distortion off unless explicitly enabled", () => {
+    const off = parseScene({ schemaVersion: 1, magic: { intensity: 1 } });
+    const on = parseScene({ schemaVersion: 1, magic: { distortion: true } });
+    assert.equal(off?.magic.distortion, false);
+    assert.equal(on?.magic.distortion, true);
   });
 });

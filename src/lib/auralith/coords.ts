@@ -26,6 +26,16 @@ export function computeImageRect(
   return { x, y, w, h };
 }
 
+/** Integer destination so the source photograph cannot subpixel-crawl between frames. */
+export function snapRect(rect: ImageRect): ImageRect {
+  return {
+    x: Math.round(rect.x),
+    y: Math.round(rect.y),
+    w: Math.max(1, Math.round(rect.w)),
+    h: Math.max(1, Math.round(rect.h)),
+  };
+}
+
 export function imageNormToCanvas(nx: number, ny: number, rect: ImageRect): Point {
   return { x: rect.x + nx * rect.w, y: rect.y + ny * rect.h };
 }

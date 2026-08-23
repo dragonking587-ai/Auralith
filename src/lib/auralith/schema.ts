@@ -156,6 +156,7 @@ export function parseScene(raw: unknown): Scene | null {
           0,
           1,
         ),
+        distortion: magicSrc.distortion === true,
       },
       output: {
         ...base.output,

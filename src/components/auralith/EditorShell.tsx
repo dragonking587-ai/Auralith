@@ -364,10 +364,21 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
         {scene.magic.style === "dense" ? (
           <Slider label="Density" value={scene.magic.density} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("density", v)} />
         ) : null}
+        <p className="mb-1 mt-1 text-[11px] text-subtle">Distortion</p>
+        <div className="flex flex-wrap gap-1">
+          <Chip active={!scene.magic.distortion} onClick={() => useAuralith.getState().setMagicDistortion(false)}>
+            Off
+          </Chip>
+          <Chip active={!!scene.magic.distortion} onClick={() => useAuralith.getState().setMagicDistortion(true)}>
+            On
+          </Chip>
+        </div>
         <p className="text-[11px] leading-relaxed text-subtle">
-          {scene.magic.style === "dense"
-            ? "Dense Spell is a heavier volumetric look. Nearby stamps still share a field so they blend, not blow out."
-            : "Nearby Magic stamps share an energy field so they blend, not blow out."}
+          {scene.magic.distortion
+            ? "Localized air-warp under Magic only. The rest of the photograph stays still."
+            : scene.magic.style === "dense"
+              ? "Dense Spell is a heavier volumetric look. Nearby stamps still share a field so they blend, not blow out."
+              : "Nearby Magic stamps share an energy field so they blend, not blow out. The source image stays pixel-locked."}
         </p>
       </Section>
 
