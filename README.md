@@ -57,6 +57,20 @@ npm run preview
 
 `npm run typecheck` and `npm test` should pass before merging `dev` into `main`.
 
+## Netlify
+
+Deploy the **`dev`** branch. `netlify.toml` sets:
+
+| Field | Value |
+| --- | --- |
+| Base directory | *(blank)* |
+| Build command | `npm run build` |
+| Publish directory | `dist` |
+| Functions directory | *(blank — Nitro writes `.netlify/functions-internal`)* |
+| Node version | `22` |
+
+On Netlify, Browser Source uses latest-state HTTP (`/api/auralith/live` + `/api/auralith/image`) because Netlify Functions cannot upgrade WebSockets. The editor still publishes bands, scene, and image. Dev/local still uses WebSocket when available.
+
 ## Browser Source setup (recommended)
 
 1. Open Auralith and load a scene.

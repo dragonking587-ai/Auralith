@@ -28,6 +28,10 @@ export class LivePublisher {
   private lastImageId = "";
   private closed = false;
   private retry = 0;
+  private lastBandPost = 0;
+  private bandTimer = 0;
+  private pendingBands: BandsMsg | null = null;
+
 
   constructor(session: string) {
     this.session = session;
@@ -63,7 +67,9 @@ export class LivePublisher {
     const msg = bandsToMsg(this.session, bands, intensity);
     this.send(msg);
     this.bc?.postMessage(msg);
+    this.queueBandPost(msg);
   }
+
 
   publishScene(scene: Scene): void {
     this.sceneRev += 1;
@@ -97,6 +103,38 @@ export class LivePublisher {
     this.closed = true;
     this.ws?.close();
     this.bc?.close();
+    if (this.bandTimer) window.clearTimeout(this.bandTimer);
+  }
+
+  private queueBandPost(msg: BandsMsg): void {
+    this.pendingBands = msg;
+    const now = typeof performance !== "undefined" ? performance.now() : Date.now();
+    const wait = Math.max(0, 120 - (now - this.lastBandPost));
+    if (this.bandTimer) return;
+    this.bandTimer = window.setTimeout(() => {
+      this.bandTimer = 0;
+      const payload = this.pendingBands;
+      this.pendingBands = null;
+      if (!payload || this.closed) return;
+      this.lastBandPost = typeof performance !== "undefined" ? performance.now() : Date.now();
+      void fetch(`/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          session: this.session,
+          bands: {
+            seq: payload.seq,
+            t: payload.t,
+            b: payload.b,
+            l: payload.l,
+            m: payload.m,
+            h: payload.h,
+            dim: payload.dim,
+            intensity: payload.intensity,
+          },
+        }),
+      }).catch(() => undefined);
+    }, wait);
   }
 
   private send(msg: object): void {
