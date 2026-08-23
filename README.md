@@ -2,7 +2,7 @@
 
 **Version:** 1.0.0-rebuild
 
-Auralith is a real-time audio-reactive background creator for OBS, Streamlabs, and TikTok LIVE Studio. Create custom lighting effects including magic, pulse, hue, flicker, and strobe, synchronized to music with Browser Source and Window Capture support.
+Auralith is a real-time audio-reactive background creator for OBS, Streamlabs, and TikTok LIVE Studio. Create custom lighting effects including pulse, hue, flicker, and strobe, synchronized to music with Browser Source and Window Capture support.
 
 Load a background, mark lights with Stamp or Trace, assign those regions to Bass / Low / Mid / High, and output a clean reactive plate — background plus effects only — to your streaming software.
 
@@ -16,8 +16,7 @@ Permanent source of truth: [https://github.com/dragonking587-ai/Auralith](https:
 - Single Web Audio engine: Demo Audio, uploaded Track, Microphone, and System/computer audio (where the browser allows it)
 - Four frequency bands with fast attack and natural release
 - Stamp, Trace, Move, Erase, Undo, Redo, Clear, Match Photo
-- Effects: Pulse, Hue, Flicker, Strobe, Room Dim, Magic (Flowing / Dense Spell)
-- Nearby Magic stamps share an energy field so they blend, not blow out to white
+- Effects: Pulse, Hue, Flicker, Strobe, Room Dim
 - Saved scenes (versioned `schemaVersion: 1`)
 - Streaming resolutions for TikTok, OBS, Streamlabs, plus custom width/height
 - Image fit: Fill (default), Fit, Stretch, with repositioning
@@ -124,14 +123,9 @@ Bands: Bass, Low, Mid, High. Fast attack, natural release. Sensitivity uses a so
 
 Coordinates are stored normalized to the source image (0–1), not the canvas.
 
-## Magic
-
-Style selector (expandable): **Flowing** is the default cinematic vapor; **Dense Spell** is a heavier volumetric plasma; **Ethereal Ribbons** is a tall silk-like rising body with orbiting motes. Intensity / Flow / Spread / Energy apply to all. **Distortion** is off by default so the source photograph stays pixel-locked; enable it only for localized air-warp under Magic. Overlapping Magic stamps share one energy field (max blend). Sparks stay secondary. Older scenes without a style default to Flowing. Older Flame scenes migrate to Magic automatically.
-
-
 ## Saved scenes
 
-Scenes persist in the browser (`schemaVersion: 1`) with a named library. Export/import JSON is available from the Look panel.
+Scenes persist in the browser (`schemaVersion: 1`) with a named library. Export/import JSON is available from the Look panel. Older scenes that used Flame or Magic load safely: those regions become Pulse, and Magic-only settings are dropped.
 
 ## Performance target
 

@@ -1,6 +1,5 @@
 import { computeImageRect, imageNormToCanvas, minSide, snapRect } from "./coords";
 import { bandLevel, overallEnergy } from "./envelope";
-import { MagicSim } from "./magic";
 import { clamp } from "./id";
 import type {
   Bands,
@@ -159,7 +158,6 @@ function drawEffect(
   effect: EffectId,
 ): void {
   const base = levelFor(region, bands, master);
-  if (effect === "magic") return;
 
   let alpha = base;
   let color = region.color;
@@ -255,7 +253,6 @@ function drawGuides(
 export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: boolean }): Renderer {
   const ctx = canvas.getContext("2d", { alpha: false, desynchronized: false });
   if (!ctx) throw new Error("Canvas 2D is unavailable.");
-  const magic = new MagicSim();
   let cw = canvas.width;
   let ch = canvas.height;
   const stream = opts?.stream ?? false;
@@ -297,13 +294,9 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
     ctx.save();
     ctx.globalCompositeOperation = "screen";
     for (const region of scene.regions) {
-      if (region.effect === "magic") continue;
       drawEffect(ctx, region, rect, bands, master, now, region.effect);
     }
     ctx.restore();
-
-    magic.step(Math.min(0.05, 1 / 60), scene.regions, bands, scene.magic, master, now);
-    magic.draw(ctx, rect, scene.magic, master);
 
     if (guides && !stream) {
       drawGuides(ctx, scene, rect, guides);
@@ -317,7 +310,7 @@ export function createRenderer(canvas: HTMLCanvasElement, opts?: { stream?: bool
     drawFrame,
     resize,
     setSize: resize,
-    dispose: () => magic.reset(),
+    dispose: () => undefined,
   };
 }
 

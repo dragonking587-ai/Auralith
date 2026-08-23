@@ -2,7 +2,6 @@ import { SCHEMA_VERSION } from "./version.ts";
 import {
   BANDS,
   DEFAULT_AUDIO,
-  DEFAULT_MAGIC,
   DEFAULT_FRAMING,
   EFFECTS,
   type BandId,
@@ -12,7 +11,6 @@ import {
   type Scene,
   type StampRegion,
   type TraceRegion,
-  isMagicStyle,
 } from "./types.ts";
 import { defaultOutput } from "./presets.ts";
 import { uid } from "./id.ts";
@@ -25,7 +23,6 @@ export function emptyScene(name = "Untitled"): Scene {
     regions: [],
     framing: { ...DEFAULT_FRAMING },
     audio: { ...DEFAULT_AUDIO },
-    magic: { ...DEFAULT_MAGIC },
     output: defaultOutput(),
     defaultBand: "bass",
     defaultEffect: "pulse",
@@ -38,7 +35,7 @@ function isBand(v: unknown): v is BandId {
 }
 
 function parseEffect(v: unknown): EffectId {
-  if (v === "flame") return "magic";
+  if (v === "flame" || v === "magic") return "pulse";
   if (typeof v === "string" && (EFFECTS as string[]).includes(v)) return v as EffectId;
   return "pulse";
 }
@@ -113,7 +110,6 @@ export function parseScene(raw: unknown): Scene | null {
     }
     const framingIn = (o.framing ?? {}) as Record<string, unknown>;
     const audioIn = (o.audio ?? {}) as Record<string, unknown>;
-    const magicSrc = (o.magic ?? o.flame ?? {}) as Record<string, unknown>;
     const outputIn = (o.output ?? {}) as Record<string, unknown>;
     const imageIn = o.image && typeof o.image === "object" ? (o.image as Record<string, unknown>) : null;
     const regions = Array.isArray(o.regions)
@@ -143,20 +139,6 @@ export function parseScene(raw: unknown): Scene | null {
         sensitivity: num(audioIn.sensitivity, DEFAULT_AUDIO.sensitivity, 0.05, 4),
         masterIntensity: num(audioIn.masterIntensity, DEFAULT_AUDIO.masterIntensity, 0, 1.5),
         roomDim: num(audioIn.roomDim, DEFAULT_AUDIO.roomDim, 0, 1),
-      },
-      magic: {
-        intensity: num(magicSrc.intensity ?? magicSrc.heat, DEFAULT_MAGIC.intensity, 0, 1),
-        flow: num(magicSrc.flow ?? magicSrc.speed, DEFAULT_MAGIC.flow, 0, 1),
-        spread: num(magicSrc.spread, DEFAULT_MAGIC.spread, 0, 1),
-        energy: num(magicSrc.energy ?? magicSrc.density, DEFAULT_MAGIC.energy, 0, 1),
-        style: isMagicStyle(magicSrc.style) ? magicSrc.style : DEFAULT_MAGIC.style,
-        density: num(
-          magicSrc.spellDensity ?? (magicSrc.energy != null ? magicSrc.density : undefined),
-          DEFAULT_MAGIC.density,
-          0,
-          1,
-        ),
-        distortion: magicSrc.distortion === true,
       },
       output: {
         ...base.output,
@@ -244,35 +226,35 @@ export function demoRegions(): Region[] {
       intensity: 0.7,
     },
     {
-      id: "demo_magic_a",
+      id: "demo_light_a",
       kind: "stamp",
       x: 0.22,
       y: 0.8,
       r: 0.04,
       band: "bass",
-      effect: "magic",
+      effect: "pulse",
       color: "#7ec8ff",
       intensity: 1,
     },
     {
-      id: "demo_magic_b",
+      id: "demo_light_b",
       kind: "stamp",
       x: 0.28,
       y: 0.81,
       r: 0.038,
       band: "bass",
-      effect: "magic",
+      effect: "pulse",
       color: "#b48cff",
       intensity: 1,
     },
     {
-      id: "demo_magic_c",
+      id: "demo_light_c",
       kind: "stamp",
       x: 0.34,
       y: 0.8,
       r: 0.036,
       band: "low",
-      effect: "magic",
+      effect: "pulse",
       color: "#7ec8ff",
       intensity: 1,
     },
@@ -283,7 +265,7 @@ export function demoRegions(): Region[] {
       y: 0.8,
       r: 0.042,
       band: "low",
-      effect: "magic",
+      effect: "pulse",
       color: "#e8c47a",
       intensity: 1,
     },
