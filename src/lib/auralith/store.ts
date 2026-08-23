@@ -2,6 +2,7 @@ import { create } from "zustand";
 import { getAudioEngine } from "./audio-engine";
 import { cloneRegions, RegionHistory } from "./history";
 import { analyzeImage, type DetectMode } from "./detect-lights";
+import { assignBands, bandCounts } from "./assign-bands";
 import { clamp, uid } from "./id";
 import { LivePublisher } from "./live-client";
 import { matchPhotoColors } from "./match-photo";
@@ -31,6 +32,7 @@ import type {
   ToolId,
   TraceRegion,
 } from "./types";
+import { BAND_LABEL, BANDS } from "./types";
 import { presetById } from "./presets";
 import { DEMO_STAGE_URL } from "./schema";
 
@@ -371,16 +373,22 @@ export const useAuralith = create<AuralithState>((set, get) => ({
     await new Promise((r) => setTimeout(r, 0));
     try {
       const found = analyzeImage(img, get().detectMode);
-      const suggestions: LightSuggestion[] = found.map((d) => ({
+      const bands = assignBands(found);
+      const suggestions: LightSuggestion[] = found.map((d, i) => ({
         ...d,
         id: uid("sug"),
+        band: bands[i] ?? "bass",
         picked: true,
       }));
+      const counts = bandCounts(suggestions.map((s) => s.band));
+      const summary = BANDS.filter((b) => counts[b])
+        .map((b) => `${counts[b]} ${BAND_LABEL[b]}`)
+        .join(" · ");
       set({
         suggestions,
         detectStatus: "done",
         status: suggestions.length
-          ? `Found ${suggestions.length} likely light${suggestions.length === 1 ? "" : "s"}. Accept or reject.`
+          ? `Found ${suggestions.length} likely light${suggestions.length === 1 ? "" : "s"} (${summary}). Accept or reject.`
           : "No obvious lights found. Try Sensitive, or stamp manually.",
       });
     } catch {
@@ -405,7 +413,7 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       x: g.x,
       y: g.y,
       r: clamp(g.r, 0.012, 0.16),
-      band: scene.defaultBand,
+      band: g.band,
       effect: "surge",
       color: g.color,
       intensity: 1,

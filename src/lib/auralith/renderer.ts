@@ -14,6 +14,7 @@ import type {
   SurgeConfig,
   TraceRegion,
 } from "./types";
+import { BAND_COLOR, BAND_LABEL } from "./types";
 
 export interface DrawGuides {
   selectedId: string | null;
@@ -378,24 +379,26 @@ function drawSuggestions(ctx: CanvasRenderingContext2D, rect: ImageRect, suggest
   suggestions.forEach((s, i) => {
     const p = imageNormToCanvas(s.x, s.y, rect);
     const rad = s.r * side;
+    const bandHex = BAND_COLOR[s.band];
     ctx.save();
-    ctx.strokeStyle = s.picked ? "rgba(232, 196, 160, 0.95)" : "rgba(180, 186, 196, 0.55)";
-    ctx.lineWidth = s.picked ? 2 : 1;
+    ctx.strokeStyle = s.picked ? bandHex : "rgba(180, 186, 196, 0.5)";
+    ctx.globalAlpha = s.picked ? 0.95 : 0.45;
+    ctx.lineWidth = s.picked ? 2.2 : 1;
     ctx.setLineDash([4, 3]);
     ctx.beginPath();
     ctx.arc(p.x, p.y, rad, 0, Math.PI * 2);
     ctx.stroke();
     ctx.setLineDash([]);
-    const label = String(i + 1);
-    ctx.fillStyle = s.picked ? "rgba(18, 16, 14, 0.85)" : "rgba(18, 16, 14, 0.55)";
-    ctx.beginPath();
-    ctx.arc(p.x, p.y - rad - 8, 8, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.fillStyle = s.picked ? "#f4e6d4" : "#c8ccd4";
-    ctx.font = "10px ui-sans-serif, system-ui, sans-serif";
+    ctx.globalAlpha = 1;
+    const tag = `${i + 1} ${BAND_LABEL[s.band]}`;
+    ctx.font = "9px ui-sans-serif, system-ui, sans-serif";
+    const tw = Math.max(28, ctx.measureText(tag).width + 10);
+    ctx.fillStyle = s.picked ? "rgba(18, 16, 14, 0.88)" : "rgba(18, 16, 14, 0.5)";
+    ctx.fillRect(p.x - tw / 2, p.y - rad - 20, tw, 14);
+    ctx.fillStyle = s.picked ? bandHex : "#c8ccd4";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(label, p.x, p.y - rad - 8);
+    ctx.fillText(tag, p.x, p.y - rad - 13);
     ctx.restore();
   });
 }

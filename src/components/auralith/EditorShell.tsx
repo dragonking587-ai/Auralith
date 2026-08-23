@@ -339,6 +339,17 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
             <p className="text-[11px] text-muted">
               {suggestions.length} suggestion{suggestions.length === 1 ? "" : "s"} · {picked} selected. Click a ring to toggle.
             </p>
+            <div className="flex flex-wrap gap-1">
+              {BANDS.map((b) => {
+                const n = suggestions.filter((s) => s.band === b).length;
+                if (!n) return null;
+                return (
+                  <span key={b} className="rounded-[6px] px-1.5 py-0.5 text-[10px] text-fg" style={{ background: `${BAND_COLOR[b]}33` }}>
+                    {n} {BAND_LABEL[b]}
+                  </span>
+                );
+              })}
+            </div>
             <div className="grid grid-cols-2 gap-1">
               <GhostBtn onClick={() => useAuralith.getState().acceptSuggestions(false)}>Accept all</GhostBtn>
               <GhostBtn onClick={() => useAuralith.getState().acceptSuggestions(true)}>Accept selected</GhostBtn>

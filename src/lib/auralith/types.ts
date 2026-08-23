@@ -125,6 +125,7 @@ export interface LightSuggestion {
   color: string;
   confidence: number;
   strength: number;
+  band: BandId;
   picked: boolean;
 }
 
