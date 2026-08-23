@@ -28,6 +28,7 @@ import type {
   StampRegion,
   ToolId,
   TraceRegion,
+  MagicStyleId,
 } from "./types";
 import { presetById } from "./presets";
 import { DEMO_STAGE_URL } from "./schema";
@@ -76,7 +77,8 @@ export interface AuralithState {
   setSensitivity: (v: number) => void;
   setMaster: (v: number) => void;
   setRoomDim: (v: number) => void;
-  setMagic: (key: "intensity" | "flow" | "spread" | "energy", v: number) => void;
+  setMagic: (key: "intensity" | "flow" | "spread" | "energy" | "density", v: number) => void;
+  setMagicStyle: (style: MagicStyleId) => void;
   setFit: (fit: FitMode) => void;
   setPan: (x: number, y: number) => void;
   setOutputMethod: (method: OutputMethod) => void;
@@ -342,6 +344,12 @@ export const useAuralith = create<AuralithState>((set, get) => ({
   setMagic: (key, v) =>
     set((s) => {
       const scene = { ...s.scene, magic: { ...s.scene.magic, [key]: v } };
+      persistScene(scene);
+      return { scene };
+    }),
+  setMagicStyle: (style) =>
+    set((s) => {
+      const scene = { ...s.scene, magic: { ...s.scene.magic, style } };
       persistScene(scene);
       return { scene };
     }),

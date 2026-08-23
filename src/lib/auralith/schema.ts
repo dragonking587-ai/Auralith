@@ -12,6 +12,7 @@ import {
   type Scene,
   type StampRegion,
   type TraceRegion,
+  isMagicStyle,
 } from "./types.ts";
 import { defaultOutput } from "./presets.ts";
 import { uid } from "./id.ts";
@@ -148,6 +149,13 @@ export function parseScene(raw: unknown): Scene | null {
         flow: num(magicSrc.flow ?? magicSrc.speed, DEFAULT_MAGIC.flow, 0, 1),
         spread: num(magicSrc.spread, DEFAULT_MAGIC.spread, 0, 1),
         energy: num(magicSrc.energy ?? magicSrc.density, DEFAULT_MAGIC.energy, 0, 1),
+        style: isMagicStyle(magicSrc.style) ? magicSrc.style : DEFAULT_MAGIC.style,
+        density: num(
+          magicSrc.spellDensity ?? (magicSrc.energy != null ? magicSrc.density : undefined),
+          DEFAULT_MAGIC.density,
+          0,
+          1,
+        ),
       },
       output: {
         ...base.output,

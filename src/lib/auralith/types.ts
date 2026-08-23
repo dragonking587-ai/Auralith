@@ -6,6 +6,19 @@ export type ToolId = "stamp" | "trace" | "move" | "erase" | "pan";
 export type FitMode = "fill" | "fit" | "stretch";
 export type AudioSourceId = "none" | "demo" | "track" | "mic" | "system";
 export type OutputMethod = "browser" | "window";
+export type MagicStyleId = "flowing" | "dense";
+
+/** Registered Magic looks. Add an id here, a label, then a renderer branch. */
+export const MAGIC_STYLES: MagicStyleId[] = ["flowing", "dense"];
+
+export const MAGIC_STYLE_LABEL: Record<MagicStyleId, string> = {
+  flowing: "Flowing",
+  dense: "Dense Spell",
+};
+
+export function isMagicStyle(v: unknown): v is MagicStyleId {
+  return typeof v === "string" && (MAGIC_STYLES as string[]).includes(v);
+}
 export type PlatformId = "obs" | "streamlabs" | "tiktok" | "custom";
 export type FpsCap = 30 | 60;
 
@@ -47,6 +60,10 @@ export interface MagicConfig {
   flow: number;
   spread: number;
   energy: number;
+  /** Expandable Magic look. Unknown/missing values migrate to "flowing". */
+  style: MagicStyleId;
+  /** Dense Spell structure amount. Ignored by Flowing. */
+  density: number;
 }
 
 export interface Framing {
@@ -124,6 +141,8 @@ export const DEFAULT_MAGIC: MagicConfig = {
   flow: 0.55,
   spread: 0.62,
   energy: 0.6,
+  style: "flowing",
+  density: 0.65,
 };
 
 export const DEFAULT_FRAMING: Framing = {

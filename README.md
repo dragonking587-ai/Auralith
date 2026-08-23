@@ -16,7 +16,7 @@ Permanent source of truth: [https://github.com/dragonking587-ai/Auralith](https:
 - Single Web Audio engine: Demo Audio, uploaded Track, Microphone, and System/computer audio (where the browser allows it)
 - Four frequency bands with fast attack and natural release
 - Stamp, Trace, Move, Erase, Undo, Redo, Clear, Match Photo
-- Effects: Pulse, Hue, Flicker, Strobe, Room Dim, Magic (intensity / flow / spread / energy)
+- Effects: Pulse, Hue, Flicker, Strobe, Room Dim, Magic (Flowing / Dense Spell)
 - Nearby Magic stamps share an energy field so they blend, not blow out to white
 - Saved scenes (versioned `schemaVersion: 1`)
 - Streaming resolutions for TikTok, OBS, Streamlabs, plus custom width/height
@@ -126,7 +126,7 @@ Coordinates are stored normalized to the source image (0–1), not the canvas.
 
 ## Magic
 
-Overlapping Magic stamps share one energy field (max blend). Tendrils and sparse sparks stay secondary. Grouped regions look richer, not white. Older scenes that used Flame migrate to Magic automatically.
+Style selector (expandable): **Flowing** is the default cinematic vapor; **Dense Spell** is a heavier volumetric plasma with its own Density control. Intensity / Flow / Spread / Energy apply to both. Overlapping Magic stamps share one energy field (max blend). Sparks stay secondary. Older scenes without a style default to Flowing. Older Flame scenes migrate to Magic automatically.
 
 
 ## Saved scenes

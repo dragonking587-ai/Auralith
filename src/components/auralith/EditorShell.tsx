@@ -19,7 +19,7 @@ import {
   AppWindow,
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/auralith/version";
-import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, type ToolId } from "@/lib/auralith/types";
+import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, MAGIC_STYLES, MAGIC_STYLE_LABEL, type ToolId } from "@/lib/auralith/types";
 import { getAudioEngine, hasMic, hasSystemAudio } from "@/lib/auralith/audio-engine";
 import { groupedPresets } from "@/lib/auralith/presets";
 import { ZERO_BANDS } from "@/lib/auralith/bands";
@@ -349,12 +349,25 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
       )}
 
       <Section title="Magic" icon={<Sparkles className="size-3.5" />}>
+        <p className="mb-1 text-[11px] text-subtle">Style</p>
+        <div className="flex flex-wrap gap-1">
+          {MAGIC_STYLES.map((id) => (
+            <Chip key={id} active={scene.magic.style === id} onClick={() => useAuralith.getState().setMagicStyle(id)}>
+              {MAGIC_STYLE_LABEL[id]}
+            </Chip>
+          ))}
+        </div>
         <Slider label="Intensity" value={scene.magic.intensity} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("intensity", v)} />
         <Slider label="Flow" value={scene.magic.flow} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("flow", v)} />
         <Slider label="Spread" value={scene.magic.spread} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("spread", v)} />
         <Slider label="Energy" value={scene.magic.energy} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("energy", v)} />
+        {scene.magic.style === "dense" ? (
+          <Slider label="Density" value={scene.magic.density} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("density", v)} />
+        ) : null}
         <p className="text-[11px] leading-relaxed text-subtle">
-          Nearby Magic stamps share an energy field so they blend, not blow out.
+          {scene.magic.style === "dense"
+            ? "Dense Spell is a heavier volumetric look. Nearby stamps still share a field so they blend, not blow out."
+            : "Nearby Magic stamps share an energy field so they blend, not blow out."}
         </p>
       </Section>
 

@@ -88,7 +88,7 @@ describe("bounded magic envelope", () => {
       intensity: 1,
     };
     const loud = { bass: 1, low: 0, mid: 0, high: 0 };
-    const cfg = { intensity: 1, flow: 1, spread: 1, energy: 1 };
+    const cfg = { intensity: 1, flow: 1, spread: 1, energy: 1, style: "flowing" as const, density: 0.65 };
     let maxAura = 0;
     for (let i = 1; i <= 240; i++) {
       sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
@@ -132,12 +132,38 @@ describe("bounded magic envelope", () => {
       intensity: 1,
     };
     const loud = { bass: 1, low: 0.4, mid: 0, high: 0 };
-    const cfg = { intensity: 0.8, flow: 0.7, spread: 0.7, energy: 0.75 };
+    const cfg = { intensity: 0.8, flow: 0.7, spread: 0.7, energy: 0.75, style: "flowing" as const, density: 0.65 };
     for (let i = 1; i <= 45; i++) {
       sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
     }
     assert.ok(sim.fieldCoverage() > 40, `expected an energy field, got ${sim.fieldCoverage()} cells`);
     assert.ok(sim.liveCount() < sim.fieldCoverage(), "sparks must stay secondary");
+  });
+
+  it("dense spell stays bounded and still uses a field", () => {
+    const sim = new MagicSim();
+    const region = {
+      id: "stamp_dense",
+      kind: "stamp" as const,
+      x: 0.5,
+      y: 0.5,
+      r: 0.08,
+      band: "bass" as const,
+      effect: "magic" as const,
+      color: "#88a0ff",
+      intensity: 1,
+    };
+    const loud = { bass: 1, low: 0.3, mid: 0, high: 0 };
+    const cfg = { intensity: 1, flow: 0.8, spread: 0.8, energy: 0.8, style: "dense" as const, density: 1 };
+    for (let i = 1; i <= 60; i++) {
+      sim.step(1 / 60, [region], loud, cfg, 1, i * (1000 / 60));
+      const s = sim.bodyScale("stamp_dense");
+      assert.ok(s);
+      assert.ok(s.aura <= MAGIC_LIMITS.maxAura + 1e-6);
+      assert.ok(s.reach <= MAGIC_LIMITS.maxReach + 1e-6);
+    }
+    assert.ok(sim.fieldCoverage() > 40);
+    assert.ok(sim.liveCount() < sim.fieldCoverage());
   });
 });
 
@@ -172,5 +198,29 @@ describe("scene schema", () => {
     assert.equal(s.magic.flow, 0.4);
     assert.equal(s.magic.intensity, 0.9);
     assert.ok(s.magic.spread > 0);
+    assert.equal(s.magic.style, "flowing");
+  });
+
+  it("defaults missing Magic style to Flowing", () => {
+    const s = parseScene({ schemaVersion: 1, magic: { intensity: 0.5, flow: 0.4, spread: 0.3, energy: 0.2 } });
+    assert.ok(s);
+    assert.equal(s.magic.style, "flowing");
+    assert.ok(s.magic.density >= 0 && s.magic.density <= 1);
+  });
+
+  it("preserves Dense Spell style in saved scenes", () => {
+    const s = parseScene({
+      schemaVersion: 1,
+      magic: { intensity: 0.7, flow: 0.6, spread: 0.5, energy: 0.4, style: "dense", density: 0.88 },
+    });
+    assert.ok(s);
+    assert.equal(s.magic.style, "dense");
+    assert.equal(s.magic.density, 0.88);
+  });
+
+  it("ignores unknown Magic styles", () => {
+    const s = parseScene({ schemaVersion: 1, magic: { style: "patronus" } });
+    assert.ok(s);
+    assert.equal(s.magic.style, "flowing");
   });
 });

@@ -1,5 +1,5 @@
 import { clamp, lerp } from "./id.ts";
-import type { Bands, ImageRect, MagicConfig, Region, StampRegion } from "./types.ts";
+import type { Bands, ImageRect, MagicConfig, MagicStyleId, Region, StampRegion } from "./types.ts";
 import { imageNormToCanvas, minSide } from "./coords.ts";
 import { bandLevel, stepEnvelope } from "./envelope.ts";
 import { MagicGL, type MagicEmitterGPU } from "./magic-gl.ts";
@@ -178,6 +178,8 @@ export class MagicSim {
   private flowBoost = 0.5;
   private avgEnv = 0;
   private avgImpulse = 0;
+  private style: MagicStyleId = "flowing";
+  private density = 0.65;
 
   constructor(w = 120, h = 80) {
     this.hw = w;
@@ -329,6 +331,9 @@ export class MagicSim {
     const flow = clamp(magic.flow, 0, 1);
     const spread = clamp(magic.spread, 0, 1);
     const energy = clamp(magic.energy, 0, 1);
+    this.style = magic.style === "dense" ? "dense" : "flowing";
+    this.density = clamp(magic.density ?? 0.65, 0, 1);
+    const dense = this.style === "dense";
 
     const decay = Math.exp(-dt * (1.4 + (1 - energy) * 0.4));
     for (let i = 0; i < this.field.length; i++) this.field[i]! *= decay;
@@ -358,8 +363,9 @@ export class MagicSim {
       avgImpulse += b.impulse;
 
       const share = cluster.get(region.id) ?? 1;
-      const amount = clamp(b.env * (0.35 + intensity * 0.4) * share, 0, 0.8);
-      const rad = region.kind === "stamp" ? region.r * b.aura * (0.9 + spread * 0.35) : region.width * b.aura;
+      const amount = clamp(b.env * (0.35 + intensity * 0.4) * share * (dense ? 0.82 + this.density * 0.28 : 1), 0, 0.85);
+      const rad0 = region.kind === "stamp" ? region.r * b.aura * (0.9 + spread * 0.35) : region.width * b.aura;
+      const rad = rad0 * (dense ? 1.18 + this.density * 0.32 + b.surge * 0.16 : 1);
       if (region.kind === "stamp") {
         this.splat(region.x, region.y, rad, amount, b.seed, region.color);
       } else {
@@ -456,6 +462,8 @@ export class MagicSim {
         energy: clamp(magic.energy, 0, 1),
         intensity: clamp(magic.intensity, 0, 1) * (0.75 + this.avgEnv * 0.45),
         bright,
+        style: this.style,
+        density: clamp(this.density * (0.5 + this.avgEnv * 0.45 + this.avgImpulse * 0.18), 0, 1),
       },
       rect.w,
       rect.h,
@@ -474,7 +482,8 @@ export class MagicSim {
       const b = this.bodies.get(region.id);
       if (!b || b.env < 0.03) continue;
       const rgb = hexToRgb(region.color);
-      const rad = region.kind === "stamp" ? region.r * b.aura * 0.95 : region.width * b.aura * 1.1;
+      const grow = this.style === "dense" ? 1.18 + this.density * 0.38 + b.surge * 0.16 : 1;
+      const rad = (region.kind === "stamp" ? region.r * b.aura * 0.95 : region.width * b.aura * 1.1) * grow;
       if (region.kind === "stamp") {
         out.push({
           x: region.x, y: region.y, rx: rad * 0.85, ry: rad * 0.9,
@@ -528,7 +537,10 @@ export class MagicSim {
     for (const region of regions) {
       const b = this.bodies.get(region.id);
       if (!b || b.env < 0.06) continue;
-      const want = 2 + Math.round(energy * 3 + b.surge * 3 + b.env * 2);
+      const want =
+        this.style === "dense"
+          ? 1 + Math.round(this.density * 2 + b.surge * 2 + b.env)
+          : 2 + Math.round(energy * 3 + b.surge * 3 + b.env * 2);
       let have = 0;
       for (const w of this.wisps) if (w.live && w.regionId === region.id) have++;
       for (let k = have; k < want; k++) {
@@ -544,7 +556,7 @@ export class MagicSim {
         slot.color = region.color;
         slot.life = 0;
         slot.maxLife = 1.4 + this.rand() * 1.8;
-        slot.width = 0.7 + this.rand() * 0.8;
+        slot.width = this.style === "dense" ? 1.35 + this.rand() * 1.05 : 0.7 + this.rand() * 0.8;
         for (let i = 0; i < WISP_LEN; i++) {
           slot.xs[i] = ox;
           slot.ys[i] = oy;
@@ -621,9 +633,15 @@ export class MagicSim {
         ctx.lineTo(pts[pts.length - 1]!.x, pts[pts.length - 1]!.y);
         ctx.stroke();
       };
-      draw(14, col, 0.07);
-      draw(5.5, col, 0.18);
-      draw(1.6, hi, 0.38);
+      if (this.style === "dense") {
+        draw(28, col, 0.08);
+        draw(13, col, 0.15);
+        draw(4.4, hi, 0.28);
+      } else {
+        draw(14, col, 0.07);
+        draw(5.5, col, 0.18);
+        draw(1.6, hi, 0.38);
+      }
     }
   }
 
