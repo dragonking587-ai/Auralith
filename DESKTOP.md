@@ -28,7 +28,7 @@ npm run desktop:build
 cargo tauri build --manifest-path src-tauri/Cargo.toml
 ```
 
-CI: `.github/workflows/desktop-windows.yml` on tags matching `v*-desktop*` (and manual dispatch).
+CI recipe: [`scripts/desktop-windows.yml`](scripts/desktop-windows.yml) (intended path `.github/workflows/desktop-windows.yml`). Pushing that GitHub Actions file requires OAuth `workflow` scope. Until then, run the Windows job from a machine with that scope, or copy the recipe into `.github/workflows/`.
 
 Installer is NSIS `.exe`. **No MSI** in this test. The installer is **unsigned**; SmartScreen may warn. Do not bypass SmartScreen as a product feature — a code-signing certificate is required before public release.
 
