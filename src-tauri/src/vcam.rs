@@ -21,7 +21,7 @@ pub const DEVICE_NAME: &str = "Auralith Virtual Camera";
 #[cfg(windows)]
 mod win {
     use super::*;
-    use once_cell::sync::Mutex;
+    use std::sync::Mutex;
     use std::path::PathBuf;
     use std::sync::atomic::{AtomicBool, Ordering};
 
