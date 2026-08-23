@@ -38,6 +38,16 @@ jobs:
         with:
           workspaces: src-tauri
 
+      # desktop UI is already built above; skip nested npm from src-tauri
+      # (beforeBuildCommand "npm --prefix .." resolves one directory too high on GHA)
+      - name: Skip nested beforeBuildCommand
+        shell: pwsh
+        run: |
+          $path = "src-tauri/tauri.conf.json"
+          $json = Get-Content $path -Raw | ConvertFrom-Json
+          $json.build.beforeBuildCommand = ""
+          $json | ConvertTo-Json -Depth 30 | Set-Content $path -Encoding utf8
+
       - name: Build Windows NSIS installer (Tauri)
         uses: tauri-apps/tauri-action@v0
         env:
