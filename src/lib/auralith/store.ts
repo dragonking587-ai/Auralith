@@ -76,7 +76,7 @@ export interface AuralithState {
   setSensitivity: (v: number) => void;
   setMaster: (v: number) => void;
   setRoomDim: (v: number) => void;
-  setFlame: (key: "density" | "speed" | "heat", v: number) => void;
+  setMagic: (key: "intensity" | "flow" | "spread" | "energy", v: number) => void;
   setFit: (fit: FitMode) => void;
   setPan: (x: number, y: number) => void;
   setOutputMethod: (method: OutputMethod) => void;
@@ -339,9 +339,9 @@ export const useAuralith = create<AuralithState>((set, get) => ({
       persistScene(scene);
       return { scene };
     }),
-  setFlame: (key, v) =>
+  setMagic: (key, v) =>
     set((s) => {
-      const scene = { ...s.scene, flame: { ...s.scene.flame, [key]: v } };
+      const scene = { ...s.scene, magic: { ...s.scene.magic, [key]: v } };
       persistScene(scene);
       return { scene };
     }),

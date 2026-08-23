@@ -2,7 +2,7 @@ import { SCHEMA_VERSION } from "./version.ts";
 import {
   BANDS,
   DEFAULT_AUDIO,
-  DEFAULT_FLAME,
+  DEFAULT_MAGIC,
   DEFAULT_FRAMING,
   EFFECTS,
   type BandId,
@@ -24,7 +24,7 @@ export function emptyScene(name = "Untitled"): Scene {
     regions: [],
     framing: { ...DEFAULT_FRAMING },
     audio: { ...DEFAULT_AUDIO },
-    flame: { ...DEFAULT_FLAME },
+    magic: { ...DEFAULT_MAGIC },
     output: defaultOutput(),
     defaultBand: "bass",
     defaultEffect: "pulse",
@@ -36,8 +36,10 @@ function isBand(v: unknown): v is BandId {
   return typeof v === "string" && (BANDS as string[]).includes(v);
 }
 
-function isEffect(v: unknown): v is EffectId {
-  return typeof v === "string" && (EFFECTS as string[]).includes(v);
+function parseEffect(v: unknown): EffectId {
+  if (v === "flame") return "magic";
+  if (typeof v === "string" && (EFFECTS as string[]).includes(v)) return v as EffectId;
+  return "pulse";
 }
 
 function num(v: unknown, fallback: number, lo?: number, hi?: number): number {
@@ -64,7 +66,7 @@ function parseRegion(v: unknown): Region | null {
   if (!v || typeof v !== "object") return null;
   const r = v as Record<string, unknown>;
   const band = isBand(r.band) ? r.band : "mid";
-  const effect = isEffect(r.effect) ? r.effect : "pulse";
+  const effect = parseEffect(r.effect);
   const color = str(r.color, "#e8c4a0");
   const intensity = num(r.intensity, 1, 0, 2);
   const id = str(r.id, uid("r"));
@@ -110,7 +112,7 @@ export function parseScene(raw: unknown): Scene | null {
     }
     const framingIn = (o.framing ?? {}) as Record<string, unknown>;
     const audioIn = (o.audio ?? {}) as Record<string, unknown>;
-    const flameIn = (o.flame ?? {}) as Record<string, unknown>;
+    const magicSrc = (o.magic ?? o.flame ?? {}) as Record<string, unknown>;
     const outputIn = (o.output ?? {}) as Record<string, unknown>;
     const imageIn = o.image && typeof o.image === "object" ? (o.image as Record<string, unknown>) : null;
     const regions = Array.isArray(o.regions)
@@ -141,10 +143,11 @@ export function parseScene(raw: unknown): Scene | null {
         masterIntensity: num(audioIn.masterIntensity, DEFAULT_AUDIO.masterIntensity, 0, 1.5),
         roomDim: num(audioIn.roomDim, DEFAULT_AUDIO.roomDim, 0, 1),
       },
-      flame: {
-        density: num(flameIn.density, DEFAULT_FLAME.density, 0, 1),
-        speed: num(flameIn.speed, DEFAULT_FLAME.speed, 0, 1),
-        heat: num(flameIn.heat, DEFAULT_FLAME.heat, 0, 1),
+      magic: {
+        intensity: num(magicSrc.intensity ?? magicSrc.heat, DEFAULT_MAGIC.intensity, 0, 1),
+        flow: num(magicSrc.flow ?? magicSrc.speed, DEFAULT_MAGIC.flow, 0, 1),
+        spread: num(magicSrc.spread, DEFAULT_MAGIC.spread, 0, 1),
+        energy: num(magicSrc.energy ?? magicSrc.density, DEFAULT_MAGIC.energy, 0, 1),
       },
       output: {
         ...base.output,
@@ -161,7 +164,7 @@ export function parseScene(raw: unknown): Scene | null {
         presetId: str(outputIn.presetId, base.output.presetId),
       },
       defaultBand: isBand(o.defaultBand) ? o.defaultBand : "bass",
-      defaultEffect: isEffect(o.defaultEffect) ? o.defaultEffect : "pulse",
+      defaultEffect: parseEffect(o.defaultEffect),
       defaultColor: str(o.defaultColor, "#e8c4a0"),
     };
   } catch {
@@ -232,36 +235,36 @@ export function demoRegions(): Region[] {
       intensity: 0.7,
     },
     {
-      id: "demo_flame_a",
+      id: "demo_magic_a",
       kind: "stamp",
       x: 0.22,
       y: 0.8,
       r: 0.04,
       band: "bass",
-      effect: "flame",
-      color: "#e3944a",
+      effect: "magic",
+      color: "#7ec8ff",
       intensity: 1,
     },
     {
-      id: "demo_flame_b",
+      id: "demo_magic_b",
       kind: "stamp",
       x: 0.28,
       y: 0.81,
       r: 0.038,
       band: "bass",
-      effect: "flame",
-      color: "#e3944a",
+      effect: "magic",
+      color: "#b48cff",
       intensity: 1,
     },
     {
-      id: "demo_flame_c",
+      id: "demo_magic_c",
       kind: "stamp",
       x: 0.34,
       y: 0.8,
       r: 0.036,
       band: "low",
-      effect: "flame",
-      color: "#e3944a",
+      effect: "magic",
+      color: "#7ec8ff",
       intensity: 1,
     },
     {
@@ -271,8 +274,8 @@ export function demoRegions(): Region[] {
       y: 0.8,
       r: 0.042,
       band: "low",
-      effect: "flame",
-      color: "#e3944a",
+      effect: "magic",
+      color: "#e8c47a",
       intensity: 1,
     },
   ];

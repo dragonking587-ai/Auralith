@@ -3,7 +3,7 @@ import {
   Circle,
   Copy,
   Eraser,
-  Flame,
+  Sparkles,
   Hand,
   ImagePlus,
   Layers,
@@ -348,12 +348,13 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
         <p className="text-xs text-subtle">Stamp or Trace a light, then assign Bass / Low / Mid / High.</p>
       )}
 
-      <Section title="Flame" icon={<Flame className="size-3.5" />}>
-        <Slider label="Density" value={scene.flame.density} min={0} max={1} onChange={(v) => useAuralith.getState().setFlame("density", v)} />
-        <Slider label="Speed" value={scene.flame.speed} min={0} max={1} onChange={(v) => useAuralith.getState().setFlame("speed", v)} />
-        <Slider label="Heat" value={scene.flame.heat} min={0} max={1} onChange={(v) => useAuralith.getState().setFlame("heat", v)} />
+      <Section title="Magic" icon={<Sparkles className="size-3.5" />}>
+        <Slider label="Intensity" value={scene.magic.intensity} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("intensity", v)} />
+        <Slider label="Flow" value={scene.magic.flow} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("flow", v)} />
+        <Slider label="Spread" value={scene.magic.spread} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("spread", v)} />
+        <Slider label="Energy" value={scene.magic.energy} min={0} max={1} onChange={(v) => useAuralith.getState().setMagic("energy", v)} />
         <p className="text-[11px] leading-relaxed text-subtle">
-          Grouped flame stamps share one heat field so they grow richer, not a white bloom.
+          Nearby Magic stamps share an energy field so they blend, not blow out.
         </p>
       </Section>
 

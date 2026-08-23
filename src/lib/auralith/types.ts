@@ -1,7 +1,7 @@
 import type { SCHEMA_VERSION } from "./version.ts";
 
 export type BandId = "bass" | "low" | "mid" | "high";
-export type EffectId = "pulse" | "hue" | "flicker" | "strobe" | "flame";
+export type EffectId = "pulse" | "hue" | "flicker" | "strobe" | "magic";
 export type ToolId = "stamp" | "trace" | "move" | "erase" | "pan";
 export type FitMode = "fill" | "fit" | "stretch";
 export type AudioSourceId = "none" | "demo" | "track" | "mic" | "system";
@@ -10,7 +10,7 @@ export type PlatformId = "obs" | "streamlabs" | "tiktok" | "custom";
 export type FpsCap = 30 | 60;
 
 export const BANDS: BandId[] = ["bass", "low", "mid", "high"];
-export const EFFECTS: EffectId[] = ["pulse", "hue", "flicker", "strobe", "flame"];
+export const EFFECTS: EffectId[] = ["pulse", "hue", "flicker", "strobe", "magic"];
 
 export interface Point {
   x: number;
@@ -42,10 +42,11 @@ export interface TraceRegion {
 
 export type Region = StampRegion | TraceRegion;
 
-export interface FlameConfig {
-  density: number;
-  speed: number;
-  heat: number;
+export interface MagicConfig {
+  intensity: number;
+  flow: number;
+  spread: number;
+  energy: number;
 }
 
 export interface Framing {
@@ -83,7 +84,7 @@ export interface Scene {
   regions: Region[];
   framing: Framing;
   audio: AudioSettings;
-  flame: FlameConfig;
+  magic: MagicConfig;
   output: OutputSettings;
   defaultBand: BandId;
   defaultEffect: EffectId;
@@ -118,10 +119,11 @@ export interface ImageRect {
   h: number;
 }
 
-export const DEFAULT_FLAME: FlameConfig = {
-  density: 0.62,
-  speed: 0.55,
-  heat: 0.7,
+export const DEFAULT_MAGIC: MagicConfig = {
+  intensity: 0.72,
+  flow: 0.55,
+  spread: 0.62,
+  energy: 0.6,
 };
 
 export const DEFAULT_FRAMING: Framing = {
@@ -155,7 +157,7 @@ export const EFFECT_LABEL: Record<EffectId, string> = {
   hue: "Hue",
   flicker: "Flicker",
   strobe: "Strobe",
-  flame: "Flame",
+  magic: "Magic",
 };
 
 export const BAND_COLOR: Record<BandId, string> = {
