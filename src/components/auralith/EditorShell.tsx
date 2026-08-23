@@ -20,7 +20,7 @@ import {
   AppWindow,
 } from "lucide-react";
 import { APP_NAME, APP_VERSION } from "@/lib/auralith/version";
-import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, type ToolId } from "@/lib/auralith/types";
+import { BAND_COLOR, BAND_LABEL, BANDS, EFFECT_LABEL, EFFECTS, type Scene, type ToolId } from "@/lib/auralith/types";
 import { DETECT_MODE_LABEL, DETECT_MODES } from "@/lib/auralith/detect-lights";
 import { getAudioEngine, hasMic, hasSystemAudio, listLoopbackDevices, type LoopbackDeviceInfo } from "@/lib/auralith/audio-engine";
 import { groupedPresets } from "@/lib/auralith/presets";
@@ -28,8 +28,11 @@ import { ZERO_BANDS } from "@/lib/auralith/bands";
 import { useAuralith } from "@/lib/auralith/store";
 import { EditorCanvas } from "./EditorCanvas";
 import type { LiveBands } from "@/lib/auralith/types";
-import { DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
-import { resolveWindowsInstallerUrl } from "@/lib/auralith/desktop-release";
+import { DESKTOP_AUTO_UPDATE_KEY, DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
+import { checkForUpdatesDetailed, openUpdatePage, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
+import { vcamStart, vcamStop, vcamStatus, type VcamStatus } from "@/lib/auralith/vcam";
+import { setVcamCaptureActive } from "@/lib/auralith/vcam-bridge";
+
 
 const TOOLS: { id: ToolId; label: string; icon: typeof Circle }[] = [
   { id: "stamp", label: "Stamp", icon: Circle },
@@ -533,6 +536,8 @@ function OutputPane({
         </p>
       </Section>
 
+      {isDesktopApp() ? <VirtualCameraSection scene={scene} /> : null}
+
       <Section title="Window Capture">
         <GhostBtn onClick={onWindow} className="w-full justify-center">
           <AppWindow className="size-3.5" />
@@ -542,6 +547,8 @@ function OutputPane({
           Opens “Auralith — Stream Output”. Capture that window. Editor marks never appear there.
         </p>
       </Section>
+
+      {isDesktopApp() ? <DesktopUpdatesSection /> : null}
 
       <Section title="Saved scenes" icon={<Layers className="size-3.5" />}>
         <div className="flex gap-2">
@@ -568,6 +575,155 @@ function OutputPane({
         </ul>
       </Section>
     </div>
+  );
+}
+
+
+function VirtualCameraSection({ scene }: { scene: Scene }) {
+  const [status, setStatus] = useState<VcamStatus | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    void vcamStatus().then(setStatus);
+    return () => {
+      setVcamCaptureActive(false);
+    };
+  }, []);
+
+  const start = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      const st = await vcamStart(scene.output.width, scene.output.height, scene.output.fps || 30);
+      setStatus(st);
+      setVcamCaptureActive(true, scene.output.width, scene.output.height);
+      // Ensure stream output window is open so the final renderer runs
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+      setVcamCaptureActive(false);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const stop = async () => {
+    setBusy(true);
+    setError("");
+    try {
+      await vcamStop();
+      setVcamCaptureActive(false);
+      setStatus(await vcamStatus());
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Section title="Virtual Camera">
+      <p className="text-[11px] leading-relaxed text-subtle">
+        Preferred output. Appears in OBS / Streamlabs / TikTok LIVE Studio as a Video Capture Device named{" "}
+        <span className="text-fg">Auralith Virtual Camera</span>. Feeds the same final stream as Window Capture (no editor UI).
+      </p>
+      {status?.running ? (
+        <>
+          <p className="mt-2 text-xs text-fg">
+            Status: <span className="text-warm">Running</span> · {status.width}×{status.height} · {status.fps} fps
+          </p>
+          <GhostBtn onClick={() => void stop()} className="mt-2 w-full justify-center">
+            Stop Virtual Camera
+          </GhostBtn>
+        </>
+      ) : (
+        <GhostBtn onClick={() => void start()} className="mt-2 w-full justify-center">
+          {busy ? "Starting…" : "Start Virtual Camera"}
+        </GhostBtn>
+      )}
+      {error ? <p className="mt-2 text-[11px] text-danger">{error}</p> : null}
+      {status && !status.dll_loaded && !status.running ? (
+        <p className="mt-2 text-[11px] text-subtle">
+          softcam.dll is not loaded. Reinstall Auralith (Virtual Camera component registers the DirectShow filter).
+        </p>
+      ) : null}
+      <p className="mt-2 text-[11px] leading-relaxed text-subtle">
+        OBS: Add Source → Video Capture Device → Auralith Virtual Camera. Audio is not sent through the camera — use System Audio / WASAPI in Auralith for effects only.
+      </p>
+    </Section>
+  );
+}
+
+function DesktopUpdatesSection() {
+  const [result, setResult] = useState<UpdateCheckResult | null>(null);
+  const [checking, setChecking] = useState(false);
+  const [auto, setAuto] = useState(() => {
+    try {
+      return localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY) !== "0";
+    } catch {
+      return true;
+    }
+  });
+
+  const runCheck = async () => {
+    setChecking(true);
+    try {
+      setResult(await checkForUpdatesDetailed());
+    } finally {
+      setChecking(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!auto) return;
+    const t = window.setTimeout(() => {
+      void checkForUpdatesDetailed().then(setResult);
+    }, 2500);
+    return () => window.clearTimeout(t);
+  }, [auto]);
+
+  const toggleAuto = (on: boolean) => {
+    setAuto(on);
+    try {
+      localStorage.setItem(DESKTOP_AUTO_UPDATE_KEY, on ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  let statusLine = "Not checked yet.";
+  if (checking) statusLine = "Checking…";
+  else if (result?.status === "up-to-date") statusLine = "Auralith is up to date.";
+  else if (result?.status === "available") statusLine = `Update available: ${result.info.tag}`;
+  else if (result?.status === "offline") statusLine = "No internet connection.";
+  else if (result?.status === "unavailable") statusLine = result.message;
+  else if (result?.status === "error") statusLine = result.message;
+
+  return (
+    <Section title="Updates">
+      <p className="text-xs text-muted">
+        Auralith Desktop · Version {DESKTOP_VERSION}
+      </p>
+      <label className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
+        <span>Automatically check for updates</span>
+        <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
+      </label>
+      <GhostBtn onClick={() => void runCheck()} className="mt-2 w-full justify-center">
+        {checking ? "Checking…" : "Check for Updates"}
+      </GhostBtn>
+      <p className="mt-2 text-[11px] leading-relaxed text-subtle">{statusLine}</p>
+      {result?.status === "available" ? (
+        <GhostBtn
+          onClick={() => void openUpdatePage(result.info)}
+          className="mt-2 w-full justify-center"
+        >
+          Update Auralith
+        </GhostBtn>
+      ) : null}
+      <p className="mt-2 text-[11px] leading-relaxed text-subtle">
+        Updates never embed GitHub credentials. Core features work fully offline. Automatic install without approval is disabled for test builds.
+      </p>
+    </Section>
   );
 }
 

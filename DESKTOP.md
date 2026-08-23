@@ -92,3 +92,23 @@ Do not disable SmartScreen. Before public release, Authenticode-sign the install
 ## Offline
 
 After install, core use works without internet: startup, images, Demo Scene, Track, Mic, System Audio, effects, Smart Detect, saved scenes, Window Capture, local Browser Source. Only update checks and the website Download button need GitHub.
+
+## Virtual Camera (Windows)
+
+- **Device name:** `Auralith Virtual Camera`
+- **Technology:** DirectShow user-mode filter (vendored Softcam, MIT), not a kernel driver
+- **Frame path:** Stream Output canvas (final renderer) → RGBA → RGB24 → Softcam sender API
+- **Registration:** `regsvr32 softcam.dll` (Administrator, once). Installer ships `softcam.dll` and `scripts/register-auralith-vcam.ps1`.
+- **Uninstall:** `regsvr32 /u softcam.dll` or `scripts/unregister-auralith-vcam.ps1`
+- **Resolutions:** uses current Output preset (1920×1080, 1280×720, 1080×1920, 720×1280, …)
+- **FPS:** scene output FPS (60 preferred, 30 fallback)
+- **Audio:** not carried on the virtual camera (effects still use WASAPI/mic analysis)
+- **OBS / Streamlabs / TikTok:** Video Capture Device → Auralith Virtual Camera — **requires real Windows testing**
+
+## In-app updates
+
+- **Check for Updates** in Output → Updates
+- Optional quiet check a few seconds after launch (never blocks startup)
+- **No GitHub PAT** in the app binary or source
+- Private source repository cannot serve unauthenticated release assets; for production auto-download use a **public binary-only channel** (separate public releases repo or public endpoint) with Tauri minisign (`TAURI_SIGNING_PRIVATE_KEY` in CI secrets, public key in config)
+- Windows **code signing** is separate from updater package signing and is not enabled in test builds

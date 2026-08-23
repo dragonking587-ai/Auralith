@@ -1,4 +1,5 @@
 mod audio;
+mod vcam;
 mod server;
 
 use serde_json::Value;
@@ -122,6 +123,39 @@ fn load_app_file(app: AppHandle, name: String) -> Result<Option<String>, String>
     Ok(Some(std::fs::read_to_string(path).map_err(|e| e.to_string())?))
 }
 
+
+#[tauri::command]
+fn vcam_status() -> vcam::VcamStatus {
+    vcam::status()
+}
+
+#[tauri::command]
+fn vcam_start(app: AppHandle, width: u32, height: u32, fps: f32) -> Result<vcam::VcamStatus, String> {
+    let res = app.path().resource_dir().ok();
+    vcam::start(width, height, fps, res)
+}
+
+#[tauri::command]
+fn vcam_stop() {
+    vcam::stop();
+}
+
+#[tauri::command]
+fn vcam_push_frame(rgba: Vec<u8>, width: u32, height: u32) -> Result<(), String> {
+    // Convert RGBA → RGB24 for Softcam
+    let expected = (width as usize) * (height as usize) * 4;
+    if rgba.len() < expected {
+        return Err(format!("RGBA frame too small"));
+    }
+    let mut rgb = Vec::with_capacity((width as usize) * (height as usize) * 3);
+    for chunk in rgba[..expected].chunks_exact(4) {
+        rgb.push(chunk[0]);
+        rgb.push(chunk[1]);
+        rgb.push(chunk[2]);
+    }
+    vcam::push_rgb24(&rgb)
+}
+
 fn resolve_ui_dir(handle: &AppHandle) -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Ok(res) = handle.path().resource_dir() {
@@ -151,7 +185,11 @@ pub fn run() {
             save_live_scene,
             load_live_scene,
             save_app_file,
-            load_app_file
+            load_app_file,
+            vcam_status,
+            vcam_start,
+            vcam_stop,
+            vcam_push_frame
         ])
         .run(tauri::generate_context!())
         .expect("Auralith failed to start");

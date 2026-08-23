@@ -3,6 +3,7 @@ import { ZERO_BANDS } from "@/lib/auralith/bands";
 import { LiveViewer } from "@/lib/auralith/live-client";
 import { createRenderer } from "@/lib/auralith/renderer";
 import type { LiveBands, Scene } from "@/lib/auralith/types";
+import { maybePushCanvas } from "@/lib/auralith/vcam-bridge";
 
 export function StreamView({ sessionId }: { sessionId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -81,6 +82,7 @@ export function StreamView({ sessionId }: { sessionId: string }) {
         now,
         guides: null,
       });
+      void maybePushCanvas(canvas, now);
     };
     loop = requestAnimationFrame(tick);
 
