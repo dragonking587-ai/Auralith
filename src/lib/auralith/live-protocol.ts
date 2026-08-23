@@ -33,9 +33,21 @@ export interface ImageReadyMsg {
   op: "image";
   session: string;
   imageRev: number;
+  imageId?: string;
+  dataUrl?: string;
 }
 
-export type LiveMsg = HelloMsg | BandsMsg | SceneMsg | ImageReadyMsg;
+export interface SnapshotMsg {
+  op: "snapshot";
+  session: string;
+  sceneRev: number;
+  imageRev: number;
+  imageId: string;
+  scene: Scene;
+  dataUrl?: string;
+}
+
+export type LiveMsg = HelloMsg | BandsMsg | SceneMsg | ImageReadyMsg | SnapshotMsg;
 
 export function bandsToMsg(session: string, bands: LiveBands, intensity: number): BandsMsg {
   return {

@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ZERO_BANDS } from "@/lib/auralith/bands";
 import { LiveViewer } from "@/lib/auralith/live-client";
 import { createRenderer } from "@/lib/auralith/renderer";
@@ -7,6 +7,7 @@ import type { LiveBands, Scene } from "@/lib/auralith/types";
 export function StreamView({ sessionId }: { sessionId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [waiting, setWaiting] = useState(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -22,6 +23,7 @@ export function StreamView({ sessionId }: { sessionId: string }) {
     let bands: LiveBands | null = null;
     let loop = 0;
     let lastDraw = 0;
+    let hasLiveImage = false;
 
     const unsub = viewer.subscribe((st) => {
       scene = st.scene;
@@ -38,6 +40,8 @@ export function StreamView({ sessionId }: { sessionId: string }) {
         img.onload = () => {
           if (gen !== loadGen) return;
           image = img;
+          hasLiveImage = true;
+          setWaiting(false);
         };
         img.onerror = () => {
           if (gen !== loadGen) return;
@@ -63,21 +67,20 @@ export function StreamView({ sessionId }: { sessionId: string }) {
       const minDt = fps === 30 ? 32 : 15;
       if (now - lastDraw < minDt) return;
       lastDraw = now;
-      if (scene) {
-        const tw = scene.output.width;
-        const th = scene.output.height;
-        if (canvas.width !== tw || canvas.height !== th) {
-          canvas.width = tw;
-          canvas.height = th;
-        }
-        renderer.drawFrame({
-          scene,
-          image,
-          bands: bands ?? ZERO_BANDS,
-          now,
-          guides: null,
-        });
+      if (!hasLiveImage || !scene || !image) return;
+      const tw = scene.output.width;
+      const th = scene.output.height;
+      if (canvas.width !== tw || canvas.height !== th) {
+        canvas.width = tw;
+        canvas.height = th;
       }
+      renderer.drawFrame({
+        scene,
+        image,
+        bands: bands ?? ZERO_BANDS,
+        now,
+        guides: null,
+      });
     };
     loop = requestAnimationFrame(tick);
 
@@ -91,8 +94,13 @@ export function StreamView({ sessionId }: { sessionId: string }) {
   }, [sessionId]);
 
   return (
-    <div ref={wrapRef} className="h-dvh w-full overflow-hidden bg-black">
+    <div ref={wrapRef} className="relative h-dvh w-full overflow-hidden bg-black">
       <canvas ref={canvasRef} className="h-full w-full" />
+      {waiting ? (
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center text-xs tracking-wide text-zinc-500">
+          Waiting for active scene
+        </div>
+      ) : null}
     </div>
   );
 }

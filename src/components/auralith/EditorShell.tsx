@@ -85,11 +85,16 @@ export function EditorShell() {
     const h = scene.output.height;
     const maxW = Math.min(w, window.screen.availWidth * 0.9);
     const scale = maxW / w;
-    window.open(
-      `/output?session=${encodeURIComponent(sessionId)}`,
-      "auralith-stream-output",
-      `width=${Math.round(w * scale)},height=${Math.round(h * scale)},menubar=no,toolbar=no,location=no,status=no`,
-    );
+    const rev = scene.image?.rev ?? 0;
+    const url = `/output?session=${encodeURIComponent(sessionId)}&irev=${rev}&t=${Date.now()}`;
+    const features = `width=${Math.round(w * scale)},height=${Math.round(h * scale)},menubar=no,toolbar=no,location=no,status=no`;
+    const popup = window.open(url, "auralith-stream-output", features);
+    try {
+      if (popup) popup.location.replace(url);
+    } catch {
+      /* popup just created */
+    }
+    useAuralith.getState().getPublisher()?.pushSnapshot();
   };
 
   const copyUrl = async () => {

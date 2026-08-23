@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { shouldReplaceImage } from "./live-rev.ts";
+import { preferHttpImage, shouldReplaceImage } from "./live-rev.ts";
 import { parseScene } from "./schema.ts";
 
 describe("image revision sync", () => {
@@ -9,6 +9,13 @@ describe("image revision sync", () => {
     assert.equal(shouldReplaceImage(1, 1), false);
     assert.equal(shouldReplaceImage(1, 3), false);
     assert.equal(shouldReplaceImage(4, 0), true);
+  });
+
+  it("does not let an older HTTP blob replace live editor pixels", () => {
+    assert.equal(preferHttpImage(5, 7, true), false);
+    assert.equal(preferHttpImage(7, 7, true), false);
+    assert.equal(preferHttpImage(8, 7, true), true);
+    assert.equal(preferHttpImage(3, 0, false), true);
   });
 
   it("parses image.rev and defaults missing rev to 0", () => {

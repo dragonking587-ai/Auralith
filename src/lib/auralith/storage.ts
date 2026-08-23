@@ -86,6 +86,39 @@ export async function loadImageBlob(id: string): Promise<string | null> {
   return idbGet(`image:${id}`);
 }
 
+export interface LiveActiveState {
+  scene: Scene;
+  imageId: string;
+  imageRev: number;
+  sceneRev: number;
+  updatedAt: number;
+}
+
+function liveKey(sessionId: string): string {
+  return `live:${sessionId}`;
+}
+
+/** Editor's current unsaved scene — Window Capture reads this, not Netlify Blobs. */
+export async function saveLiveActive(sessionId: string, state: LiveActiveState, dataUrl?: string | null): Promise<void> {
+  if (!sessionId) return;
+  await idbSet(liveKey(sessionId), JSON.stringify(state));
+  if (dataUrl && state.imageId) await idbSet(`image:${state.imageId}`, dataUrl);
+}
+
+export async function loadLiveActive(sessionId: string): Promise<{ state: LiveActiveState; dataUrl: string | null } | null> {
+  if (!sessionId) return null;
+  const raw = await idbGet(liveKey(sessionId));
+  if (!raw) return null;
+  try {
+    const state = JSON.parse(raw) as LiveActiveState;
+    if (!state || typeof state !== "object") return null;
+    const dataUrl = state.imageId ? await loadImageBlob(state.imageId) : null;
+    return { state, dataUrl };
+  } catch {
+    return null;
+  }
+}
+
 export function loadLibrary(): SavedSceneMeta[] {
   try {
     const raw = localStorage.getItem(LS_LIBRARY);
