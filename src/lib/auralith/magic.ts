@@ -31,10 +31,11 @@ interface Body {
 interface Tendril {
   live: boolean;
   regionId: string;
-  angle: number;
+  lean: number;
   phase: number;
   hueShift: number;
   color: string;
+  forks: number;
 }
 
 export const MAGIC_LIMITS = {
@@ -44,8 +45,8 @@ export const MAGIC_LIMITS = {
   maxReach: 2.85,
   maxSparks: 64,
   maxSpawns: 4,
-  maxTendrils: 36,
-  maxBright: 0.86,
+  maxTendrils: 48,
+  maxBright: 0.9,
   maxLife: 0.55,
   minLife: 0.12,
 } as const;
@@ -70,7 +71,7 @@ function valueNoise(x: number, y: number): number {
 }
 
 function fbm(x: number, y: number): number {
-  return valueNoise(x, y) * 0.55 + valueNoise(x * 2.07 + 11, y * 2.07 + 4) * 0.3 + valueNoise(x * 4.1 + 27, y * 4.1 + 19) * 0.15;
+  return valueNoise(x, y) * 0.52 + valueNoise(x * 2.09 + 11, y * 2.09 + 4) * 0.32 + valueNoise(x * 4.13 + 27, y * 4.13 + 19) * 0.16;
 }
 
 function hashId(id: string): number {
@@ -82,7 +83,7 @@ function hashId(id: string): number {
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
-  if (!Number.isFinite(n)) return { r: 180, g: 160, b: 255 };
+  if (!Number.isFinite(n)) return { r: 232, g: 180, b: 80 };
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
@@ -123,6 +124,27 @@ export function magicTint(hex: string, shiftDeg: number, lift = 0): { r: number;
   return hslToRgb(nh, ns, nl);
 }
 
+/**
+ * Plasma palette along a tendril: dark rim → saturated mid → near-white core.
+ * Heat 1 is a bright tinted core, never RGB 255,255,255.
+ */
+export function plasmaColor(hex: string, heat: number): { r: number; g: number; b: number } {
+  const { r, g, b } = hexToRgb(hex);
+  const [h, s] = rgbToHsl(r, g, b);
+  const t = clamp(heat, 0, 1);
+  const nh = ((h - 0.018 * (1 - t) + 0.01 * t) % 1 + 1) % 1;
+  if (t < 0.35) {
+    const k = t / 0.35;
+    return hslToRgb(nh, clamp(s * 0.95 + 0.12, 0.45, 0.95), lerp(0.18, 0.42, k));
+  }
+  if (t < 0.72) {
+    const k = (t - 0.35) / 0.37;
+    return hslToRgb(nh, clamp(s * 0.85 + 0.18, 0.4, 0.92), lerp(0.42, 0.68, k));
+  }
+  const k = (t - 0.72) / 0.28;
+  return hslToRgb(nh, clamp(s * 0.62 + 0.22, 0.38, 0.78), lerp(0.66, 0.86, k));
+}
+
 export function energyContribute(existing: number, add: number): number {
   return existing > add ? existing : add;
 }
@@ -155,7 +177,7 @@ export class MagicSim {
   private pixels: ImageData | null = null;
   private peak = 0;
 
-  constructor(w = 192, h = 108) {
+  constructor(w = 220, h = 160) {
     this.hw = w;
     this.hh = h;
     this.field = new Float32Array(w * h);
@@ -186,13 +208,13 @@ export class MagicSim {
         life: 0,
         maxLife: 1,
         maxDist: 0.1,
-        size: 1.4,
+        size: 1.2,
         hueShift: 0,
-        color: "#c8b8ff",
+        color: "#e8c47a",
       });
     }
     for (let i = 0; i < TENDRIL_POOL; i++) {
-      this.tendrils.push({ live: false, regionId: "", angle: 0, phase: 0, hueShift: 0, color: "#c8b8ff" });
+      this.tendrils.push({ live: false, regionId: "", lean: 0, phase: 0, hueShift: 0, color: "#e8c47a", forks: 1 });
     }
   }
 
@@ -213,54 +235,65 @@ export class MagicSim {
     return (this.rng & 2147483647) / 2147483647;
   }
 
-  /** Radial, gapped energy kernel — wisps, not a filled disc. */
-  private stampAura(
+  /**
+   * Rising forked plasma kernel: dense anchored base, jagged vertical
+   * filaments, transparent gaps. Matches the lightning-wisp reference.
+   */
+  private stampPlasma(
     nx: number,
     ny: number,
-    radiusN: number,
+    halfW: number,
+    height: number,
     amount: number,
     seed: number,
     turb: number,
     flow: number,
-    hueShift: number,
     color: string,
   ): void {
     const hw = this.hw;
     const hh = this.hh;
     const cx = nx * hw;
     const cy = ny * hh;
-    const rad = Math.max(2.2, radiusN * Math.min(hw, hh));
-    const x0 = Math.max(0, Math.floor(cx - rad * 1.25));
-    const x1 = Math.min(hw - 1, Math.ceil(cx + rad * 1.25));
-    const y0 = Math.max(0, Math.floor(cy - rad * 1.25));
-    const y1 = Math.min(hh - 1, Math.ceil(cy + rad * 1.25));
+    const rise = Math.max(4, height * hh);
+    const base = Math.max(1.6, halfW * hw);
+    const x0 = Math.max(0, Math.floor(cx - base * 1.55));
+    const x1 = Math.min(hw - 1, Math.ceil(cx + base * 1.55));
+    const y0 = Math.max(0, Math.floor(cy - rise * 1.08));
+    const y1 = Math.min(hh - 1, Math.ceil(cy + base * 0.22));
     const add = clamp(amount, 0, 1);
-    const t = this.timeSec * (0.35 + flow * 1.4);
-    const tint = magicTint(color, hueShift, 0.08);
+    const t = this.timeSec * (0.45 + flow * 1.55);
+    const coreCol = plasmaColor(color, 0.92);
+    const midCol = plasmaColor(color, 0.55);
+    const rimCol = plasmaColor(color, 0.18);
+
     for (let y = y0; y <= y1; y++) {
+      const v = (cy - (y + 0.5)) / rise;
+      if (v < -0.12 || v > 1.12) continue;
+      const vy = v < 0 ? 0 : v;
       for (let x = x0; x <= x1; x++) {
-        const dx = (x + 0.5 - cx) / rad;
-        const dy = (y + 0.5 - cy) / rad;
-        const dist = Math.hypot(dx, dy);
-        if (dist > 1.28) continue;
-        const ang = Math.atan2(dy, dx);
-        const n = fbm(Math.cos(ang) * 1.4 + seed * 9 + t * 0.6, dist * 2.3 - t + seed * 4);
-        const n2 = fbm(ang * 0.9 + t * 0.85 + seed * 3, dist * 3.1 - t * 1.3);
-        const spokes = 0.22 + 0.78 * Math.abs(Math.sin(ang * 3.5 + n2 * 2.8 + seed * 6.1));
-        const radiusMod = 0.55 + 0.55 * n * turb + 0.2 * spokes;
-        if (dist > radiusMod * 1.05) continue;
-        const fall = 1 - dist / Math.max(0.12, radiusMod);
-        const gaps = Math.pow(spokes, 1.15);
-        const core = Math.exp(-dist * dist * 5.2);
-        const energy = clamp(fall * gaps * 0.72 + core * 0.38, 0, 1) * add;
-        if (energy < 0.02) continue;
+        const u = (x + 0.5 - cx) / base;
+        let best = 0;
+        for (let k = 0; k < 6; k++) {
+          const ph = seed * 11 + k * 1.63;
+          let center = (fbm(ph, vy * 2.6 - t * 1.15) - 0.5) * (0.18 + vy * 1.7) * turb;
+          center += (fbm(ph + 9.1, vy * 8.4 - t * 2.6) - 0.5) * vy * vy * 0.95 * turb;
+          const d = Math.abs(u - center);
+          const thick = (0.045 + 0.11 * (1 - vy) * (1 - vy)) * (1.08 - k * 0.08);
+          const fil = Math.exp(-(d * d) / Math.max(0.003, thick * thick * 0.48));
+          const flick = 0.28 + 0.72 * fbm(ph + t * 0.7, vy * 3.2);
+          if (fil * flick > best) best = fil * flick;
+        }
+        const bloom = Math.exp(-(u * u) / (0.55 + vy * 0.2) - Math.max(0, vy) * 1.35) * (0.34 * (1 - vy * 0.82));
+        const energy = clamp(best * (0.5 + 0.5 * Math.exp(-vy * 0.55)) * add + bloom * add * 0.5, 0, 1);
+        if (energy < 0.03) continue;
         const i = y * hw + x;
         const prev = this.field[i]!;
         this.field[i] = energyContribute(prev, energy);
         if (energy >= prev) {
-          this.cr[i] = tint.r;
-          this.cg[i] = tint.g;
-          this.cb[i] = tint.b;
+          const col = energy > 0.72 ? coreCol : energy > 0.32 ? midCol : rimCol;
+          this.cr[i] = col.r;
+          this.cg[i] = col.g;
+          this.cb[i] = col.b;
         }
       }
     }
@@ -295,7 +328,7 @@ export class MagicSim {
     const spread = clamp(magic.spread, 0, 1);
     const energy = clamp(magic.energy, 0, 1);
 
-    const decay = Math.exp(-dt * (3.4 + (1 - energy) * 0.6));
+    const decay = Math.exp(-dt * (3.6 + (1 - energy) * 0.5));
     for (let i = 0; i < this.field.length; i++) this.field[i]! *= decay;
 
     const magRegions = regions.filter((r) => r.effect === "magic");
@@ -312,59 +345,59 @@ export class MagicSim {
       b.env = stepEnvelope(b.env, level * respond, dt, 0.05, 0.28);
       const surgeTarget = b.env > 0.55 ? clamp((b.env - 0.48) / 0.52, 0, 1) : 0;
       b.surge = stepEnvelope(b.surge, surgeTarget, dt, 0.2, 0.36);
-      const t = magicTargets(b.env, b.surge, spread);
-      b.aura = clamp(stepEnvelope(b.aura, t.aura, dt, 0.055, 0.24), MAGIC_LIMITS.minAura, MAGIC_LIMITS.maxAura);
-      b.reach = clamp(stepEnvelope(b.reach, t.reach, dt, 0.05, 0.22), MAGIC_LIMITS.minReach, MAGIC_LIMITS.maxReach);
+      const tgt = magicTargets(b.env, b.surge, spread);
+      b.aura = clamp(stepEnvelope(b.aura, tgt.aura, dt, 0.055, 0.24), MAGIC_LIMITS.minAura, MAGIC_LIMITS.maxAura);
+      b.reach = clamp(stepEnvelope(b.reach, tgt.reach, dt, 0.05, 0.22), MAGIC_LIMITS.minReach, MAGIC_LIMITS.maxReach);
 
       const share = cluster.get(region.id) ?? 1;
-      const amount = clamp(b.env * (0.5 + intensity * 0.5) * share, 0, 0.94);
-      const turb = clamp(0.35 + energy * 0.55 + b.surge * 0.35, 0, 1.2);
-      const hueJitter = (b.seed - 0.5) * 28;
+      const amount = clamp(b.env * (0.55 + intensity * 0.5) * share, 0, 0.96);
+      const turb = clamp(0.42 + energy * 0.55 + b.surge * 0.4, 0, 1.25);
+      const halfW = region.kind === "stamp" ? region.r * b.aura * 0.85 : region.width * b.aura;
+      const height = region.kind === "stamp" ? region.r * b.reach * 2.15 : region.width * b.reach * 2.4;
       if (region.kind === "stamp") {
-        this.stampAura(region.x, region.y, region.r * b.aura, amount, b.seed, turb, flow, hueJitter, region.color);
+        this.stampPlasma(region.x, region.y, halfW, height, amount, b.seed, turb, flow, region.color);
       } else {
         const pts = region.points;
-        const stepN = Math.max(1, Math.ceil(pts.length / 9));
+        const stepN = Math.max(1, Math.ceil(pts.length / 8));
         for (let i = 0; i < pts.length; i += stepN) {
           const p = pts[i]!;
-          this.stampAura(p.x, p.y, region.width * b.aura * 1.15, amount * 0.8, b.seed + i * 0.02, turb, flow, hueJitter, region.color);
+          this.stampPlasma(p.x, p.y, halfW * 0.9, height * 0.9, amount * 0.82, b.seed + i * 0.02, turb, flow, region.color);
         }
       }
-      tendrilNeed += 3 + Math.round(energy * 3 + b.surge * 2);
+      tendrilNeed += 4 + Math.round(energy * 4 + b.surge * 4 + spread * 2);
     }
     for (const id of [...this.bodies.keys()]) if (!seen.has(id)) this.bodies.delete(id);
 
-    this.syncTendrils(magRegions, tendrilNeed, energy);
+    this.syncTendrils(magRegions, tendrilNeed, energy, spread);
 
     this.peak = 0;
     for (let i = 0; i < this.field.length; i++) if (this.field[i]! > this.peak) this.peak = this.field[i]!;
 
     let spawned = 0;
-    const budget = Math.round(MAGIC_LIMITS.maxSpawns * (0.2 + energy * 0.55 + (this.peak > 0.35 ? 0.15 : 0)));
+    const budget = Math.round(MAGIC_LIMITS.maxSpawns * (0.15 + energy * 0.5 + (this.peak > 0.4 ? 0.2 : 0)));
     for (const region of magRegions) {
       if (spawned >= budget) break;
       const b = this.bodies.get(region.id);
-      if (!b || b.env < 0.1) continue;
-      if (this.rand() > 0.28 + b.env * 0.35 + energy * 0.2) continue;
+      if (!b || b.env < 0.12) continue;
+      if (this.rand() > 0.22 + b.env * 0.3 + energy * 0.2) continue;
       const p = this.allocSpark();
       if (!p) break;
-      const baseR = region.kind === "stamp" ? region.r * b.reach : region.width * b.reach;
-      const ang = this.rand() * Math.PI * 2;
+      const heightN = region.kind === "stamp" ? region.r * b.reach * 2.15 : region.width * b.reach * 2.4;
+      const widthN = region.kind === "stamp" ? region.r * b.aura : region.width * b.aura;
       const nx = region.kind === "stamp" ? region.x : region.points[Math.floor(this.rand() * Math.max(1, region.points.length - 1))]!.x;
       const ny = region.kind === "stamp" ? region.y : region.points[0]!.y;
       p.live = true;
-      p.x = nx + Math.cos(ang) * baseR * 0.15;
-      p.y = ny + Math.sin(ang) * baseR * 0.15;
+      p.x = nx + (this.rand() - 0.5) * widthN * 0.7;
+      p.y = ny - heightN * (0.2 + this.rand() * 0.25);
       p.ox = nx;
       p.oy = ny;
-      const speed = (0.04 + b.env * 0.08 + flow * 0.06) * (0.6 + this.rand() * 0.6);
-      p.vx = Math.cos(ang) * speed;
-      p.vy = Math.sin(ang) * speed;
-      p.maxDist = clamp(baseR * 0.9, 0.02, 0.28);
-      p.maxLife = clamp(0.16 + this.rand() * 0.28, MAGIC_LIMITS.minLife, MAGIC_LIMITS.maxLife);
+      p.vx = (this.rand() - 0.5) * 0.05;
+      p.vy = -clamp(0.05 + b.env * 0.1 + flow * 0.08, 0.03, 0.28);
+      p.maxDist = clamp(heightN * 0.35, 0.02, 0.18);
+      p.maxLife = clamp(0.14 + this.rand() * 0.24, MAGIC_LIMITS.minLife, MAGIC_LIMITS.maxLife);
       p.life = p.maxLife;
-      p.size = 1 + this.rand() * 1.6;
-      p.hueShift = (this.rand() - 0.5) * 50;
+      p.size = 0.8 + this.rand() * 1.4;
+      p.hueShift = (this.rand() - 0.5) * 18;
       p.color = region.color;
       spawned++;
     }
@@ -373,17 +406,13 @@ export class MagicSim {
       if (!p.live) continue;
       p.life -= dt;
       const dist = Math.hypot(p.x - p.ox, p.y - p.oy);
-      if (p.life <= 0 || dist >= p.maxDist) {
+      if (p.life <= 0 || dist >= p.maxDist || p.y < p.oy - p.maxDist) {
         p.live = false;
         continue;
       }
       p.x += p.vx * dt;
       p.y += p.vy * dt;
-      const swirl = (0.8 + flow * 1.6) * dt;
-      const rx = p.x - p.ox;
-      const ry = p.y - p.oy;
-      p.x += -ry * swirl * 0.35;
-      p.y += rx * swirl * 0.35;
+      p.x += Math.sin(this.timeSec * (5 + flow * 6) + p.ox * 20) * 0.008 * dt;
     }
   }
 
@@ -393,31 +422,32 @@ export class MagicSim {
     const intensity = clamp(magic.intensity, 0, 1);
     const flow = clamp(magic.flow, 0, 1);
     const energy = clamp(magic.energy, 0, 1);
-    const bright = clamp(master * (0.7 + intensity * 0.28), 0, MAGIC_LIMITS.maxBright);
+    const bright = clamp(master * (0.72 + intensity * 0.28), 0, MAGIC_LIMITS.maxBright);
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";
+    this.drawBaseBloom(ctx, rect, side, bright);
 
     if (this.fieldCtx && this.pixels && this.fieldCanvas) {
       const data = this.pixels.data;
       for (let i = 0; i < this.field.length; i++) {
         const v = clamp(this.field[i] ?? 0, 0, 1);
         const o = i * 4;
-        if (v < 0.04) {
+        if (v < 0.035) {
           data[o] = 0;
           data[o + 1] = 0;
           data[o + 2] = 0;
           data[o + 3] = 0;
           continue;
         }
-        const col = { r: this.cr[i] || 180, g: this.cg[i] || 160, b: this.cb[i] || 255 };
-        data[o] = col.r;
-        data[o + 1] = col.g;
-        data[o + 2] = col.b;
-        data[o + 3] = Math.min(190, v * 210 * bright);
+        data[o] = this.cr[i] || 232;
+        data[o + 1] = this.cg[i] || 180;
+        data[o + 2] = this.cb[i] || 70;
+        data[o + 3] = Math.min(205, v * 230 * bright);
       }
       this.fieldCtx.putImageData(this.pixels, 0, 0);
       ctx.imageSmoothingEnabled = true;
+      ctx.imageSmoothingQuality = "high";
       ctx.globalAlpha = 1;
       ctx.drawImage(this.fieldCanvas as CanvasImageSource, rect.x, rect.y, rect.w, rect.h);
     }
@@ -425,6 +455,35 @@ export class MagicSim {
     this.drawTendrils(ctx, rect, side, flow, energy, bright);
     this.drawSparks(ctx, rect, side, bright);
     ctx.restore();
+  }
+
+  private drawBaseBloom(ctx: CanvasRenderingContext2D, rect: ImageRect, side: number, bright: number): void {
+    const cluster = this.clusterScale();
+    for (const region of this.active) {
+      const body = this.bodies.get(region.id);
+      if (!body || body.env < 0.04) continue;
+      const origin =
+        region.kind === "stamp"
+          ? imageNormToCanvas(region.x, region.y, rect)
+          : imageNormToCanvas(region.points[0]!.x, region.points[0]!.y, rect);
+      const baseR = (region.kind === "stamp" ? region.r : region.width) * side;
+      const share = cluster.get(region.id) ?? 1;
+      const rx = clamp(baseR * body.aura * 1.35, 6, baseR * MAGIC_LIMITS.maxAura);
+      const ry = clamp(baseR * body.reach * 1.1, 8, baseR * MAGIC_LIMITS.maxReach);
+      const col = plasmaColor(body.color, 0.45);
+      ctx.save();
+      ctx.translate(origin.x, origin.y - ry * 0.15);
+      ctx.scale(1, Math.max(1.15, ry / Math.max(1, rx)));
+      const g = ctx.createRadialGradient(0, 0, 0, 0, 0, rx);
+      g.addColorStop(0, `rgba(${col.r},${col.g},${col.b},${0.32 * body.env * share * bright})`);
+      g.addColorStop(0.45, `rgba(${col.r},${col.g},${col.b},${0.12 * body.env * share * bright})`);
+      g.addColorStop(1, `rgba(${col.r},${col.g},${col.b},0)`);
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(0, 0, rx, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
   }
 
   private drawTendrils(
@@ -447,26 +506,60 @@ export class MagicSim {
         region.kind === "stamp"
           ? imageNormToCanvas(region.x, region.y, rect)
           : imageNormToCanvas(region.points[0]!.x, region.points[0]!.y, rect);
-      const baseR = (region.kind === "stamp" ? region.r : region.width) * minSide(rect);
-      const len = clamp(baseR * body.reach * (0.9 + body.surge * 0.55), 8, baseR * MAGIC_LIMITS.maxReach);
-      const steps = 9;
-      const col = magicTint(tr.color, tr.hueShift + Math.sin(t * 1.4 + tr.phase) * 12, body.env * 0.2);
-      ctx.strokeStyle = `rgba(${col.r},${col.g},${col.b},${0.28 + body.env * 0.45 * bright})`;
-      ctx.lineWidth = Math.max(1.1, (1.6 + energy * 1.4) * (side / 900));
-      ctx.beginPath();
+      const baseR = (region.kind === "stamp" ? region.r : region.width) * side;
+      const len = clamp(baseR * body.reach * (1.55 + body.surge * 0.7), 10, baseR * MAGIC_LIMITS.maxReach * 2.1);
+      const jagAmp = (0.12 + energy * 0.22 + body.surge * 0.12) * len;
+      const steps = 14;
+      const core = plasmaColor(tr.color, 0.88);
+      const glow = plasmaColor(tr.color, 0.4);
+      const pts: { x: number; y: number }[] = [];
       for (let i = 0; i <= steps; i++) {
         const u = i / steps;
-        const spin = t * (0.7 + flow * 2.2) * (0.6 + body.seed);
-        const ang = tr.angle + spin * 0.35 + Math.sin(t * (1.6 + flow * 2) + tr.phase + u * 5) * (0.18 + energy * 0.35) * u;
-        const rad = len * Math.pow(u, 0.82);
-        const wob = Math.sin(tr.phase * 6 + u * 9 + t * (3 + flow * 4)) * len * 0.08 * energy * u;
-        const x = origin.x + Math.cos(ang) * rad + Math.cos(ang + 1.57) * wob;
-        const y = origin.y + Math.sin(ang) * rad + Math.sin(ang + 1.57) * wob;
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+        const kink = (hash2(i * 3 + (tr.phase * 17) | 0, (tr.phase * 9) | 0) - 0.5) * 2;
+        const wob = Math.sin(t * (3.4 + flow * 5) + tr.phase + u * 9) * 0.22;
+        const x = origin.x + tr.lean * len * u * 0.55 + (kink + wob) * jagAmp * u;
+        const y = origin.y - len * u * (0.92 + 0.08 * hash2(i, (tr.phase * 5) | 0));
+        pts.push({ x, y });
       }
-      ctx.stroke();
+      ctx.strokeStyle = `rgba(${glow.r},${glow.g},${glow.b},${0.22 + body.env * 0.28 * bright})`;
+      ctx.lineWidth = Math.max(2.4, (4.5 + energy * 3.2) * (side / 720) * (1 - 0.15));
+      this.strokePts(ctx, pts);
+      ctx.strokeStyle = `rgba(${core.r},${core.g},${core.b},${0.55 + body.env * 0.4 * bright})`;
+      ctx.lineWidth = Math.max(0.8, (1.15 + energy * 0.7) * (side / 900));
+      this.strokePts(ctx, pts);
+
+      for (let f = 1; f <= tr.forks; f++) {
+        const start = 5 + f * 2;
+        if (start >= pts.length - 2) continue;
+        const root = pts[start]!;
+        const dir = tr.lean >= 0 ? 1 : -1;
+        const flen = len * (0.28 + 0.12 * f);
+        const fpts: { x: number; y: number }[] = [root];
+        const n = 7;
+        for (let i = 1; i <= n; i++) {
+          const u = i / n;
+          const kink = (hash2(i + f * 11, (tr.phase * 13) | 0) - 0.5) * 2;
+          fpts.push({
+            x: root.x + dir * flen * u * (0.55 + 0.2 * f) + kink * jagAmp * 0.45 * u,
+            y: root.y - flen * u * 0.85,
+          });
+        }
+        ctx.strokeStyle = `rgba(${glow.r},${glow.g},${glow.b},${0.16 + body.env * 0.22 * bright})`;
+        ctx.lineWidth = Math.max(1.6, 3 * (side / 800));
+        this.strokePts(ctx, fpts);
+        ctx.strokeStyle = `rgba(${core.r},${core.g},${core.b},${0.45 + body.env * 0.3 * bright})`;
+        ctx.lineWidth = Math.max(0.7, 1.05 * (side / 900));
+        this.strokePts(ctx, fpts);
+      }
     }
+  }
+
+  private strokePts(ctx: CanvasRenderingContext2D, pts: { x: number; y: number }[]): void {
+    if (pts.length < 2) return;
+    ctx.beginPath();
+    ctx.moveTo(pts[0]!.x, pts[0]!.y);
+    for (let i = 1; i < pts.length; i++) ctx.lineTo(pts[i]!.x, pts[i]!.y);
+    ctx.stroke();
   }
 
   private drawSparks(ctx: CanvasRenderingContext2D, rect: ImageRect, side: number, bright: number): void {
@@ -475,9 +568,9 @@ export class MagicSim {
       if (!p.live) continue;
       const fade = Math.sin(Math.min(1, p.life / p.maxLife) * Math.PI);
       const pos = imageNormToCanvas(p.x, p.y, rect);
-      const col = magicTint(p.color, p.hueShift, 0.25);
-      const radius = Math.max(0.5, (p.size * side) / 1100);
-      ctx.globalAlpha = bright * fade * 0.7;
+      const col = plasmaColor(p.color, 0.8);
+      const radius = Math.max(0.45, (p.size * side) / 1200);
+      ctx.globalAlpha = bright * fade * 0.75;
       ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},1)`;
       ctx.beginPath();
       ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
@@ -486,8 +579,8 @@ export class MagicSim {
     ctx.globalAlpha = 1;
   }
 
-  private syncTendrils(regions: Region[], want: number, energy: number): void {
-    const cap = clamp(Math.round(want * (0.5 + energy * 0.5)), 0, TENDRIL_POOL);
+  private syncTendrils(regions: Region[], want: number, energy: number, spread: number): void {
+    const cap = clamp(Math.round(want * (0.55 + energy * 0.5)), 0, TENDRIL_POOL);
     const live = this.tendrils.filter((t) => t.live);
     if (live.length > cap) {
       for (let i = cap; i < live.length; i++) live[i]!.live = false;
@@ -495,23 +588,29 @@ export class MagicSim {
     for (const region of regions) {
       const body = this.bodies.get(region.id);
       if (!body) continue;
-      const n = 2 + Math.round(energy * 2 + body.surge * 2);
+      const n = 4 + Math.round(energy * 4 + body.surge * 3 + spread * 2);
       let have = 0;
       for (const t of this.tendrils) if (t.live && t.regionId === region.id) have++;
       for (let k = have; k < n; k++) {
         const slot = this.tendrils.find((t) => !t.live);
         if (!slot) return;
+        const u = n <= 1 ? 0 : k / (n - 1) - 0.5;
         slot.live = true;
         slot.regionId = region.id;
-        slot.angle = ((k + body.seed * 7) / Math.max(1, n)) * Math.PI * 2 + body.seed * 4;
-        slot.phase = body.seed * 12 + k * 1.7;
-        slot.hueShift = (k % 2 === 0 ? 1 : -1) * (18 + energy * 22);
+        slot.lean = u * (0.7 + spread * 0.7) + (body.seed - 0.5) * 0.15;
+        slot.phase = body.seed * 14 + k * 1.9;
+        slot.hueShift = (k % 2 === 0 ? 8 : -10);
         slot.color = region.color;
+        slot.forks = energy + body.surge > 0.7 ? 2 : energy > 0.35 ? 1 : 0;
       }
     }
     for (const t of this.tendrils) {
       if (!t.live) continue;
       if (!regions.some((r) => r.id === t.regionId)) t.live = false;
+      else {
+        const r = regions.find((x) => x.id === t.regionId);
+        if (r) t.color = r.color;
+      }
     }
   }
 
@@ -532,7 +631,7 @@ export class MagicSim {
         const b = stamps[j]!;
         if (Math.hypot(a.x - b.x, a.y - b.y) < (a.r + b.r) * 2.3) n++;
       }
-      if (n > 0) scale.set(a.id, clamp(1 / (1 + n * 0.18), 0.62, 0.92));
+      if (n > 0) scale.set(a.id, clamp(1 / (1 + n * 0.16), 0.64, 0.92));
     }
     return scale;
   }
