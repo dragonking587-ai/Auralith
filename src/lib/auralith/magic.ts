@@ -2,13 +2,12 @@ import { clamp, lerp } from "./id.ts";
 import type { Bands, ImageRect, MagicConfig, Region, StampRegion } from "./types.ts";
 import { imageNormToCanvas, minSide } from "./coords.ts";
 import { bandLevel, stepEnvelope } from "./envelope.ts";
+import { MagicGL, type MagicEmitterGPU } from "./magic-gl.ts";
 
 interface Spark {
   live: boolean;
   x: number;
   y: number;
-  vx: number;
-  vy: number;
   ox: number;
   oy: number;
   life: number;
@@ -29,6 +28,18 @@ interface Body {
   color: string;
 }
 
+interface Wisp {
+  live: boolean;
+  regionId: string;
+  xs: Float32Array;
+  ys: Float32Array;
+  len: number;
+  life: number;
+  maxLife: number;
+  width: number;
+  color: string;
+}
+
 export const MAGIC_LIMITS = {
   minAura: 0.85,
   maxAura: 2.45,
@@ -43,6 +54,8 @@ export const MAGIC_LIMITS = {
 } as const;
 
 const SPARK_POOL = MAGIC_LIMITS.maxSparks;
+const WISP_POOL = 28;
+const WISP_LEN = 18;
 
 function hash2(ix: number, iy: number): number {
   let n = Math.imul(ix | 0, 374761393) + Math.imul(iy | 0, 668265263);
@@ -73,7 +86,7 @@ function hashId(id: string): number {
 export function hexToRgb(hex: string): { r: number; g: number; b: number } {
   const h = hex.replace("#", "");
   const n = parseInt(h.length === 3 ? h.split("").map((c) => c + c).join("") : h, 16);
-  if (!Number.isFinite(n)) return { r: 232, g: 180, b: 80 };
+  if (!Number.isFinite(n)) return { r: 160, g: 140, b: 255 };
   return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
 }
 
@@ -104,7 +117,6 @@ export function hslToRgb(h: number, s: number, l: number): { r: number; g: numbe
   return { r: f(0), g: f(8), b: f(4) };
 }
 
-/** Hue-shifted variant of a region color. Never blows out to pure white. */
 export function magicTint(hex: string, shiftDeg: number, lift = 0): { r: number; g: number; b: number } {
   const { r, g, b } = hexToRgb(hex);
   const [h, s, l] = rgbToHsl(r, g, b);
@@ -114,41 +126,19 @@ export function magicTint(hex: string, shiftDeg: number, lift = 0): { r: number;
   return hslToRgb(nh, ns, nl);
 }
 
-/**
- * Fluid energy palette: deep tint → saturated mid → small pale highlight.
- * White only in the hottest sliver, never a large core.
- */
 export function plasmaColor(hex: string, heat: number): { r: number; g: number; b: number } {
   const { r, g, b } = hexToRgb(hex);
   const [h, s] = rgbToHsl(r, g, b);
   const t = clamp(heat, 0, 1);
   const nh = ((h - 0.02 * (1 - t)) % 1 + 1) % 1;
-  if (t < 0.32) {
-    const k = t / 0.32;
-    return hslToRgb(nh, clamp(s * 0.9 + 0.18, 0.5, 0.95), lerp(0.14, 0.36, k));
-  }
-  if (t < 0.7) {
-    const k = (t - 0.32) / 0.38;
-    return hslToRgb(nh, clamp(s * 0.88 + 0.16, 0.48, 0.92), lerp(0.36, 0.58, k));
-  }
-  if (t < 0.9) {
-    const k = (t - 0.7) / 0.2;
-    return hslToRgb(nh, clamp(s * 0.7 + 0.18, 0.4, 0.82), lerp(0.58, 0.74, k));
-  }
-  const k = (t - 0.9) / 0.1;
-  return hslToRgb(nh, clamp(s * 0.45 + 0.16, 0.28, 0.62), lerp(0.74, 0.86, k));
+  if (t < 0.32) return hslToRgb(nh, clamp(s * 0.9 + 0.18, 0.5, 0.95), lerp(0.14, 0.36, t / 0.32));
+  if (t < 0.7) return hslToRgb(nh, clamp(s * 0.88 + 0.16, 0.48, 0.92), lerp(0.36, 0.58, (t - 0.32) / 0.38));
+  if (t < 0.9) return hslToRgb(nh, clamp(s * 0.7 + 0.18, 0.4, 0.82), lerp(0.58, 0.74, (t - 0.7) / 0.2));
+  return hslToRgb(nh, clamp(s * 0.45 + 0.16, 0.28, 0.62), lerp(0.74, 0.86, (t - 0.9) / 0.1));
 }
 
 export function energyContribute(existing: number, add: number): number {
   return existing > add ? existing : add;
-}
-
-function shadeDye(r: number, g: number, b: number, heat: number): { r: number; g: number; b: number } {
-  const [h, s] = rgbToHsl(r, g, b);
-  const t = clamp(heat, 0, 1);
-  if (t < 0.35) return hslToRgb(h, clamp(s * 0.95 + 0.1, 0.45, 0.95), lerp(0.16, 0.4, t / 0.35));
-  if (t < 0.75) return hslToRgb(h, clamp(s * 0.85 + 0.12, 0.42, 0.9), lerp(0.4, 0.62, (t - 0.35) / 0.4));
-  return hslToRgb(h, clamp(s * 0.55 + 0.18, 0.32, 0.72), lerp(0.62, 0.82, (t - 0.75) / 0.25));
 }
 
 export function magicTargets(energy: number, surge: number, spread = 0.6): { aura: number; reach: number } {
@@ -160,37 +150,19 @@ export function magicTargets(energy: number, surge: number, spread = 0.6): { aur
   return { aura, reach };
 }
 
-function sampleScalar(arr: Float32Array, x: number, y: number, w: number, h: number): number {
-  if (x <= 0 || y <= 0 || x >= w - 1 || y >= h - 1) return 0;
-  const x0 = x | 0;
-  const y0 = y | 0;
-  const fx = x - x0;
-  const fy = y - y0;
-  const i = y0 * w + x0;
-  const a = arr[i] ?? 0;
-  const b = arr[i + 1] ?? 0;
-  const c = arr[i + w] ?? 0;
-  const d = arr[i + w + 1] ?? 0;
-  return lerp(lerp(a, b, fx), lerp(c, d, fx), fy);
-}
-
 export class MagicSim {
   private sparks: Spark[] = [];
-  private deep: Float32Array;
-  private near: Float32Array;
-  private buf: Float32Array;
-  private cr: Float32Array;
-  private cg: Float32Array;
-  private cb: Float32Array;
-  private cbufR: Float32Array;
-  private cbufG: Float32Array;
-  private cbufB: Float32Array;
+  private wisps: Wisp[] = [];
+  private field: Float32Array;
+  private cr: Uint8Array;
+  private cg: Uint8Array;
+  private cb: Uint8Array;
   private vx: Float32Array;
   private vy: Float32Array;
   private hw: number;
   private hh: number;
-  private vw: number;
-  private vh: number;
+  private vw = 32;
+  private vh = 32;
   private rng = 1;
   private lastT = 0;
   private timeSec = 0;
@@ -201,23 +173,19 @@ export class MagicSim {
   private pixels: ImageData | null = null;
   private shimmer: OffscreenCanvas | HTMLCanvasElement | null = null;
   private shimmerCtx: OffscreenCanvasRenderingContext2D | CanvasRenderingContext2D | null = null;
+  private gl: MagicGL | null | undefined;
   private peak = 0;
   private flowBoost = 0.5;
+  private avgEnv = 0;
+  private avgImpulse = 0;
 
-  constructor(w = 200, h = 140) {
+  constructor(w = 120, h = 80) {
     this.hw = w;
     this.hh = h;
-    this.vw = 48;
-    this.vh = 48;
-    this.deep = new Float32Array(w * h);
-    this.near = new Float32Array(w * h);
-    this.buf = new Float32Array(w * h);
-    this.cr = new Float32Array(w * h);
-    this.cg = new Float32Array(w * h);
-    this.cb = new Float32Array(w * h);
-    this.cbufR = new Float32Array(w * h);
-    this.cbufG = new Float32Array(w * h);
-    this.cbufB = new Float32Array(w * h);
+    this.field = new Float32Array(w * h);
+    this.cr = new Uint8Array(w * h);
+    this.cg = new Uint8Array(w * h);
+    this.cb = new Uint8Array(w * h);
     this.vx = new Float32Array(this.vw * this.vh);
     this.vy = new Float32Array(this.vw * this.vh);
     if (typeof OffscreenCanvas !== "undefined") {
@@ -242,32 +210,24 @@ export class MagicSim {
     if (this.fieldCtx) this.pixels = this.fieldCtx.createImageData(w, h);
     for (let i = 0; i < SPARK_POOL; i++) {
       this.sparks.push({
-        live: false,
-        x: 0,
-        y: 0,
-        vx: 0,
-        vy: 0,
-        ox: 0,
-        oy: 0,
-        life: 0,
-        maxLife: 1,
-        maxDist: 0.1,
-        size: 1.1,
-        color: "#e8c47a",
+        live: false, x: 0, y: 0, ox: 0, oy: 0, life: 0, maxLife: 1, maxDist: 0.1, size: 1, color: "#88a0ff",
+      });
+    }
+    for (let i = 0; i < WISP_POOL; i++) {
+      this.wisps.push({
+        live: false, regionId: "", xs: new Float32Array(WISP_LEN), ys: new Float32Array(WISP_LEN),
+        len: WISP_LEN, life: 0, maxLife: 1, width: 1, color: "#88a0ff",
       });
     }
   }
 
   reset(): void {
-    this.deep.fill(0);
-    this.near.fill(0);
-    this.cr.fill(0);
-    this.cg.fill(0);
-    this.cb.fill(0);
+    this.field.fill(0);
     this.bodies.clear();
     this.lastT = 0;
     this.peak = 0;
     for (const p of this.sparks) p.live = false;
+    for (const w of this.wisps) w.live = false;
   }
 
   private rand(): number {
@@ -279,14 +239,8 @@ export class MagicSim {
     let b = this.bodies.get(id);
     if (!b) {
       b = {
-        env: 0,
-        prevEnv: 0,
-        surge: 0,
-        impulse: 0,
-        aura: MAGIC_LIMITS.minAura,
-        reach: MAGIC_LIMITS.minReach,
-        seed: hashId(id),
-        color,
+        env: 0, prevEnv: 0, surge: 0, impulse: 0,
+        aura: MAGIC_LIMITS.minAura, reach: MAGIC_LIMITS.minReach, seed: hashId(id), color,
       };
       this.bodies.set(id, b);
     }
@@ -294,24 +248,17 @@ export class MagicSim {
     return b;
   }
 
-  private updateVelocity(flow: number, energy: number): void {
-    const t = this.timeSec * (0.12 + flow * 0.35);
+  private updateCurl(flow: number, energy: number): void {
+    const t = this.timeSec * (0.1 + flow * 0.28);
     const vw = this.vw;
     const vh = this.vh;
-    const scaleA = 0.085;
-    const scaleB = 0.19;
-    const turb = 0.55 + energy * 0.55;
+    const sc = 0.11;
     for (let y = 0; y < vh; y++) {
       for (let x = 0; x < vw; x++) {
-        const psiA = (xx: number, yy: number) => fbm(xx * scaleA + 3.1, yy * scaleA - t);
-        const psiB = (xx: number, yy: number) => fbm(xx * scaleB + 17.4, yy * scaleB - t * 1.45 + 8);
-        const dA = psiA(x, y + 1) - psiA(x, y - 1);
-        const dB = psiB(x, y + 1) - psiB(x, y - 1);
-        const eA = psiA(x - 1, y) - psiA(x + 1, y);
-        const eB = psiB(x - 1, y) - psiB(x + 1, y);
+        const psi = (xx: number, yy: number) => fbm(xx * sc + 2.2, yy * sc - t);
         const i = y * vw + x;
-        this.vx[i] = (dA * 0.72 + dB * 0.38) * turb;
-        this.vy[i] = (eA * 0.72 + eB * 0.38) * turb;
+        this.vx[i] = (psi(x, y + 1) - psi(x, y - 1)) * (0.7 + energy * 0.5);
+        this.vy[i] = (psi(x - 1, y) - psi(x + 1, y)) * (0.7 + energy * 0.5);
       }
     }
   }
@@ -329,114 +276,43 @@ export class MagicSim {
     const i10 = y0 * this.vw + x1;
     const i01 = y1 * this.vw + x0;
     const i11 = y1 * this.vw + x1;
-    const vx = lerp(lerp(this.vx[i00]!, this.vx[i10]!, fx), lerp(this.vx[i01]!, this.vx[i11]!, fx), fy);
-    const vy = lerp(lerp(this.vy[i00]!, this.vy[i10]!, fx), lerp(this.vy[i01]!, this.vy[i11]!, fx), fy);
-    return { x: vx, y: vy };
+    return {
+      x: lerp(lerp(this.vx[i00]!, this.vx[i10]!, fx), lerp(this.vx[i01]!, this.vx[i11]!, fx), fy),
+      y: lerp(lerp(this.vy[i00]!, this.vy[i10]!, fx), lerp(this.vy[i01]!, this.vy[i11]!, fx), fy),
+    };
   }
 
-  private advect(src: Float32Array, dst: Float32Array, dt: number, speed: number): void {
-    const w = this.hw;
-    const h = this.hh;
-    const dist = speed * dt;
-    for (let y = 0; y < h; y++) {
-      const ny = (y + 0.5) / h;
-      for (let x = 0; x < w; x++) {
-        const nx = (x + 0.5) / w;
-        const v = this.velAt(nx, ny);
-        const sx = x - v.x * dist;
-        const sy = y - v.y * dist;
-        dst[y * w + x] = sampleScalar(src, sx, sy, w, h);
-      }
-    }
-  }
-
-  private advectColor(dt: number, speed: number): void {
-    const w = this.hw;
-    const h = this.hh;
-    const dist = speed * dt;
-    for (let y = 0; y < h; y++) {
-      const ny = (y + 0.5) / h;
-      for (let x = 0; x < w; x++) {
-        const nx = (x + 0.5) / w;
-        const v = this.velAt(nx, ny);
-        const sx = x - v.x * dist;
-        const sy = y - v.y * dist;
-        const i = y * w + x;
-        this.cbufR[i] = sampleScalar(this.cr, sx, sy, w, h);
-        this.cbufG[i] = sampleScalar(this.cg, sx, sy, w, h);
-        this.cbufB[i] = sampleScalar(this.cb, sx, sy, w, h);
-      }
-    }
-    this.cr.set(this.cbufR);
-    this.cg.set(this.cbufG);
-    this.cb.set(this.cbufB);
-  }
-
-  private diffuse(field: Float32Array, amount: number): void {
-    const w = this.hw;
-    const h = this.hh;
-    const keep = 1 - amount;
-    const corner = amount * 0.05;
-    const edge = amount * 0.2;
-    const dst = this.buf;
-    for (let y = 1; y < h - 1; y++) {
-      for (let x = 1; x < w - 1; x++) {
-        const i = y * w + x;
-        dst[i] =
-          field[i]! * keep +
-          (field[i - 1]! + field[i + 1]! + field[i - w]! + field[i + w]!) * edge +
-          (field[i - w - 1]! + field[i - w + 1]! + field[i + w - 1]! + field[i + w + 1]!) * corner;
-      }
-    }
-    field.set(dst);
-  }
-
-  /** Blotchy, noise-warped dye — never a hard circle. */
-  private splat(
-    field: Float32Array,
-    nx: number,
-    ny: number,
-    radX: number,
-    radY: number,
-    amount: number,
-    seed: number,
-    color: string,
-  ): void {
+  private splat(nx: number, ny: number, rad: number, amount: number, seed: number, color: string): void {
     const w = this.hw;
     const h = this.hh;
     const cx = nx * w;
     const cy = ny * h;
-    const rx = Math.max(1.8, radX * Math.min(w, h));
-    const ry = Math.max(1.8, radY * Math.min(w, h));
-    const x0 = Math.max(1, (cx - rx * 1.7) | 0);
-    const x1 = Math.min(w - 2, (cx + rx * 1.7) | 0);
-    const y0 = Math.max(1, (cy - ry * 1.7) | 0);
-    const y1 = Math.min(h - 2, (cy + ry * 1.7) | 0);
+    const r = Math.max(2, rad * Math.min(w, h));
+    const x0 = Math.max(0, (cx - r * 1.6) | 0);
+    const x1 = Math.min(w - 1, (cx + r * 1.6) | 0);
+    const y0 = Math.max(0, (cy - r * 1.6) | 0);
+    const y1 = Math.min(h - 1, (cy + r * 1.6) | 0);
     const add = clamp(amount, 0, 1);
-    const t = this.timeSec * 0.35;
-    const tint = plasmaColor(color, 0.55);
+    const t = this.timeSec * 0.25;
+    const tint = plasmaColor(color, 0.5);
     for (let y = y0; y <= y1; y++) {
       for (let x = x0; x <= x1; x++) {
-        const u = (x + 0.5 - cx) / rx;
-        const v = (y + 0.5 - cy) / ry;
-        const n1 = fbm(u * 1.6 + seed * 8, v * 1.6 - t + seed * 3);
-        const n2 = fbm(u * 2.8 + 9 + seed, v * 2.4 + t * 0.7);
-        const wu = u + (n1 - 0.5) * 1.15;
-        const wv = v + (n2 - 0.5) * 1.15;
-        const d2 = wu * wu * 0.85 + wv * wv * 1.15;
-        if (d2 > 1.55) continue;
-        const fall = clamp(1 - d2, 0, 1);
-        const blot = 0.18 + 0.82 * n2;
-        const dye = fall * fall * blot * add;
+        const u = (x + 0.5 - cx) / r;
+        const v = (y + 0.5 - cy) / r;
+        const n1 = fbm(u * 1.7 + seed * 7, v * 1.7 - t);
+        const n2 = fbm(u * 3.1 + 8, v * 2.6 + t * 0.6);
+        const wu = u + (n1 - 0.5) * 1.05;
+        const wv = v + (n2 - 0.5) * 1.05;
+        const d2 = wu * wu * 0.8 + wv * wv * 1.1;
+        if (d2 > 1.5) continue;
+        const dye = clamp(1 - d2, 0, 1) * (0.25 + 0.75 * n2) * add;
         if (dye < 0.02) continue;
         const i = y * w + x;
-        const prev = field[i]!;
-        field[i] = energyContribute(prev, dye);
-        if (dye >= prev * 0.92) {
-          const a = clamp(dye, 0.15, 1);
-          this.cr[i] = lerp(this.cr[i]!, tint.r, a);
-          this.cg[i] = lerp(this.cg[i]!, tint.g, a);
-          this.cb[i] = lerp(this.cb[i]!, tint.b, a);
+        this.field[i] = energyContribute(this.field[i]!, dye);
+        if (dye >= 0.08) {
+          this.cr[i] = tint.r;
+          this.cg[i] = tint.g;
+          this.cb[i] = tint.b;
         }
       }
     }
@@ -454,6 +330,9 @@ export class MagicSim {
     const spread = clamp(magic.spread, 0, 1);
     const energy = clamp(magic.energy, 0, 1);
 
+    const decay = Math.exp(-dt * (1.4 + (1 - energy) * 0.4));
+    for (let i = 0; i < this.field.length; i++) this.field[i]! *= decay;
+
     const magRegions = regions.filter((r) => r.effect === "magic");
     this.active = magRegions;
     const seen = new Set<string>();
@@ -468,8 +347,7 @@ export class MagicSim {
       const respond = 0.55 + energy * 0.45;
       b.env = stepEnvelope(b.env, level * respond, dt, 0.05, 0.28);
       const dEnv = b.env - b.prevEnv;
-      const impulseTarget = dEnv > 0.035 ? clamp(dEnv * 6, 0, 1) : 0;
-      b.impulse = stepEnvelope(b.impulse, impulseTarget, dt, 0.02, 0.16);
+      b.impulse = stepEnvelope(b.impulse, dEnv > 0.035 ? clamp(dEnv * 6, 0, 1) : 0, dt, 0.018, 0.16);
       b.prevEnv = b.env;
       const surgeTarget = b.env > 0.55 ? clamp((b.env - 0.48) / 0.52, 0, 1) : 0;
       b.surge = stepEnvelope(b.surge, surgeTarget, dt, 0.2, 0.36);
@@ -478,86 +356,58 @@ export class MagicSim {
       b.reach = clamp(stepEnvelope(b.reach, tgt.reach, dt, 0.05, 0.22), MAGIC_LIMITS.minReach, MAGIC_LIMITS.maxReach);
       avgEnv += b.env;
       avgImpulse += b.impulse;
-    }
-    const nR = Math.max(1, magRegions.length);
-    avgEnv /= nR;
-    avgImpulse /= nR;
-    for (const id of [...this.bodies.keys()]) if (!seen.has(id)) this.bodies.delete(id);
 
-    this.flowBoost = clamp(0.45 + flow * 1.15 + avgEnv * 0.7 + avgImpulse * 0.9 + (avgEnv > 0.55 ? 0.35 : 0), 0.3, 2.4);
-    this.updateVelocity(flow, energy);
-
-    const pxSpeed = clamp(28 + this.flowBoost * 30 + energy * 14, 12, 96);
-    this.advect(this.deep, this.buf, dt, pxSpeed * 0.48);
-    this.deep.set(this.buf);
-    this.advect(this.near, this.buf, dt, pxSpeed);
-    this.near.set(this.buf);
-    this.advectColor(dt, pxSpeed * 0.7);
-
-    const decayDeep = Math.exp(-dt * (1.15 + (1 - energy) * 0.35));
-    const decayNear = Math.exp(-dt * (1.55 + (1 - energy) * 0.45));
-    for (let i = 0; i < this.deep.length; i++) {
-      this.deep[i]! *= decayDeep;
-      this.near[i]! *= decayNear;
-    }
-    this.diffuse(this.deep, 0.22);
-    this.diffuse(this.near, 0.16);
-
-    for (const region of magRegions) {
-      const b = this.bodies.get(region.id);
-      if (!b) continue;
       const share = cluster.get(region.id) ?? 1;
-      const amount = clamp((0.26 + b.impulse * 0.32 + b.surge * 0.12) * b.env * (0.6 + intensity * 0.5) * share, 0, 0.7);
-      const rad = region.kind === "stamp" ? region.r * b.aura * (0.85 + spread * 0.4) : region.width * b.aura * 1.1;
-      const radY = rad * (0.9 + b.reach * 0.06 + b.surge * 0.08);
+      const amount = clamp(b.env * (0.35 + intensity * 0.4) * share, 0, 0.8);
+      const rad = region.kind === "stamp" ? region.r * b.aura * (0.9 + spread * 0.35) : region.width * b.aura;
       if (region.kind === "stamp") {
-        this.splat(this.deep, region.x, region.y, rad * 1.35, radY * 1.25, amount * 0.85, b.seed, region.color);
-        this.splat(this.near, region.x, region.y, rad * 0.9, radY * 0.85, amount * (0.7 + b.impulse * 0.5), b.seed + 0.17, region.color);
+        this.splat(region.x, region.y, rad, amount, b.seed, region.color);
       } else {
         const pts = region.points;
         const stepN = Math.max(1, Math.ceil(pts.length / 8));
         for (let i = 0; i < pts.length; i += stepN) {
           const p = pts[i]!;
-          this.splat(this.deep, p.x, p.y, rad * 1.1, radY * 1.05, amount * 0.62, b.seed + i * 0.03, region.color);
-          this.splat(this.near, p.x, p.y, rad * 0.7, radY * 0.68, amount * 0.9, b.seed + i * 0.05, region.color);
+          this.splat(p.x, p.y, rad * 0.95, amount * 0.75, b.seed + i * 0.03, region.color);
         }
       }
     }
+    const nR = Math.max(1, magRegions.length);
+    this.avgEnv = avgEnv / nR;
+    this.avgImpulse = avgImpulse / nR;
+    for (const id of [...this.bodies.keys()]) if (!seen.has(id)) this.bodies.delete(id);
+
+    this.flowBoost = clamp(0.4 + flow * 1.2 + this.avgEnv * 0.65 + this.avgImpulse * 0.85, 0.25, 2.3);
+    this.updateCurl(flow, energy);
+    this.syncWisps(magRegions, energy, flow, dt);
+    this.stepWisps(dt, flow);
 
     this.peak = 0;
-    for (let i = 0; i < this.near.length; i++) {
-      const v = this.near[i]! * 0.65 + this.deep[i]! * 0.45;
-      if (v > this.peak) this.peak = v;
-    }
+    for (let i = 0; i < this.field.length; i++) if (this.field[i]! > this.peak) this.peak = this.field[i]!;
 
     let spawned = 0;
-    const budget = Math.round(MAGIC_LIMITS.maxSpawns * (0.12 + energy * 0.4 + avgImpulse * 0.25));
+    const budget = Math.round(MAGIC_LIMITS.maxSpawns * (0.12 + energy * 0.35 + this.avgImpulse * 0.2));
     for (const region of magRegions) {
       if (spawned >= budget) break;
       const b = this.bodies.get(region.id);
-      if (!b || b.env < 0.14) continue;
-      if (this.rand() > 0.18 + b.env * 0.22 + energy * 0.15) continue;
+      if (!b || b.env < 0.12) continue;
+      if (this.rand() > 0.16 + b.env * 0.2) continue;
       const p = this.allocSpark();
       if (!p) break;
       const nx = region.kind === "stamp" ? region.x : region.points[Math.floor(this.rand() * Math.max(1, region.points.length - 1))]!.x;
       const ny = region.kind === "stamp" ? region.y : region.points[0]!.y;
       const rad = region.kind === "stamp" ? region.r * b.reach : region.width * b.reach;
-      const vel = this.velAt(nx, ny);
       p.live = true;
-      p.x = nx + (this.rand() - 0.5) * rad * 0.5;
-      p.y = ny + (this.rand() - 0.5) * rad * 0.5;
+      p.x = nx + (this.rand() - 0.5) * rad * 0.6;
+      p.y = ny + (this.rand() - 0.5) * rad * 0.6;
       p.ox = nx;
       p.oy = ny;
-      p.vx = vel.x * 0.015;
-      p.vy = vel.y * 0.015;
-      p.maxDist = clamp(rad * 1.1, 0.02, 0.22);
-      p.maxLife = clamp(0.18 + this.rand() * 0.28, MAGIC_LIMITS.minLife, MAGIC_LIMITS.maxLife);
+      p.maxDist = clamp(rad * 1.05, 0.02, 0.22);
+      p.maxLife = clamp(0.2 + this.rand() * 0.3, MAGIC_LIMITS.minLife, MAGIC_LIMITS.maxLife);
       p.life = p.maxLife;
-      p.size = 0.7 + this.rand() * 1.1;
+      p.size = 0.6 + this.rand() * 0.9;
       p.color = region.color;
       spawned++;
     }
-
     for (const p of this.sparks) {
       if (!p.live) continue;
       p.life -= dt;
@@ -567,130 +417,214 @@ export class MagicSim {
         continue;
       }
       const vel = this.velAt(p.x, p.y);
-      p.x += vel.x * dt * 0.09 * this.flowBoost;
-      p.y += vel.y * dt * 0.09 * this.flowBoost;
+      p.x += vel.x * dt * 0.08 * this.flowBoost;
+      p.y += vel.y * dt * 0.08 * this.flowBoost;
     }
   }
 
   draw(ctx: CanvasRenderingContext2D, rect: ImageRect, magic: MagicConfig, master: number): void {
-    if (this.peak < 0.02 && this.liveCount() === 0) return;
+    if (this.peak < 0.015 && this.liveCount() === 0 && !this.wisps.some((w) => w.live)) return;
     const side = minSide(rect);
     const intensity = clamp(magic.intensity, 0, 1);
-    const bright = clamp(master * (0.7 + intensity * 0.28), 0, MAGIC_LIMITS.maxBright);
-    const w = this.hw;
-    const h = this.hh;
+    const flow = clamp(magic.flow, 0, 1);
+    const energy = clamp(magic.energy, 0, 1);
+    const bright = clamp(master * (0.72 + intensity * 0.26), 0, MAGIC_LIMITS.maxBright);
 
     this.drawRefraction(ctx, rect, bright);
 
     ctx.save();
     ctx.globalCompositeOperation = "screen";
 
-    if (this.fieldCtx && this.pixels && this.fieldCanvas) {
-      const data = this.pixels.data;
-      for (let y = 0; y < h; y++) {
-        for (let x = 0; x < w; x++) {
-          const i = y * w + x;
-          const deep = this.deep[i] ?? 0;
-          const near = this.near[i] ?? 0;
-          const gx = (this.near[i + 1] ?? near) - (this.near[i - 1] ?? near);
-          const gy = (this.near[i + w] ?? near) - (this.near[i - w] ?? near);
-          const ridge = Math.min(0.35, Math.hypot(gx, gy) * 2.8);
-          const v = clamp(deep * 0.48 + near * 0.7 + ridge, 0, 1);
-          const o = i * 4;
-          if (v < 0.03) {
-            data[o] = 0;
-            data[o + 1] = 0;
-            data[o + 2] = 0;
-            data[o + 3] = 0;
-            continue;
-          }
-          const heat = clamp(v * 0.82 + ridge * 0.25, 0, 0.94);
-          const dyeR = this.cr[i] || 200;
-          const dyeG = this.cg[i] || 140;
-          const dyeB = this.cb[i] || 40;
-          const col = shadeDye(dyeR, dyeG, dyeB, heat);
-          data[o] = col.r;
-          data[o + 1] = col.g;
-          data[o + 2] = col.b;
-          const a = v < 0.12 ? v * 380 : 70 + v * 145;
-          data[o + 3] = Math.min(188, a * bright);
-        }
-      }
-      this.fieldCtx.putImageData(this.pixels, 0, 0);
-      ctx.imageSmoothingEnabled = true;
-      ctx.imageSmoothingQuality = "high";
-      ctx.globalAlpha = 0.42;
-      ctx.drawImage(this.fieldCanvas as CanvasImageSource, rect.x - 6, rect.y - 6, rect.w + 12, rect.h + 12);
-      ctx.globalAlpha = 1;
-      ctx.drawImage(this.fieldCanvas as CanvasImageSource, rect.x, rect.y, rect.w, rect.h);
-    }
+    const usedGl = this.drawVolume(ctx, rect, magic, bright);
+    if (!usedGl) this.drawFieldFallback(ctx, rect, bright);
 
+    this.drawWisps(ctx, rect, side, flow, energy, bright);
     this.drawSparks(ctx, rect, side, bright);
     ctx.restore();
   }
 
-  private drawRefraction(ctx: CanvasRenderingContext2D, rect: ImageRect, bright: number): void {
-    if (!this.shimmer || !this.shimmerCtx || this.peak < 0.16) return;
-    const box = this.fieldAabb();
-    if (!box) return;
-    const x = rect.x + box.x0 * rect.w;
-    const y = rect.y + box.y0 * rect.h;
-    const w = (box.x1 - box.x0) * rect.w;
-    const h = (box.y1 - box.y0) * rect.h;
-    if (w < 10 || h < 10) return;
-    const sw = 160;
-    const sh = 96;
-    const amp = 1.2 + bright * 1.6;
-    try {
-      this.shimmerCtx.clearRect(0, 0, sw, sh);
-      this.shimmerCtx.drawImage(ctx.canvas, x, y, w, h, 0, 0, sw, sh);
-      ctx.save();
-      ctx.globalAlpha = 0.16 + this.peak * 0.12;
-      const slices = 10;
-      for (let i = 0; i < slices; i++) {
-        const t = i / slices;
-        const vel = this.velAt(box.x0 + 0.5 * (box.x1 - box.x0), box.y0 + t * (box.y1 - box.y0));
-        const ox = vel.x * amp;
-        const sliceH = sh / slices;
-        ctx.drawImage(
-          this.shimmer as CanvasImageSource,
-          0,
-          i * sliceH,
-          sw,
-          sliceH + 0.5,
-          x + ox,
-          y + (i * h) / slices,
-          w,
-          h / slices + 0.5,
-        );
+  private drawVolume(ctx: CanvasRenderingContext2D, rect: ImageRect, magic: MagicConfig, bright: number): boolean {
+    if (this.gl === undefined) this.gl = MagicGL.tryCreate();
+    if (!this.gl) return false;
+    const emitters = this.gpuEmitters();
+    if (!emitters.length) return false;
+    const ok = this.gl.render(
+      emitters,
+      {
+        time: this.timeSec,
+        flow: clamp(magic.flow, 0, 1),
+        energy: clamp(magic.energy, 0, 1),
+        intensity: clamp(magic.intensity, 0, 1) * (0.75 + this.avgEnv * 0.45),
+        bright,
+      },
+      rect.w,
+      rect.h,
+    );
+    if (!ok) return false;
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = 1;
+    ctx.drawImage(this.gl.canvas, rect.x, rect.y, rect.w, rect.h);
+    return true;
+  }
+
+  private gpuEmitters(): MagicEmitterGPU[] {
+    const out: MagicEmitterGPU[] = [];
+    for (const region of this.active) {
+      if (out.length >= 16) break;
+      const b = this.bodies.get(region.id);
+      if (!b || b.env < 0.03) continue;
+      const rgb = hexToRgb(region.color);
+      const rad = region.kind === "stamp" ? region.r * b.aura * 0.95 : region.width * b.aura * 1.1;
+      if (region.kind === "stamp") {
+        out.push({
+          x: region.x, y: region.y, rx: rad * 0.85, ry: rad * 0.9,
+          env: b.env, surge: b.surge, seed: b.seed, r: rgb.r, g: rgb.g, b: rgb.b,
+        });
+      } else {
+        const pts = region.points;
+        const stepN = Math.max(1, Math.ceil(pts.length / 5));
+        for (let i = 0; i < pts.length && out.length < 16; i += stepN) {
+          const p = pts[i]!;
+          out.push({
+            x: p.x, y: p.y, rx: rad * 0.7, ry: rad * 0.75,
+            env: b.env * 0.9, surge: b.surge, seed: b.seed + i * 0.02,
+            r: rgb.r, g: rgb.g, b: rgb.b,
+          });
+        }
       }
-      ctx.restore();
-    } catch {
-      /* tainted canvas */
+    }
+    return out;
+  }
+
+  private drawFieldFallback(ctx: CanvasRenderingContext2D, rect: ImageRect, bright: number): void {
+    if (!this.fieldCtx || !this.pixels || !this.fieldCanvas) return;
+    const data = this.pixels.data;
+    for (let i = 0; i < this.field.length; i++) {
+      const v = this.field[i] ?? 0;
+      const o = i * 4;
+      if (v < 0.04) {
+        data[o] = 0; data[o + 1] = 0; data[o + 2] = 0; data[o + 3] = 0;
+        continue;
+      }
+      const col = plasmaColor(
+        `#${((1 << 24) + (this.cr[i]! << 16) + (this.cg[i]! << 8) + this.cb[i]!).toString(16).slice(1)}`,
+        clamp(v * 0.8, 0, 0.9),
+      );
+      data[o] = col.r;
+      data[o + 1] = col.g;
+      data[o + 2] = col.b;
+      data[o + 3] = Math.min(170, v * 200 * bright);
+    }
+    this.fieldCtx.putImageData(this.pixels, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+    ctx.globalAlpha = 0.85;
+    ctx.drawImage(this.fieldCanvas as CanvasImageSource, rect.x, rect.y, rect.w, rect.h);
+    ctx.globalAlpha = 1;
+  }
+
+  private syncWisps(regions: Region[], energy: number, flow: number, dt: number): void {
+    void dt;
+    void flow;
+    for (const region of regions) {
+      const b = this.bodies.get(region.id);
+      if (!b || b.env < 0.06) continue;
+      const want = 2 + Math.round(energy * 3 + b.surge * 3 + b.env * 2);
+      let have = 0;
+      for (const w of this.wisps) if (w.live && w.regionId === region.id) have++;
+      for (let k = have; k < want; k++) {
+        const slot = this.wisps.find((w) => !w.live);
+        if (!slot) return;
+        const nx = region.kind === "stamp" ? region.x : region.points[0]!.x;
+        const ny = region.kind === "stamp" ? region.y : region.points[0]!.y;
+        const rad = region.kind === "stamp" ? region.r : region.width;
+        const ox = nx + (this.rand() - 0.5) * rad * 0.8;
+        const oy = ny + (this.rand() - 0.5) * rad * 0.8;
+        slot.live = true;
+        slot.regionId = region.id;
+        slot.color = region.color;
+        slot.life = 0;
+        slot.maxLife = 1.4 + this.rand() * 1.8;
+        slot.width = 0.7 + this.rand() * 0.8;
+        for (let i = 0; i < WISP_LEN; i++) {
+          slot.xs[i] = ox;
+          slot.ys[i] = oy;
+        }
+      }
+    }
+    for (const w of this.wisps) {
+      if (w.live && !regions.some((r) => r.id === w.regionId)) w.live = false;
     }
   }
 
-  private fieldAabb(): { x0: number; y0: number; x1: number; y1: number } | null {
-    const w = this.hw;
-    const h = this.hh;
-    let x0 = w;
-    let y0 = h;
-    let x1 = 0;
-    let y1 = 0;
-    let found = false;
-    for (let y = 0; y < h; y++) {
-      const row = y * w;
-      for (let x = 0; x < w; x++) {
-        if ((this.near[row + x] ?? 0) + (this.deep[row + x] ?? 0) < 0.12) continue;
-        found = true;
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
+  private stepWisps(dt: number, flow: number): void {
+    for (const w of this.wisps) {
+      if (!w.live) continue;
+      w.life += dt;
+      if (w.life >= w.maxLife) {
+        w.live = false;
+        continue;
+      }
+      const hx = w.xs[0]!;
+      const hy = w.ys[0]!;
+      const vel = this.velAt(hx, hy);
+      const speed = (0.018 + flow * 0.04) * this.flowBoost;
+      const nx = clamp(hx + vel.x * speed, 0.02, 0.98);
+      const ny = clamp(hy + vel.y * speed, 0.02, 0.98);
+      for (let i = WISP_LEN - 1; i > 0; i--) {
+        w.xs[i] = w.xs[i - 1]!;
+        w.ys[i] = w.ys[i - 1]!;
+      }
+      w.xs[0] = nx;
+      w.ys[0] = ny;
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 1; i < WISP_LEN - 1; i++) {
+          w.xs[i] = w.xs[i]! * 0.5 + w.xs[i - 1]! * 0.25 + w.xs[i + 1]! * 0.25;
+          w.ys[i] = w.ys[i]! * 0.5 + w.ys[i - 1]! * 0.25 + w.ys[i + 1]! * 0.25;
+        }
       }
     }
-    if (!found) return null;
-    return { x0: x0 / w, y0: y0 / h, x1: (x1 + 1) / w, y1: (y1 + 1) / h };
+  }
+
+  private drawWisps(
+    ctx: CanvasRenderingContext2D,
+    rect: ImageRect,
+    side: number,
+    flow: number,
+    energy: number,
+    bright: number,
+  ): void {
+    void flow;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (const w of this.wisps) {
+      if (!w.live) continue;
+      const body = this.bodies.get(w.regionId);
+      if (!body || body.env < 0.04) continue;
+      const fade = Math.sin(Math.min(1, w.life / w.maxLife) * Math.PI);
+      const col = plasmaColor(w.color, 0.55 + energy * 0.15);
+      const hi = plasmaColor(w.color, 0.82);
+      const pts: { x: number; y: number }[] = [];
+      for (let i = 0; i < WISP_LEN; i++) {
+        const p = imageNormToCanvas(w.xs[i]!, w.ys[i]!, rect);
+        pts.push(p);
+      }
+      const draw = (width: number, rgb: { r: number; g: number; b: number }, a: number) => {
+        ctx.strokeStyle = `rgba(${rgb.r},${rgb.g},${rgb.b},${a * fade * bright})`;
+        ctx.lineWidth = Math.max(0.8, width * (side / 720) * w.width * (0.85 + body.env * 0.4));
+        ctx.beginPath();
+        ctx.moveTo(pts[0]!.x, pts[0]!.y);
+        for (let i = 1; i < pts.length - 1; i += 1) {
+          const nx = (pts[i]!.x + pts[i + 1]!.x) * 0.5;
+          const ny = (pts[i]!.y + pts[i + 1]!.y) * 0.5;
+          ctx.quadraticCurveTo(pts[i]!.x, pts[i]!.y, nx, ny);
+        }
+        ctx.lineTo(pts[pts.length - 1]!.x, pts[pts.length - 1]!.y);
+        ctx.stroke();
+      };
+      draw(14, col, 0.07);
+      draw(5.5, col, 0.18);
+      draw(1.6, hi, 0.38);
+    }
   }
 
   private drawSparks(ctx: CanvasRenderingContext2D, rect: ImageRect, side: number, bright: number): void {
@@ -699,15 +633,49 @@ export class MagicSim {
       if (!p.live) continue;
       const fade = Math.sin(Math.min(1, p.life / p.maxLife) * Math.PI);
       const pos = imageNormToCanvas(p.x, p.y, rect);
-      const col = plasmaColor(p.color, 0.72);
-      const radius = Math.max(0.4, (p.size * side) / 1400);
-      ctx.globalAlpha = bright * fade * 0.45;
+      const col = plasmaColor(p.color, 0.78);
+      ctx.globalAlpha = bright * fade * 0.4;
       ctx.fillStyle = `rgba(${col.r},${col.g},${col.b},1)`;
       ctx.beginPath();
-      ctx.arc(pos.x, pos.y, radius, 0, Math.PI * 2);
+      ctx.arc(pos.x, pos.y, Math.max(0.35, (p.size * side) / 1500), 0, Math.PI * 2);
       ctx.fill();
     }
     ctx.globalAlpha = 1;
+  }
+
+  private drawRefraction(ctx: CanvasRenderingContext2D, rect: ImageRect, bright: number): void {
+    if (!this.shimmer || !this.shimmerCtx || this.peak < 0.14) return;
+    let x0 = 1, y0 = 1, x1 = 0, y1 = 0, found = false;
+    const w = this.hw, h = this.hh;
+    for (let y = 0; y < h; y++) {
+      for (let x = 0; x < w; x++) {
+        if ((this.field[y * w + x] ?? 0) < 0.12) continue;
+        found = true;
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+    if (!found) return;
+    const rx = rect.x + (x0 / w) * rect.w;
+    const ry = rect.y + (y0 / h) * rect.h;
+    const rw = ((x1 - x0 + 1) / w) * rect.w;
+    const rh = ((y1 - y0 + 1) / h) * rect.h;
+    if (rw < 12 || rh < 12) return;
+    try {
+      this.shimmerCtx.clearRect(0, 0, 160, 96);
+      this.shimmerCtx.drawImage(ctx.canvas, rx, ry, rw, rh, 0, 0, 160, 96);
+      ctx.save();
+      ctx.globalAlpha = 0.14 + bright * 0.08;
+      const slices = 8;
+      for (let i = 0; i < slices; i++) {
+        const vel = this.velAt((x0 + x1) / 2 / w, (y0 + (i / slices) * (y1 - y0)) / h);
+        const ox = vel.x * (1.1 + bright);
+        ctx.drawImage(this.shimmer as CanvasImageSource, 0, (i * 96) / slices, 160, 96 / slices + 0.5, rx + ox, ry + (i * rh) / slices, rw, rh / slices + 0.5);
+      }
+      ctx.restore();
+    } catch { /* tainted */ }
   }
 
   private allocSpark(): Spark | null {
@@ -724,8 +692,7 @@ export class MagicSim {
       let n = 0;
       for (let j = 0; j < stamps.length; j++) {
         if (i === j) continue;
-        const b = stamps[j]!;
-        if (Math.hypot(a.x - b.x, a.y - b.y) < (a.r + b.r) * 2.4) n++;
+        if (Math.hypot(a.x - stamps[j]!.x, a.y - stamps[j]!.y) < (a.r + stamps[j]!.r) * 2.4) n++;
       }
       if (n > 0) scale.set(a.id, clamp(1 / (1 + n * 0.16), 0.64, 0.92));
     }
@@ -740,9 +707,7 @@ export class MagicSim {
 
   fieldCoverage(): number {
     let n = 0;
-    for (let i = 0; i < this.near.length; i++) {
-      if ((this.near[i] ?? 0) + (this.deep[i] ?? 0) > 0.1) n++;
-    }
+    for (let i = 0; i < this.field.length; i++) if ((this.field[i] ?? 0) > 0.1) n++;
     return n;
   }
 
