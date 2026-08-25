@@ -164,46 +164,44 @@ mod win {
     /// Elevated DirectShow registration via regsvr32 (UAC prompt once).
     pub fn install_filter(resource_dir: Option<PathBuf>) -> Result<VcamStatus, String> {
         log_stage("Install Virtual Camera requested");
-        let src = find_softcam_dll(resource_dir)
-            .ok_or_else(|| "[softcam_missing] softcam.dll not found in the Auralith install folder".to_string())?;
+        let src = find_softcam_dll(resource_dir).ok_or_else(|| {
+            "[softcam_missing] softcam.dll not found in the Auralith install folder".to_string()
+        })?;
         probe_load_dll(&src).map_err(|e| format!("[dll_load_failed] {e}"))?;
         let path = ensure_dll_beside_exe(&src).map_err(|e| format!("[softcam_missing] {e}"))?;
 
         if is_filter_registered() {
             log_stage("Filter already registered — verifying");
-            return Ok(status_with_dir(Some(
-                path.parent().map(|p| p.to_path_buf()).unwrap_or_default(),
-            )));
+            return Ok(status_with_dir(path.parent().map(|p| p.to_path_buf())));
         }
 
         log_stage("Requesting elevation for DirectShow registration");
-        // Use 64-bit regsvr32 for 64-bit softcam.dll (Auralith is x64).
-        // %SystemRoot%\System32\regsvr32.exe is the native 64-bit tool on 64-bit Windows.
-        let regsvr = std::env::var("SystemRoot")
-            .map(|r| format!(r"{r}\System32
-egsvr32.exe"))
-            .unwrap_or_else(|_| r"C:\Windows\System32
-egsvr32.exe".into());
+        // 64-bit regsvr32 for 64-bit softcam.dll (Auralith is x64).
+        let regsvr = {
+            let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+            format!(r"{}\System32\regsvr32.exe", root)
+        };
 
         let path_str = path.display().to_string();
-        // PowerShell Start-Process -Verb RunAs triggers UAC; -Wait blocks until done.
+        // Escape single quotes for PowerShell single-quoted strings.
+        let regsvr_ps = regsvr.replace('\'', "''");
+        let path_ps = path_str.replace('\'', "''");
         let ps = format!(
-            "Start-Process -FilePath '{}' -ArgumentList '/s','{}' -Verb RunAs -Wait -PassThru |              ForEach-Object {{ exit $_.ExitCode }}",
-            regsvr.replace(''', "''"),
-            path_str.replace(''', "''")
+            "Start-Process -FilePath '{regsvr_ps}' -ArgumentList '/s','{path_ps}' -Verb RunAs -Wait -PassThru | ForEach-Object {{ exit $_.ExitCode }}"
         );
         log_stage("Registering DirectShow filter (regsvr32 elevated)");
         let out = Command::new("powershell")
             .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps])
             .output()
-            .map_err(|e| format!("[registration_failed] Could not launch elevated regsvr32: {e}"))?;
+            .map_err(|e| {
+                format!("[registration_failed] Could not launch elevated regsvr32: {e}")
+            })?;
 
-        // User may cancel UAC — treat as failure with clear message
         if !out.status.success() {
             let stderr = String::from_utf8_lossy(&out.stderr);
             let stdout = String::from_utf8_lossy(&out.stdout);
             return Err(format!(
-                "[registration_failed] Elevated regsvr32 did not succeed (exit {:?}).                  Approve the UAC prompt when installing the virtual camera. {stdout} {stderr}",
+                "[registration_failed] Elevated regsvr32 did not succeed (exit {:?}). Approve the UAC prompt when installing the virtual camera. {stdout} {stderr}",
                 out.status.code()
             ));
         }
@@ -211,7 +209,7 @@ egsvr32.exe".into());
         log_stage("regsvr32 finished — verifying CLSID");
         if !is_filter_registered() {
             return Err(format!(
-                "[device_not_enumerated] regsvr32 returned success but CLSID {SOFTCAM_CLSID}                  is still missing from the registry. Try installing while connected to an                  admin account, or run elevated: regsvr32 "{}"",
+                "[device_not_enumerated] regsvr32 returned success but CLSID {SOFTCAM_CLSID} is still missing from the registry. Try an admin account, or run elevated: regsvr32 \"{}\"",
                 path.display()
             ));
         }
@@ -227,16 +225,15 @@ egsvr32.exe".into());
         let src = find_softcam_dll(resource_dir)
             .ok_or_else(|| "[softcam_missing] softcam.dll not found".to_string())?;
         let path = ensure_dll_beside_exe(&src).unwrap_or(src);
-        let regsvr = std::env::var("SystemRoot")
-            .map(|r| format!(r"{r}\System32
-egsvr32.exe"))
-            .unwrap_or_else(|_| r"C:\Windows\System32
-egsvr32.exe".into());
+        let regsvr = {
+            let root = std::env::var("SystemRoot").unwrap_or_else(|_| r"C:\Windows".into());
+            format!(r"{}\System32\regsvr32.exe", root)
+        };
         let path_str = path.display().to_string();
+        let regsvr_ps = regsvr.replace('\'', "''");
+        let path_ps = path_str.replace('\'', "''");
         let ps = format!(
-            "Start-Process -FilePath '{}' -ArgumentList '/s','/u','{}' -Verb RunAs -Wait -PassThru |              ForEach-Object {{ exit $_.ExitCode }}",
-            regsvr.replace(''', "''"),
-            path_str.replace(''', "''")
+            "Start-Process -FilePath '{regsvr_ps}' -ArgumentList '/s','/u','{path_ps}' -Verb RunAs -Wait -PassThru | ForEach-Object {{ exit $_.ExitCode }}"
         );
         let _ = Command::new("powershell")
             .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps])
