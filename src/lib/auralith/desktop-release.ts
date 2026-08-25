@@ -38,6 +38,10 @@ function normalizeTag(v: string): string {
   return t.startsWith("v") ? t : `v${t}`;
 }
 
+function stripV(v: string): string {
+  return v.trim().replace(/^v/i, "");
+}
+
 async function fetchWithTimeout(
   url: string,
   init: RequestInit = {},
@@ -48,9 +52,12 @@ async function fetchWithTimeout(
   try {
     return await fetch(url, {
       ...init,
+      cache: "no-store",
       signal: ctrl.signal,
       headers: {
         Accept: "application/json",
+        // GitHub-friendly UA; no secrets
+        "User-Agent": `Auralith-Desktop/${DESKTOP_VERSION}`,
         ...(init.headers || {}),
       },
     });
@@ -71,8 +78,7 @@ type ManifestJson = {
 };
 
 /**
- * Check a public JSON manifest (Tauri endpoint or static latest.json).
- * Never embeds credentials.
+ * Check a public JSON manifest (no credentials).
  */
 async function checkManifest(
   url: string,
@@ -83,7 +89,8 @@ async function checkManifest(
   const res = await fetchWithTimeout(url);
   log("Response received", res.status);
   if (res.status === 404 || res.status === 401 || res.status === 403) {
-    return null; // try next source
+    log("Manifest not reachable (HTTP", res.status, ") — trying next source");
+    return null;
   }
   if (!res.ok) {
     throw new Error(`Manifest HTTP ${res.status}`);
@@ -98,35 +105,38 @@ async function checkManifest(
   if (!remote || typeof remote !== "string") {
     throw new Error("Invalid update information received (missing version field)");
   }
-  log("Latest version:", remote);
-  log("Comparing versions", { installed: current, latest: remote });
+  const latest = stripV(remote);
+  log("Latest version:", latest);
+  log("Comparing versions", { installed: current, latest });
   if (!isNewerVersion(remote, current)) {
     log("Already up to date");
     return {
       status: "up-to-date",
       installed: current,
-      latest: remote.replace(/^v/, ""),
+      latest,
     };
   }
   log("Update available");
   return {
     status: "available",
     installed: current,
-    latest: remote.replace(/^v/, ""),
+    latest,
     info: {
       tag: normalizeTag(remote),
-      version: remote.replace(/^v/, ""),
+      version: latest,
       url: data.downloadUrl || data.url || DESKTOP_RELEASES_PAGE,
       name: remote,
       notes: data.releaseNotes || data.notes,
       date: data.date,
-      canAutoInstall: Boolean(DESKTOP_UPDATE_ENDPOINT),
+      // One-click install only when Tauri endpoints + signed artifacts are configured
+      canAutoInstall: false,
     },
   };
 }
 
 /**
- * Check GitHub Releases API (works only when release metadata is public).
+ * GitHub Releases API — only works when release metadata is public.
+ * Private source repo returns HTTP 404 without credentials (we never embed tokens).
  */
 async function checkGitHubReleases(current: string): Promise<UpdateCheckResult> {
   log("Update source: GitHub Releases API", GITHUB_RELEASES_API);
@@ -145,79 +155,76 @@ async function checkGitHubReleases(current: string): Promise<UpdateCheckResult> 
       status: "private-channel",
       installed: current,
       message:
-        `Cannot read release metadata from the private GitHub repository (HTTP ${res.status}). ` +
-        `Installed: ${current}. Open the Releases page to check manually, or configure a public update manifest URL.`,
+        `Cannot read GitHub Releases from the private repository (HTTP ${res.status}). ` +
+        `Installed: ${current}. Use the public update manifest or Open Releases to update manually.`,
     };
   }
   if (!res.ok) {
     throw new Error(`GitHub Releases API failed (HTTP ${res.status})`);
   }
 
-  let list: {
+  let list: Array<{
     tag_name?: string;
     name?: string;
     html_url?: string;
     body?: string;
     draft?: boolean;
-  }[];
+    prerelease?: boolean;
+    published_at?: string;
+  }>;
   try {
     list = (await res.json()) as typeof list;
   } catch {
-    throw new Error("Invalid update information received (malformed GitHub response)");
+    throw new Error("Invalid update information received (malformed GitHub JSON)");
   }
   if (!Array.isArray(list)) {
     throw new Error("Invalid update information received (expected release list)");
   }
 
-  const currentTag = normalizeTag(current);
-  const desktop = list.filter(
-    (r) => r.tag_name && !r.draft && /desktop/i.test(r.tag_name || ""),
-  );
-  if (desktop.length === 0) {
-    log("No desktop releases found in API response");
-    return { status: "up-to-date", installed: current, latest: current };
-  }
-
-  // Newest first (GitHub returns newest first)
-  let latest = desktop[0]!;
-  for (const r of desktop) {
-    if (r.tag_name && isNewerVersion(r.tag_name, latest.tag_name || "")) {
-      latest = r;
-    }
-  }
-  const latestTag = latest.tag_name || currentTag;
-  log("Latest version:", latestTag);
-  log("Comparing versions", { installed: currentTag, latest: latestTag });
-
-  if (!isNewerVersion(latestTag, currentTag)) {
-    log("Already up to date");
+  const candidates = list.filter((r) => r && !r.draft && r.tag_name);
+  if (candidates.length === 0) {
     return {
       status: "up-to-date",
       installed: current,
-      latest: latestTag.replace(/^v/, ""),
+      latest: current,
     };
   }
 
+  // Prefer newest by numeric version compare among desktop tags when present
+  let best = candidates[0]!;
+  for (const r of candidates.slice(1)) {
+    if (r.tag_name && best.tag_name && isNewerVersion(r.tag_name, best.tag_name)) {
+      best = r;
+    }
+  }
+  const remote = best.tag_name!;
+  const latest = stripV(remote);
+  log("Latest version:", latest);
+  log("Comparing versions", { installed: current, latest });
+  if (!isNewerVersion(remote, current)) {
+    log("Already up to date");
+    return { status: "up-to-date", installed: current, latest };
+  }
   log("Update available");
   return {
     status: "available",
     installed: current,
-    latest: latestTag.replace(/^v/, ""),
+    latest,
     info: {
-      tag: latestTag,
-      url: latest.html_url || DESKTOP_RELEASES_PAGE,
-      name: latest.name || latestTag,
-      notes: latest.body,
-      version: latestTag.replace(/^v/, ""),
+      tag: normalizeTag(remote),
+      version: latest,
+      url: best.html_url || DESKTOP_RELEASES_PAGE,
+      name: best.name || remote,
+      notes: best.body || undefined,
+      date: best.published_at,
       canAutoInstall: false,
     },
   };
 }
 
 /**
- * Prefer Tauri updater endpoints (public HTTPS + signed artifacts).
- * Fall back to public JSON manifest, then GitHub Releases API.
- * Never embeds credentials. Private GitHub source releases need a public binary channel for silent install.
+ * Prefer public HTTPS manifest, then Tauri plugin (if endpoints configured),
+ * then GitHub Releases API. Never embeds credentials.
  */
 export async function checkForUpdatesDetailed(
   current = DESKTOP_VERSION,
@@ -229,47 +236,52 @@ export async function checkForUpdatesDetailed(
     return { status: "error", message: "Not in browser", installed: current };
   }
 
-  // 1) Signed Tauri updater when a public endpoint is configured
-  if (isDesktopApp() && DESKTOP_UPDATE_ENDPOINT) {
-    try {
-      log("Update source: Tauri plugin", DESKTOP_UPDATE_ENDPOINT);
-      const { check } = await import("@tauri-apps/plugin-updater");
-      const update = await check();
-      if (!update) {
-        log("Already up to date (Tauri)");
-        return { status: "up-to-date", installed: current, latest: current };
-      }
-      log("Latest version:", update.version);
-      log("Update available (Tauri)");
-      return {
-        status: "available",
-        installed: current,
-        latest: update.version,
-        info: {
-          tag: normalizeTag(update.version),
-          version: update.version,
-          url: DESKTOP_UPDATE_ENDPOINT,
-          name: update.version,
-          notes: update.body,
-          date: update.date,
-          canAutoInstall: true,
-        },
-      };
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      log("Tauri updater check failed:", msg);
-      // fall through
-    }
-  }
-
   try {
-    // 2) Public JSON manifest if endpoint looks like a URL
-    if (DESKTOP_UPDATE_ENDPOINT && /^https?:\/\//i.test(DESKTOP_UPDATE_ENDPOINT)) {
+    // 1) Public JSON manifest (works for private source repos)
+    if (DESKTOP_UPDATE_ENDPOINT && /^https:\/\//i.test(DESKTOP_UPDATE_ENDPOINT)) {
       try {
         const fromManifest = await checkManifest(DESKTOP_UPDATE_ENDPOINT, current);
         if (fromManifest) return fromManifest;
       } catch (e) {
         log("Manifest check failed:", e);
+        // Continue to other sources unless it is a hard validation error
+        const msg = e instanceof Error ? e.message : String(e);
+        if (/Invalid update information/i.test(msg)) {
+          return { status: "error", installed: current, message: msg };
+        }
+      }
+    }
+
+    // 2) Signed Tauri updater when endpoints are configured in tauri.conf
+    if (isDesktopApp()) {
+      try {
+        log("Update source: Tauri plugin");
+        const { check } = await import("@tauri-apps/plugin-updater");
+        const update = await check();
+        if (!update) {
+          log("Tauri plugin reported no update (or no endpoints)");
+        } else {
+          log("Latest version:", update.version);
+          log("Update available (Tauri)");
+          return {
+            status: "available",
+            installed: current,
+            latest: stripV(update.version),
+            info: {
+              tag: normalizeTag(update.version),
+              version: stripV(update.version),
+              url: DESKTOP_RELEASES_PAGE,
+              name: update.version,
+              notes: update.body,
+              date: update.date,
+              canAutoInstall: true,
+            },
+          };
+        }
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        log("Tauri updater check failed:", msg);
+        // Empty endpoints often throw — continue to GitHub
       }
     }
 

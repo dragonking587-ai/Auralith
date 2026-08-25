@@ -736,33 +736,50 @@ function DesktopUpdatesSection() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   const [installing, setInstalling] = useState(false);
+  const checkingRef = useRef(false);
   const [auto, setAuto] = useState(() => {
     try {
-      return localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY) !== "0";
+      // Default OFF until manual check is proven; only run auto if user opted in.
+      return localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY) === "1";
     } catch {
-      return true;
+      return false;
     }
   });
 
   const runCheck = async () => {
-    if (phase === "checking") return;
+    if (checkingRef.current) {
+      console.info("[Updater] Ignoring concurrent check (already CHECKING)");
+      return;
+    }
+    checkingRef.current = true;
     setPhase("checking");
+    setResult(null);
+    console.info("[Updater] UI → CHECKING");
     try {
-      const r = await checkForUpdatesDetailed();
+      const r = await checkForUpdatesDetailed(DESKTOP_VERSION);
       setResult(r);
-      if (r.status === "up-to-date") setPhase("up_to_date");
-      else if (r.status === "available") setPhase("update_available");
-      else setPhase("error");
+      if (r.status === "up-to-date") {
+        setPhase("up_to_date");
+        console.info("[Updater] UI → UP_TO_DATE");
+      } else if (r.status === "available") {
+        setPhase("update_available");
+        console.info("[Updater] UI → UPDATE_AVAILABLE");
+      } else {
+        setPhase("error");
+        console.info("[Updater] UI → ERROR", r.status);
+      }
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       setResult({ status: "error", message, installed: DESKTOP_VERSION });
       setPhase("error");
+      console.info("[Updater] UI → ERROR (thrown)", message);
+    } finally {
+      checkingRef.current = false;
     }
   };
 
   useEffect(() => {
     if (!auto) return;
-    // Startup check: non-blocking, same real checker as the button
     void runCheck();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto]);
@@ -789,6 +806,13 @@ function DesktopUpdatesSection() {
         });
         setPhase("error");
       }
+    } catch (e) {
+      setResult({
+        status: "error",
+        message: e instanceof Error ? e.message : String(e),
+        installed: DESKTOP_VERSION,
+      });
+      setPhase("error");
     } finally {
       setInstalling(false);
     }
@@ -862,7 +886,9 @@ function DesktopUpdatesSection() {
               ? "Retry"
               : phase === "up_to_date"
                 ? "Check Again"
-                : "Check for Updates"}
+                : phase === "update_available"
+                  ? "Check Again"
+                  : "Check for Updates"}
         </button>
         {phase === "update_available" && result?.status === "available" ? (
           <button
@@ -903,7 +929,7 @@ function DesktopUpdatesSection() {
         Automatically check for updates on startup
       </label>
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        Updates never embed GitHub credentials. Core features work fully offline. One-click install requires a public signed update channel; until then, Open Download Page opens GitHub Releases.
+        Checks a public update manifest over HTTPS (no GitHub credentials in the app). One-click install requires signed Tauri updater artifacts; until then Open Download Page opens the release page. Core features work fully offline.
       </p>
     </Section>
   );
