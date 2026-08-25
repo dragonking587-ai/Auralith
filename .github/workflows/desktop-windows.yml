@@ -40,9 +40,11 @@ jobs:
           if exist x64\Release\softcam.dll copy /Y x64\Release\softcam.dll out\softcam.dll
           if exist dist\bin\x64\softcam.dll copy /Y dist\bin\x64\softcam.dll out\softcam.dll
           if exist src\softcam\x64\Release\softcam.dll copy /Y src\softcam\x64\Release\softcam.dll out\softcam.dll
+          if exist src\x64\Release\softcam.dll copy /Y src\x64\Release\softcam.dll out\softcam.dll
           dir /s /b softcam.dll
           dir out
           if not exist out\softcam.dll (echo softcam.dll missing & exit /b 1)
+          echo Softcam x64 DLL ready for Tauri resources
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable

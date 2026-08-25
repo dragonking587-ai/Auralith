@@ -30,7 +30,7 @@ import { EditorCanvas } from "./EditorCanvas";
 import type { LiveBands } from "@/lib/auralith/types";
 import { DESKTOP_AUTO_UPDATE_KEY, DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
 import { applyDesktopUpdate, checkForUpdatesDetailed, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
-import { vcamStart, vcamStop, vcamStatus, type VcamStatus } from "@/lib/auralith/vcam";
+import { vcamStart, vcamStop, vcamStatus, vcamInstall, type VcamStatus } from "@/lib/auralith/vcam";
 import { setVcamCaptureActive } from "@/lib/auralith/vcam-bridge";
 
 
@@ -592,15 +592,40 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
     };
   }, []);
 
+  const needsInstall =
+    status != null &&
+    !status.running &&
+    (status.filter_registered === false || status.dll_loaded === false);
+
+  const install = async () => {
+    if (busy) return;
+    setBusy(true);
+    setError("");
+    setDetails("");
+    try {
+      const st = await vcamInstall();
+      setStatus(st);
+      if (!st.filter_registered) {
+        setError(st.last_error || "Virtual Camera installation did not complete registration");
+        setDetails(st.last_stage || "");
+      }
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      setDetails(msg);
+      setStatus(await vcamStatus());
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const start = async () => {
     if (busy || status?.running || status?.state === "STARTING") return;
     setBusy(true);
     setError("");
     setDetails("");
-    // Do not attach the live renderer until native init + test frame succeed.
     setVcamCaptureActive(false);
     try {
-      // Conservative proven mode first: 30 FPS delivery pacing; softcam uses fps=0 internally.
       const w = scene.output.width || 1920;
       const h = scene.output.height || 1080;
       const st = await vcamStart(w, h, 30);
@@ -611,7 +636,6 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
         setVcamCaptureActive(false);
         return;
       }
-      // Camera is RUNNING with a successful test frame — now connect the final renderer.
       setVcamCaptureActive(true, st.width || w, st.height || h);
       const sessionId = useAuralith.getState().sessionId;
       useAuralith.getState().getPublisher()?.pushSnapshot();
@@ -666,12 +690,26 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
             {busy ? "Stopping…" : "Stop Virtual Camera"}
           </GhostBtn>
         </>
+      ) : needsInstall ? (
+        <>
+          <p className="mt-2 text-xs text-subtle">
+            Status: Not installed — Windows does not yet list Auralith Virtual Camera
+          </p>
+          <p className="mt-1 text-[11px] text-subtle">
+            A one-time install registers the DirectShow filter (Windows may show a UAC prompt). Auralith itself does not stay elevated.
+          </p>
+          <GhostBtn onClick={() => void install()} className="mt-2 w-full justify-center" disabled={busy}>
+            {busy ? "Installing…" : "Install Virtual Camera"}
+          </GhostBtn>
+        </>
       ) : (
         <>
           {failed ? (
             <p className="mt-2 text-xs text-danger">Status: Failed to Start</p>
           ) : (
-            <p className="mt-2 text-xs text-subtle">Status: Stopped</p>
+            <p className="mt-2 text-xs text-subtle">
+              Status: {status?.filter_registered ? "Installed — ready" : "Stopped"}
+            </p>
           )}
           <GhostBtn onClick={() => void start()} className="mt-2 w-full justify-center" disabled={busy}>
             {busy ? "Starting Virtual Camera…" : failed ? "Retry" : "Start Virtual Camera"}
@@ -686,18 +724,8 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
           ) : null}
         </div>
       ) : null}
-      {status && !status.dll_loaded && !status.running ? (
-        <p className="mt-2 text-[11px] text-subtle">
-          softcam.dll is not loaded. Reinstall Auralith, or place softcam.dll next to the app executable.
-        </p>
-      ) : null}
-      {status && status.filter_registered === false && !status.running ? (
-        <p className="mt-2 text-[11px] text-subtle">
-          DirectShow filter not registered. Run elevated: regsvr32 softcam.dll from the Auralith install folder.
-        </p>
-      ) : null}
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera. Starting the camera opens Stream Output so final frames are fed. Audio is not sent through the camera.
+        OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera. Audio is not sent through the camera.
       </p>
     </Section>
   );

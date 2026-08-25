@@ -28,6 +28,14 @@ export async function vcamStatus(): Promise<VcamStatus | null> {
   }
 }
 
+export async function vcamInstall(): Promise<VcamStatus> {
+  return invoke<VcamStatus>("vcam_install");
+}
+
+export async function vcamUninstall(): Promise<VcamStatus> {
+  return invoke<VcamStatus>("vcam_uninstall");
+}
+
 export async function vcamStart(width: number, height: number, fps: number): Promise<VcamStatus> {
   // Conservative first-start: softcam receives fps=0 internally; UI still reports target fps.
   return invoke<VcamStatus>("vcam_start", { width, height, fps });

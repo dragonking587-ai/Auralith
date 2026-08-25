@@ -57,7 +57,7 @@ fn log_stage(stage: &str) {
 mod win {
     use super::*;
     use std::panic::{catch_unwind, AssertUnwindSafe};
-    use std::path::PathBuf;
+    use std::path::{Path, PathBuf};
     use std::process::Command;
     use std::sync::Mutex;
 
@@ -86,19 +86,202 @@ mod win {
 
     fn find_softcam_dll(resource_dir: Option<PathBuf>) -> Option<PathBuf> {
         let mut candidates = Vec::new();
-        if let Some(res) = resource_dir {
+        if let Some(res) = resource_dir.clone() {
             candidates.push(res.join("softcam.dll"));
             candidates.push(res.join("vcam").join("softcam.dll"));
             candidates.push(res.join("ui").join("softcam.dll"));
+            candidates.push(res.join("resources").join("softcam.dll"));
+            // Tauri sometimes nests resources one level deeper
+            if let Some(parent) = res.parent() {
+                candidates.push(parent.join("softcam.dll"));
+                candidates.push(parent.join("resources").join("softcam.dll"));
+            }
         }
         if let Ok(exe) = std::env::current_exe() {
             if let Some(dir) = exe.parent() {
                 candidates.push(dir.join("softcam.dll"));
+                candidates.push(dir.join("resources").join("softcam.dll"));
                 candidates.push(dir.join("vcam").join("softcam.dll"));
             }
         }
+        // Dev / CI paths relative to CARGO_MANIFEST_DIR equivalent next to cwd
         candidates.push(PathBuf::from("softcam.dll"));
-        candidates.into_iter().find(|p| p.is_file())
+        candidates.push(PathBuf::from("vendor/softcam/out/softcam.dll"));
+        candidates.push(PathBuf::from("../vendor/softcam/out/softcam.dll"));
+        let found = candidates.into_iter().find(|p| p.is_file());
+        if let Some(ref p) = found {
+            log_stage(&format!("softcam.dll found: {}", p.display()));
+        } else {
+            log_stage("softcam.dll NOT found in any candidate path");
+        }
+        found
+    }
+
+    /// Ensure a stable copy next to the executable for regsvr32 / uninstall.
+    fn ensure_dll_beside_exe(src: &Path) -> Result<PathBuf, String> {
+        let exe = std::env::current_exe().map_err(|e| e.to_string())?;
+        let dir = exe
+            .parent()
+            .ok_or_else(|| "cannot resolve install directory".to_string())?;
+        let dest = dir.join("softcam.dll");
+        if dest.exists() {
+            // Prefer existing beside-exe if loadable; otherwise refresh from src
+            if dest.canonicalize().ok() == src.canonicalize().ok() {
+                return Ok(dest);
+            }
+        }
+        std::fs::copy(src, &dest).map_err(|e| {
+            format!(
+                "Could not copy softcam.dll to {}: {e}",
+                dest.display()
+            )
+        })?;
+        log_stage(&format!("softcam.dll staged at {}", dest.display()));
+        Ok(dest)
+    }
+
+    /// Probe that Windows can LoadLibrary the DLL (architecture + deps).
+    fn probe_load_dll(path: &Path) -> Result<(), String> {
+        log_stage(&format!("Probing LoadLibrary: {}", path.display()));
+        let result = catch_unwind(AssertUnwindSafe(|| unsafe {
+            libloading::Library::new(path)
+        }));
+        match result {
+            Ok(Ok(_lib)) => {
+                log_stage("softcam.dll LoadLibrary OK (architecture/deps OK)");
+                Ok(())
+            }
+            Ok(Err(e)) => {
+                let code = std::io::Error::last_os_error();
+                Err(format!(
+                    "Windows cannot load softcam.dll ({e}). OS error: {code}.                      Often missing Visual C++ Redistributable (x64) or wrong architecture."
+                ))
+            }
+            Err(_) => Err("Native panic while probing softcam.dll".into()),
+        }
+    }
+
+    /// Elevated DirectShow registration via regsvr32 (UAC prompt once).
+    pub fn install_filter(resource_dir: Option<PathBuf>) -> Result<VcamStatus, String> {
+        log_stage("Install Virtual Camera requested");
+        let src = find_softcam_dll(resource_dir)
+            .ok_or_else(|| "[softcam_missing] softcam.dll not found in the Auralith install folder".to_string())?;
+        probe_load_dll(&src).map_err(|e| format!("[dll_load_failed] {e}"))?;
+        let path = ensure_dll_beside_exe(&src).map_err(|e| format!("[softcam_missing] {e}"))?;
+
+        if is_filter_registered() {
+            log_stage("Filter already registered — verifying");
+            return Ok(status_with_dir(Some(
+                path.parent().map(|p| p.to_path_buf()).unwrap_or_default(),
+            )));
+        }
+
+        log_stage("Requesting elevation for DirectShow registration");
+        // Use 64-bit regsvr32 for 64-bit softcam.dll (Auralith is x64).
+        // %SystemRoot%\System32\regsvr32.exe is the native 64-bit tool on 64-bit Windows.
+        let regsvr = std::env::var("SystemRoot")
+            .map(|r| format!(r"{r}\System32
+egsvr32.exe"))
+            .unwrap_or_else(|_| r"C:\Windows\System32
+egsvr32.exe".into());
+
+        let path_str = path.display().to_string();
+        // PowerShell Start-Process -Verb RunAs triggers UAC; -Wait blocks until done.
+        let ps = format!(
+            "Start-Process -FilePath '{}' -ArgumentList '/s','{}' -Verb RunAs -Wait -PassThru |              ForEach-Object {{ exit $_.ExitCode }}",
+            regsvr.replace(''', "''"),
+            path_str.replace(''', "''")
+        );
+        log_stage("Registering DirectShow filter (regsvr32 elevated)");
+        let out = Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps])
+            .output()
+            .map_err(|e| format!("[registration_failed] Could not launch elevated regsvr32: {e}"))?;
+
+        // User may cancel UAC — treat as failure with clear message
+        if !out.status.success() {
+            let stderr = String::from_utf8_lossy(&out.stderr);
+            let stdout = String::from_utf8_lossy(&out.stdout);
+            return Err(format!(
+                "[registration_failed] Elevated regsvr32 did not succeed (exit {:?}).                  Approve the UAC prompt when installing the virtual camera. {stdout} {stderr}",
+                out.status.code()
+            ));
+        }
+
+        log_stage("regsvr32 finished — verifying CLSID");
+        if !is_filter_registered() {
+            return Err(format!(
+                "[device_not_enumerated] regsvr32 returned success but CLSID {SOFTCAM_CLSID}                  is still missing from the registry. Try installing while connected to an                  admin account, or run elevated: regsvr32 "{}"",
+                path.display()
+            ));
+        }
+        log_stage("CLSID verified");
+        log_stage("Auralith Virtual Camera FOUND (registered)");
+        log_stage("Installation complete");
+        Ok(status_with_dir(path.parent().map(|p| p.to_path_buf())))
+    }
+
+    pub fn uninstall_filter(resource_dir: Option<PathBuf>) -> Result<VcamStatus, String> {
+        log_stage("Uninstall Virtual Camera requested");
+        stop();
+        let src = find_softcam_dll(resource_dir)
+            .ok_or_else(|| "[softcam_missing] softcam.dll not found".to_string())?;
+        let path = ensure_dll_beside_exe(&src).unwrap_or(src);
+        let regsvr = std::env::var("SystemRoot")
+            .map(|r| format!(r"{r}\System32
+egsvr32.exe"))
+            .unwrap_or_else(|_| r"C:\Windows\System32
+egsvr32.exe".into());
+        let path_str = path.display().to_string();
+        let ps = format!(
+            "Start-Process -FilePath '{}' -ArgumentList '/s','/u','{}' -Verb RunAs -Wait -PassThru |              ForEach-Object {{ exit $_.ExitCode }}",
+            regsvr.replace(''', "''"),
+            path_str.replace(''', "''")
+        );
+        let _ = Command::new("powershell")
+            .args(["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", &ps])
+            .output();
+        Ok(status_with_dir(path.parent().map(|p| p.to_path_buf())))
+    }
+
+    fn status_with_dir(resource_dir: Option<PathBuf>) -> VcamStatus {
+        let phase = PHASE.load(Ordering::SeqCst);
+        let registered = is_filter_registered();
+        let dll = find_softcam_dll(resource_dir.clone());
+        let guard = STATE.lock().unwrap_or_else(|e| e.into_inner());
+        if let Some(s) = guard.as_ref() {
+            VcamStatus {
+                running: phase == ST_RUNNING,
+                width: s.width,
+                height: s.height,
+                fps: s.fps,
+                backend: "DirectShow Softcam (user-mode filter)".into(),
+                device_name: DEVICE_NAME.into(),
+                last_error: s.last_error.clone(),
+                dll_loaded: s.api.is_some() || dll.is_some(),
+                state: state_name(phase).into(),
+                last_stage: Some(s.last_stage.clone()),
+                filter_registered: s.filter_registered || registered,
+            }
+        } else {
+            VcamStatus {
+                running: false,
+                width: 0,
+                height: 0,
+                fps: 0.0,
+                backend: "DirectShow Softcam (user-mode filter)".into(),
+                device_name: DEVICE_NAME.into(),
+                last_error: if phase == ST_ERROR {
+                    Some("Virtual camera failed to start. See previous error.".into())
+                } else {
+                    None
+                },
+                dll_loaded: dll.is_some(),
+                state: state_name(phase).into(),
+                last_stage: None,
+                filter_registered: registered,
+            }
+        }
     }
 
     /// Check whether Softcam's DirectShow filter CLSID is registered (regsvr32).
@@ -212,7 +395,11 @@ mod win {
     }
 
     pub fn status() -> VcamStatus {
-        status_inner()
+        status_with_dir(None)
+    }
+
+    pub fn status_for(resource_dir: Option<PathBuf>) -> VcamStatus {
+        status_with_dir(resource_dir)
     }
 
     fn normalize_size(width: u32, height: u32) -> (u32, u32) {
@@ -407,7 +594,7 @@ mod win {
         }
         log_stage("Connecting Auralith renderer (caller enables Stream Output feed)");
         log_stage("Live frames active");
-        Ok(status_inner())
+        Ok(status_with_dir(None))
     }
 
     fn push_test_frame(w: u32, h: u32) -> Result<(), String> {

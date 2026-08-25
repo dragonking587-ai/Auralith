@@ -11,8 +11,8 @@ export function desktopHttpOrigin(): string {
 }
 
 /** Installed desktop marketing version (matches release tag without leading v when possible). */
-export const DESKTOP_VERSION = "1.0.0-desktop-test.7";
-export const DESKTOP_RELEASE_TAG = "v1.0.0-desktop-test.7";
+export const DESKTOP_VERSION = "1.0.0-desktop-test.8";
+export const DESKTOP_RELEASE_TAG = "v1.0.0-desktop-test.8";
 export const DESKTOP_RELEASE_PAGE = `https://github.com/dragonking587-ai/Auralith/releases/tag/${DESKTOP_RELEASE_TAG}`;
 export const DESKTOP_RELEASES_PAGE = "https://github.com/dragonking587-ai/Auralith/releases";
 

@@ -125,8 +125,45 @@ fn load_app_file(app: AppHandle, name: String) -> Result<Option<String>, String>
 
 
 #[tauri::command]
-fn vcam_status() -> vcam::VcamStatus {
-    vcam::status()
+fn vcam_status(app: AppHandle) -> vcam::VcamStatus {
+    let res = app.path().resource_dir().ok();
+    #[cfg(windows)]
+    {
+        return vcam::status_for(res);
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = res;
+        vcam::status()
+    }
+}
+
+#[tauri::command]
+fn vcam_install(app: AppHandle) -> Result<vcam::VcamStatus, String> {
+    let res = app.path().resource_dir().ok();
+    #[cfg(windows)]
+    {
+        vcam::install_filter(res)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = res;
+        Err("Virtual camera is only available on Windows.".into())
+    }
+}
+
+#[tauri::command]
+fn vcam_uninstall(app: AppHandle) -> Result<vcam::VcamStatus, String> {
+    let res = app.path().resource_dir().ok();
+    #[cfg(windows)]
+    {
+        vcam::uninstall_filter(res)
+    }
+    #[cfg(not(windows))]
+    {
+        let _ = res;
+        Err("Virtual camera is only available on Windows.".into())
+    }
 }
 
 #[tauri::command]
@@ -240,6 +277,8 @@ pub fn run() {
             save_app_file,
             load_app_file,
             vcam_status,
+            vcam_install,
+            vcam_uninstall,
             vcam_start,
             vcam_stop,
             vcam_push_frame
