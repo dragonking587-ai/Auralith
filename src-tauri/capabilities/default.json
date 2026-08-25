@@ -31,7 +31,9 @@
     "updater:allow-check",
     "updater:allow-download-and-install",
     "process:default",
-    "process:allow-relaunch",
-    "process:allow-exit"
+    "process:allow-exit",
+    "process:allow-restart",
+    "updater:allow-download",
+    "updater:allow-install"
   ]
 }
