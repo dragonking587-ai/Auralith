@@ -1,9 +1,15 @@
 {
   "identifier": "default",
   "description": "Auralith desktop windows",
-  "windows": ["main", "output"],
+  "windows": [
+    "main",
+    "output"
+  ],
   "remote": {
-    "urls": ["http://127.0.0.1:*", "http://localhost:*"]
+    "urls": [
+      "http://127.0.0.1:*",
+      "http://localhost:*"
+    ]
   },
   "permissions": [
     "core:default",
@@ -20,6 +26,12 @@
     "core:event:allow-unlisten",
     "core:webview:default",
     "core:path:default",
-    "auralith"
+    "auralith",
+    "updater:default",
+    "updater:allow-check",
+    "updater:allow-download-and-install",
+    "process:default",
+    "process:allow-relaunch",
+    "process:allow-exit"
   ]
 }

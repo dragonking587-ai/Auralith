@@ -29,7 +29,7 @@ import { useAuralith } from "@/lib/auralith/store";
 import { EditorCanvas } from "./EditorCanvas";
 import type { LiveBands } from "@/lib/auralith/types";
 import { DESKTOP_AUTO_UPDATE_KEY, DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
-import { checkForUpdatesDetailed, openUpdatePage, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
+import { applyDesktopUpdate, checkForUpdatesDetailed, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
 import { vcamStart, vcamStop, vcamStatus, type VcamStatus } from "@/lib/auralith/vcam";
 import { setVcamCaptureActive } from "@/lib/auralith/vcam-bridge";
 
@@ -108,7 +108,7 @@ export function EditorShell() {
     const rev = scene.image?.rev ?? 0;
     const url = `/output?session=${encodeURIComponent(sessionId)}&irev=${rev}&t=${Date.now()}`;
     const features = `width=${Math.round(w * scale)},height=${Math.round(h * scale)},menubar=no,toolbar=no,location=no,status=no`;
-    const popup = window.open(url, "auralith-stream-output", features);
+    const popup = window.open(url ?? undefined, "auralith-stream-output", features);
     try {
       if (popup) popup.location.replace(url);
     } catch {
@@ -648,7 +648,7 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
         </p>
       ) : null}
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        OBS: Add Source → Video Capture Device → Auralith Virtual Camera. Audio is not sent through the camera — use System Audio / WASAPI in Auralith for effects only.
+        OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera. Open Stream Output so final frames are fed to the camera. Audio is not sent through the camera — use System Audio / WASAPI in Auralith for effects only.
       </p>
     </Section>
   );
@@ -657,6 +657,7 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
 function DesktopUpdatesSection() {
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   const [checking, setChecking] = useState(false);
+  const [installing, setInstalling] = useState(false);
   const [auto, setAuto] = useState(() => {
     try {
       return localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY) !== "0";
@@ -691,12 +692,29 @@ function DesktopUpdatesSection() {
     }
   };
 
+  const onUpdate = async () => {
+    if (!result || result.status !== "available") return;
+    setInstalling(true);
+    try {
+      const out = await applyDesktopUpdate(result.info);
+      if (out.mode === "error") {
+        setResult({ status: "error", message: out.message || "Update failed" });
+      }
+    } finally {
+      setInstalling(false);
+    }
+  };
+
   let statusLine = "Not checked yet.";
   if (checking) statusLine = "Checking…";
+  else if (installing) statusLine = "Downloading and installing update…";
   else if (result?.status === "up-to-date") statusLine = "Auralith is up to date.";
-  else if (result?.status === "available") statusLine = `Update available: ${result.info.tag}`;
-  else if (result?.status === "offline") statusLine = "No internet connection.";
-  else if (result?.status === "unavailable") statusLine = result.message;
+  else if (result?.status === "available") {
+    statusLine = result.info.canAutoInstall
+      ? `Update available: ${result.info.tag} (one-click install ready)`
+      : `Update available: ${result.info.tag}`;
+  } else if (result?.status === "offline") statusLine = "No internet connection.";
+  else if (result?.status === "private-channel") statusLine = result.message;
   else if (result?.status === "error") statusLine = result.message;
 
   return (
@@ -704,24 +722,42 @@ function DesktopUpdatesSection() {
       <p className="text-xs text-muted">
         Auralith Desktop · Version {DESKTOP_VERSION}
       </p>
-      <label className="mt-2 flex items-center justify-between gap-2 text-xs text-muted">
-        <span>Automatically check for updates</span>
-        <input type="checkbox" checked={auto} onChange={(e) => toggleAuto(e.target.checked)} />
-      </label>
-      <GhostBtn onClick={() => void runCheck()} className="mt-2 w-full justify-center">
-        {checking ? "Checking…" : "Check for Updates"}
-      </GhostBtn>
-      <p className="mt-2 text-[11px] leading-relaxed text-subtle">{statusLine}</p>
-      {result?.status === "available" ? (
-        <GhostBtn
-          onClick={() => void openUpdatePage(result.info)}
-          className="mt-2 w-full justify-center"
-        >
-          Update Auralith
-        </GhostBtn>
+      <p className="mt-2 text-xs text-subtle">{statusLine}</p>
+      {result?.status === "available" && result.info.notes ? (
+        <p className="mt-2 max-h-24 overflow-y-auto text-[11px] leading-relaxed text-subtle whitespace-pre-wrap">
+          {result.info.notes.slice(0, 800)}
+        </p>
       ) : null}
+      <div className="mt-3 flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="min-h-10 rounded-[8px] border border-border bg-bg-elevated px-3 text-xs font-medium"
+          disabled={checking || installing}
+          onClick={() => void runCheck()}
+        >
+          {checking ? "Checking…" : "Check for Updates"}
+        </button>
+        {result?.status === "available" ? (
+          <button
+            type="button"
+            className="min-h-10 rounded-[8px] border border-accent bg-accent px-3 text-xs font-medium text-accent-fg"
+            disabled={installing}
+            onClick={() => void onUpdate()}
+          >
+            {installing ? "Updating…" : "Update Auralith"}
+          </button>
+        ) : null}
+      </div>
+      <label className="mt-3 flex items-center gap-2 text-[11px] text-subtle">
+        <input
+          type="checkbox"
+          checked={auto}
+          onChange={(e) => toggleAuto(e.target.checked)}
+        />
+        Automatically check for updates on startup
+      </label>
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        Updates never embed GitHub credentials. Core features work fully offline. Automatic install without approval is disabled for test builds.
+        Updates never embed GitHub credentials. Core features work fully offline. Automatic install without your approval is disabled for test builds — click Update Auralith to proceed.
       </p>
     </Section>
   );
@@ -814,7 +850,7 @@ function DownloadWindowsBtn() {
         setBusy(true);
         void resolveWindowsInstallerUrl()
           .then((url) => {
-            window.open(url, "_blank", "noopener,noreferrer");
+            window.open(url ?? undefined, "_blank", "noopener,noreferrer");
           })
           .finally(() => setBusy(false));
       }}

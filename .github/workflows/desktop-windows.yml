@@ -35,10 +35,14 @@ jobs:
         shell: cmd
         run: |
           cd vendor\softcam
-          msbuild softcam.sln /t:softcam;BaseClasses;softcamcore /p:Configuration=Release /p:Platform=x64 /m
+          msbuild softcam.sln /t:BaseClasses;softcamcore;softcam /p:Configuration=Release /p:Platform=x64 /m
           if not exist out mkdir out
-          copy /Y x64\Release\softcam.dll out\softcam.dll 2>nul || copy /Y dist\bin\x64\softcam.dll out\softcam.dll
+          if exist x64\Release\softcam.dll copy /Y x64\Release\softcam.dll out\softcam.dll
+          if exist dist\bin\x64\softcam.dll copy /Y dist\bin\x64\softcam.dll out\softcam.dll
+          if exist src\softcam\x64\Release\softcam.dll copy /Y src\softcam\x64\Release\softcam.dll out\softcam.dll
+          dir /s /b softcam.dll
           dir out
+          if not exist out\softcam.dll (echo softcam.dll missing & exit /b 1)
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -66,10 +70,10 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: src-tauri
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0-desktop-test.3' }}
-          releaseName: Auralith Desktop Test 3
+          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0-desktop-test.4' }}
+          releaseName: Auralith Desktop Test 4
           releaseBody: |
-            Auralith standalone Windows test build (`1.0.0-desktop-test.3`).
+            Auralith standalone Windows test build (`1.0.0-desktop-test.4`).
 
             ## Virtual Camera
             Device name: **Auralith Virtual Camera** (DirectShow Softcam user-mode filter).

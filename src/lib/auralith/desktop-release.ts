@@ -1,127 +1,97 @@
 import {
-  DESKTOP_RELEASE_PAGE,
-  DESKTOP_RELEASE_TAG,
   DESKTOP_RELEASES_PAGE,
-  DESKTOP_VERSION,
   DESKTOP_UPDATE_ENDPOINT,
-} from "./platform.ts";
+  DESKTOP_VERSION,
+  isDesktopApp,
+} from "./platform";
 
-const REPO = "dragonking587-ai/Auralith";
-
-export async function resolveWindowsInstallerUrl(): Promise<string> {
-  try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases/tags/${DESKTOP_RELEASE_TAG}`, {
-      headers: { Accept: "application/vnd.github+json" },
-    });
-    if (res.ok) {
-      const json = (await res.json()) as { assets?: { name: string; browser_download_url: string }[] };
-      const asset = json.assets?.find((a) => /\.exe$/i.test(a.name) && !/debug/i.test(a.name));
-      if (asset?.browser_download_url) return asset.browser_download_url;
-    }
-  } catch {
-    /* private repo or offline */
-  }
-  return DESKTOP_RELEASE_PAGE;
-}
-
-export function windowsDownloadFallback(): string {
-  return DESKTOP_RELEASES_PAGE;
-}
-
-export interface DesktopUpdateInfo {
+export type DesktopUpdateInfo = {
   tag: string;
   url: string;
   name: string;
   notes?: string;
   version?: string;
-}
+  date?: string;
+  /** True when Tauri signed updater can download/install without browser */
+  canAutoInstall?: boolean;
+};
 
 export type UpdateCheckResult =
   | { status: "up-to-date" }
   | { status: "available"; info: DesktopUpdateInfo }
   | { status: "offline" }
-  | { status: "unavailable"; message: string }
-  | { status: "error"; message: string };
+  | { status: "error"; message: string }
+  | { status: "private-channel"; message: string };
 
-function parseDesktopTag(tag: string): number[] | null {
-  // v1.0.0-desktop-test.N
-  const m = tag.match(/desktop-test\.(\d+)/i);
-  if (m) return [1, 0, 0, Number(m[1])];
-  const sem = tag.replace(/^v/, "").match(/^(\d+)\.(\d+)\.(\d+)/);
-  if (sem) return [Number(sem[1]), Number(sem[2]), Number(sem[3]), 0];
-  return null;
+function parseSemverish(tag: string): number[] {
+  const cleaned = tag.replace(/^v/, "").replace(/-desktop-test\.?/i, ".");
+  const parts = cleaned.split(/[.+-]/).map((p) => parseInt(p, 10)).filter((n) => !Number.isNaN(n));
+  return parts.length ? parts : [0];
 }
 
 function isNewer(candidate: string, current: string): boolean {
-  const a = parseDesktopTag(candidate);
-  const b = parseDesktopTag(current.startsWith("v") ? current : `v${current}`);
-  if (!a || !b) return candidate !== current && candidate !== `v${current}`;
-  for (let i = 0; i < 4; i++) {
-    if (a[i] !== b[i]) return a[i] > b[i];
+  const a = parseSemverish(candidate);
+  const b = parseSemverish(current);
+  const len = Math.max(a.length, b.length);
+  for (let i = 0; i < len; i++) {
+    const x = a[i] ?? 0;
+    const y = b[i] ?? 0;
+    if (x > y) return true;
+    if (x < y) return false;
   }
   return false;
 }
 
-/** Quiet check used on startup. Never throws. Private repo → unavailable without credentials. */
-export async function checkDesktopUpdate(current = DESKTOP_VERSION): Promise<DesktopUpdateInfo | null> {
-  const result = await checkForUpdatesDetailed(current);
-  return result.status === "available" ? result.info : null;
-}
-
 /**
- * Manual / settings update check.
- * No credentials embedded. Public endpoints only.
- * Private source repo cannot serve unauthenticated release downloads — see DESKTOP.md.
+ * Prefer Tauri updater endpoints (public HTTPS + signed artifacts).
+ * Never embeds credentials. Private GitHub source releases are not readable
+ * without auth — update installs require a public binary channel.
  */
-export async function checkForUpdatesDetailed(current = DESKTOP_VERSION): Promise<UpdateCheckResult> {
-  if (typeof navigator !== "undefined" && navigator.onLine === false) {
-    return { status: "offline" };
+export async function checkForUpdatesDetailed(
+  current = DESKTOP_VERSION,
+): Promise<UpdateCheckResult> {
+  if (typeof window === "undefined") {
+    return { status: "error", message: "Not in browser" };
   }
 
-  // Preferred: Tauri updater latest.json on a public HTTPS endpoint
-  if (DESKTOP_UPDATE_ENDPOINT) {
+  // 1) Signed Tauri updater (public endpoint only)
+  if (isDesktopApp() && DESKTOP_UPDATE_ENDPOINT) {
     try {
-      const res = await fetch(DESKTOP_UPDATE_ENDPOINT, { cache: "no-store" });
-      if (res.status === 204) return { status: "up-to-date" };
-      if (res.ok) {
-        const json = (await res.json()) as {
-          version?: string;
-          notes?: string;
-          platforms?: Record<string, { url?: string }>;
-        };
-        const ver = json.version || "";
-        if (ver && isNewer(ver.startsWith("v") ? ver : `v${ver}`, current)) {
-          const url =
-            json.platforms?.["windows-x86_64"]?.url ||
-            json.platforms?.["windows-x86_64-nsis"]?.url ||
-            DESKTOP_RELEASES_PAGE;
-          return {
-            status: "available",
-            info: {
-              tag: ver.startsWith("v") ? ver : `v${ver}`,
-              url,
-              name: `Auralith ${ver}`,
-              notes: json.notes,
-              version: ver,
-            },
-          };
-        }
-        return { status: "up-to-date" };
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const update = await check();
+      if (!update) return { status: "up-to-date" };
+      return {
+        status: "available",
+        info: {
+          tag: update.version.startsWith("v") ? update.version : `v${update.version}`,
+          version: update.version,
+          url: DESKTOP_UPDATE_ENDPOINT,
+          name: update.version,
+          notes: update.body,
+          date: update.date,
+          canAutoInstall: true,
+        },
+      };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      if (/network|fetch|offline|Failed to fetch/i.test(msg)) {
+        return { status: "offline" };
       }
-    } catch {
-      /* fall through to GitHub API */
+      // fall through to GitHub metadata probe
     }
   }
 
+  // 2) Public GitHub Releases API (works only if release metadata is public)
   try {
-    const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=15`, {
-      headers: { Accept: "application/vnd.github+json" },
-    });
-    if (res.status === 404) {
+    const res = await fetch(
+      "https://api.github.com/repos/dragonking587-ai/Auralith/releases?per_page=20",
+      { headers: { Accept: "application/vnd.github+json" } },
+    );
+    if (res.status === 404 || res.status === 401 || res.status === 403) {
       return {
-        status: "unavailable",
+        status: "private-channel",
         message:
-          "Release metadata is not publicly reachable (private repository). Use a public binary channel for in-app updates.",
+          "Update metadata is not public yet (private repository). Installers still work offline. For one-click in-app updates, publish binaries on a public releases channel (recommended) — never embed GitHub credentials in the app.",
       };
     }
     if (!res.ok) {
@@ -133,9 +103,10 @@ export async function checkForUpdatesDetailed(current = DESKTOP_VERSION): Promis
       html_url?: string;
       body?: string;
       draft?: boolean;
+      prerelease?: boolean;
     }[];
     const currentTag = current.startsWith("v") ? current : `v${current}`;
-    const desktop = list.filter((r) => r.tag_name && !r.draft && /desktop/i.test(r.tag_name));
+    const desktop = list.filter((r) => r.tag_name && !r.draft && /desktop/i.test(r.tag_name || ""));
     const newer = desktop.find((r) => r.tag_name && isNewer(r.tag_name, currentTag));
     if (!newer?.tag_name || !newer.html_url) {
       return { status: "up-to-date" };
@@ -148,6 +119,7 @@ export async function checkForUpdatesDetailed(current = DESKTOP_VERSION): Promis
         name: newer.name || newer.tag_name,
         notes: newer.body,
         version: newer.tag_name.replace(/^v/, ""),
+        canAutoInstall: false,
       },
     };
   } catch {
@@ -155,9 +127,36 @@ export async function checkForUpdatesDetailed(current = DESKTOP_VERSION): Promis
   }
 }
 
-/** Open install page / download — does not embed credentials. */
-export async function openUpdatePage(info: DesktopUpdateInfo): Promise<void> {
-  if (typeof window !== "undefined") {
-    window.open(info.url, "_blank", "noopener,noreferrer");
+export async function checkDesktopUpdate(current = DESKTOP_VERSION): Promise<DesktopUpdateInfo | null> {
+  const r = await checkForUpdatesDetailed(current);
+  return r.status === "available" ? r.info : null;
+}
+
+/** Download + install via Tauri updater when canAutoInstall; else open release page. */
+export async function applyDesktopUpdate(info: DesktopUpdateInfo): Promise<{ mode: "installed" | "opened" | "error"; message?: string }> {
+  if (info.canAutoInstall && isDesktopApp()) {
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const { relaunch } = await import("@tauri-apps/plugin-process");
+      const update = await check();
+      if (!update) return { mode: "error", message: "Update no longer available" };
+      await update.downloadAndInstall();
+      await relaunch();
+      return { mode: "installed" };
+    } catch (e) {
+      return { mode: "error", message: e instanceof Error ? e.message : String(e) };
+    }
   }
+  if (typeof window !== "undefined") {
+    window.open(info.url || DESKTOP_RELEASES_PAGE, "_blank", "noopener,noreferrer");
+  }
+  return { mode: "opened" };
+}
+
+export async function openUpdatePage(info: DesktopUpdateInfo): Promise<void> {
+  await applyDesktopUpdate(info);
+}
+
+export async function resolveWindowsInstallerUrl(): Promise<string | null> {
+  return DESKTOP_RELEASES_PAGE;
 }
