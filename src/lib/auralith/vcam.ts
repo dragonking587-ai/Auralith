@@ -11,6 +11,7 @@ export interface VcamStatus {
   dll_loaded: boolean;
   state?: string;
   last_stage?: string | null;
+  filter_registered?: boolean;
 }
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {

@@ -688,7 +688,12 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
       ) : null}
       {status && !status.dll_loaded && !status.running ? (
         <p className="mt-2 text-[11px] text-subtle">
-          softcam.dll is not loaded. Reinstall Auralith, or run elevated: regsvr32 softcam.dll next to the app.
+          softcam.dll is not loaded. Reinstall Auralith, or place softcam.dll next to the app executable.
+        </p>
+      ) : null}
+      {status && status.filter_registered === false && !status.running ? (
+        <p className="mt-2 text-[11px] text-subtle">
+          DirectShow filter not registered. Run elevated: regsvr32 softcam.dll from the Auralith install folder.
         </p>
       ) : null}
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
