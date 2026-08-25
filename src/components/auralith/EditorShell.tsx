@@ -732,8 +732,9 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
 }
 
 function DesktopUpdatesSection() {
+  type Phase = "idle" | "checking" | "up_to_date" | "update_available" | "error";
+  const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
-  const [checking, setChecking] = useState(false);
   const [installing, setInstalling] = useState(false);
   const [auto, setAuto] = useState(() => {
     try {
@@ -744,20 +745,26 @@ function DesktopUpdatesSection() {
   });
 
   const runCheck = async () => {
-    setChecking(true);
+    if (phase === "checking") return;
+    setPhase("checking");
     try {
-      setResult(await checkForUpdatesDetailed());
-    } finally {
-      setChecking(false);
+      const r = await checkForUpdatesDetailed();
+      setResult(r);
+      if (r.status === "up-to-date") setPhase("up_to_date");
+      else if (r.status === "available") setPhase("update_available");
+      else setPhase("error");
+    } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      setResult({ status: "error", message, installed: DESKTOP_VERSION });
+      setPhase("error");
     }
   };
 
   useEffect(() => {
     if (!auto) return;
-    const t = window.setTimeout(() => {
-      void checkForUpdatesDetailed().then(setResult);
-    }, 2500);
-    return () => window.clearTimeout(t);
+    // Startup check: non-blocking, same real checker as the button
+    void runCheck();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [auto]);
 
   const toggleAuto = (on: boolean) => {
@@ -775,53 +782,115 @@ function DesktopUpdatesSection() {
     try {
       const out = await applyDesktopUpdate(result.info);
       if (out.mode === "error") {
-        setResult({ status: "error", message: out.message || "Update failed" });
+        setResult({
+          status: "error",
+          message: out.message || "Update failed",
+          installed: DESKTOP_VERSION,
+        });
+        setPhase("error");
       }
     } finally {
       setInstalling(false);
     }
   };
 
-  let statusLine = "Not checked yet.";
-  if (checking) statusLine = "Checking…";
-  else if (installing) statusLine = "Downloading and installing update…";
-  else if (result?.status === "up-to-date") statusLine = "Auralith is up to date.";
-  else if (result?.status === "available") {
-    statusLine = result.info.canAutoInstall
-      ? `Update available: ${result.info.tag} (one-click install ready)`
-      : `Update available: ${result.info.tag}`;
-  } else if (result?.status === "offline") statusLine = "No internet connection.";
-  else if (result?.status === "private-channel") statusLine = result.message;
-  else if (result?.status === "error") statusLine = result.message;
+  const installed =
+    (result && "installed" in result && result.installed) || DESKTOP_VERSION;
+  const latest =
+    result?.status === "up-to-date" || result?.status === "available"
+      ? result.latest
+      : null;
 
   return (
     <Section title="Updates">
       <p className="text-xs text-muted">
         Auralith Desktop · Version {DESKTOP_VERSION}
       </p>
-      <p className="mt-2 text-xs text-subtle">{statusLine}</p>
-      {result?.status === "available" && result.info.notes ? (
-        <p className="mt-2 max-h-24 overflow-y-auto text-[11px] leading-relaxed text-subtle whitespace-pre-wrap">
-          {result.info.notes.slice(0, 800)}
-        </p>
+
+      {phase === "checking" ? (
+        <p className="mt-2 text-xs text-subtle">Checking for updates…</p>
       ) : null}
+
+      {phase === "up_to_date" ? (
+        <div className="mt-2 space-y-1 text-xs text-fg">
+          <p>Auralith is up to date.</p>
+          <p className="text-subtle">Installed: {installed}</p>
+          {latest ? <p className="text-subtle">Latest: {latest}</p> : null}
+        </div>
+      ) : null}
+
+      {phase === "update_available" && result?.status === "available" ? (
+        <div className="mt-2 space-y-1 text-xs text-fg">
+          <p className="text-warm">Update available</p>
+          <p className="text-subtle">Installed: {installed}</p>
+          <p className="text-subtle">Available: {result.latest}</p>
+          {result.info.notes ? (
+            <p className="mt-2 max-h-24 overflow-y-auto text-[11px] leading-relaxed text-subtle whitespace-pre-wrap">
+              {result.info.notes.slice(0, 800)}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {phase === "error" && result ? (
+        <div className="mt-2 space-y-1 text-xs">
+          <p className="text-danger">Unable to check for updates.</p>
+          <p className="text-subtle">
+            Installed: {"installed" in result ? result.installed : DESKTOP_VERSION}
+          </p>
+          <p className="text-subtle">
+            Reason:{" "}
+            {"message" in result ? result.message : "Unknown error"}
+          </p>
+        </div>
+      ) : null}
+
+      {phase === "idle" ? (
+        <p className="mt-2 text-xs text-subtle">Press Check for Updates to query the update source.</p>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
-          className="min-h-10 rounded-[8px] border border-border bg-bg-elevated px-3 text-xs font-medium"
-          disabled={checking || installing}
+          className="min-h-10 rounded-[8px] border border-border bg-bg-elevated px-3 text-xs font-medium disabled:opacity-50"
+          disabled={phase === "checking" || installing}
           onClick={() => void runCheck()}
         >
-          {checking ? "Checking…" : "Check for Updates"}
+          {phase === "checking"
+            ? "Checking…"
+            : phase === "error"
+              ? "Retry"
+              : phase === "up_to_date"
+                ? "Check Again"
+                : "Check for Updates"}
         </button>
-        {result?.status === "available" ? (
+        {phase === "update_available" && result?.status === "available" ? (
           <button
             type="button"
-            className="min-h-10 rounded-[8px] border border-accent bg-accent px-3 text-xs font-medium text-accent-fg"
+            className="min-h-10 rounded-[8px] border border-accent bg-accent px-3 text-xs font-medium text-accent-fg disabled:opacity-50"
             disabled={installing}
             onClick={() => void onUpdate()}
           >
-            {installing ? "Updating…" : "Update Auralith"}
+            {installing
+              ? "Updating…"
+              : result.info.canAutoInstall
+                ? "Download and Install Update"
+                : "Open Download Page"}
+          </button>
+        ) : null}
+        {phase === "error" ? (
+          <button
+            type="button"
+            className="min-h-10 rounded-[8px] border border-border bg-bg-elevated px-3 text-xs font-medium"
+            onClick={() =>
+              window.open(
+                "https://github.com/dragonking587-ai/Auralith/releases",
+                "_blank",
+                "noopener,noreferrer",
+              )
+            }
+          >
+            Open Releases
           </button>
         ) : null}
       </div>
@@ -834,7 +903,7 @@ function DesktopUpdatesSection() {
         Automatically check for updates on startup
       </label>
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        Updates never embed GitHub credentials. Core features work fully offline. Automatic install without your approval is disabled for test builds — click Update Auralith to proceed.
+        Updates never embed GitHub credentials. Core features work fully offline. One-click install requires a public signed update channel; until then, Open Download Page opens GitHub Releases.
       </p>
     </Section>
   );
