@@ -142,13 +142,19 @@ fn vcam_stop() {
 
 #[tauri::command]
 fn vcam_push_frame(rgba: Vec<u8>, width: u32, height: u32) -> Result<(), String> {
-    // Convert RGBA → RGB24 for Softcam
-    let expected = (width as usize) * (height as usize) * 4;
-    if rgba.len() < expected {
-        return Err(format!("RGBA frame too small"));
+    let w = width as usize;
+    let h = height as usize;
+    let rgb_len = w.saturating_mul(h).saturating_mul(3);
+    let rgba_len = w.saturating_mul(h).saturating_mul(4);
+    // Prefer RGB24 from the frontend (vcam-bridge) to avoid a second conversion.
+    if rgba.len() >= rgb_len && rgba.len() < rgba_len {
+        return vcam::push_rgb24(&rgba[..rgb_len]);
     }
-    let mut rgb = Vec::with_capacity((width as usize) * (height as usize) * 3);
-    for chunk in rgba[..expected].chunks_exact(4) {
+    if rgba.len() < rgba_len {
+        return Err(format!("Frame buffer too small: {} for {}x{}", rgba.len(), width, height));
+    }
+    let mut rgb = Vec::with_capacity(rgb_len);
+    for chunk in rgba[..rgba_len].chunks_exact(4) {
         rgb.push(chunk[0]);
         rgb.push(chunk[1]);
         rgb.push(chunk[2]);

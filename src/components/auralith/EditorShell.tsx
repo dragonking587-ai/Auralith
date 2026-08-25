@@ -598,7 +598,16 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
       const st = await vcamStart(scene.output.width, scene.output.height, scene.output.fps || 30);
       setStatus(st);
       setVcamCaptureActive(true, scene.output.width, scene.output.height);
-      // Ensure stream output window is open so the final renderer runs
+      // Stream Output runs the same final renderer that feeds the virtual camera.
+      const sessionId = useAuralith.getState().sessionId;
+      useAuralith.getState().getPublisher()?.pushSnapshot();
+      void import("@tauri-apps/api/core").then(({ invoke }) =>
+        invoke("open_output", {
+          session: sessionId,
+          width: scene.output.width,
+          height: scene.output.height,
+        }).catch(() => undefined),
+      );
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
       setVcamCaptureActive(false);

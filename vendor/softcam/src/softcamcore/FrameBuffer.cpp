@@ -7,8 +7,8 @@
 namespace softcam {
 
 
-const char NamedMutexName[] = "DirectShow Softcam/NamedMutex";
-const char SharedMemoryName[] = "DirectShow Softcam/SharedMemory";
+const char NamedMutexName[] = "Auralith Virtual Camera/NamedMutex";
+const char SharedMemoryName[] = "Auralith Virtual Camera/SharedMemory";
 
 
 struct FrameBuffer::Header

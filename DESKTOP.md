@@ -6,7 +6,7 @@ This is **not** a wrapper around the hosted web app. The installer bundles the U
 
 ## Version
 
-First test: `v1.0.0-desktop-test.1` (GitHub **pre-release**). Not a stable public release.
+First test: `v1.0.0-desktop-test.5` (GitHub **pre-release**). Not a stable public release.
 
 ## What you get
 
@@ -96,6 +96,8 @@ After install, core use works without internet: startup, images, Demo Scene, Tra
 ## Virtual Camera (Windows)
 
 - **Device name:** `Auralith Virtual Camera`
+- **Transport:** Softcam user-mode DirectShow filter + shared-memory frames (unique Auralith namespace)
+- **Registration:** NSIS post-install `regsvr32 softcam.dll` (admin may be required for HKLM)
 - **Technology:** DirectShow user-mode filter (vendored Softcam, MIT), not a kernel driver
 - **Frame path:** Stream Output canvas (final renderer) → RGBA → RGB24 → Softcam sender API
 - **Registration:** `regsvr32 softcam.dll` (Administrator, once). Installer ships `softcam.dll` and `scripts/register-auralith-vcam.ps1`.

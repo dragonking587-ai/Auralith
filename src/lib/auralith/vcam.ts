@@ -33,9 +33,15 @@ export async function vcamStop(): Promise<void> {
   await invoke("vcam_stop");
 }
 
-/** Push one RGBA frame (Uint8ClampedArray or Uint8Array) to the virtual camera. */
-export async function vcamPushFrame(rgba: Uint8Array | Uint8ClampedArray, width: number, height: number): Promise<void> {
-  // Tauri serializes Vec<u8> from number[]
-  const arr = Array.from(rgba);
-  await invoke("vcam_push_frame", { rgba: arr, width, height });
+/**
+ * Push one RGB24 frame (or RGBA — Rust accepts both by length) to the virtual camera.
+ * Prefer RGB24 from vcam-bridge for lower IPC cost.
+ */
+export async function vcamPushFrame(pixels: Uint8Array | Uint8ClampedArray, width: number, height: number): Promise<void> {
+  // Tauri serializes typed arrays as number[]; avoid intermediate Array.from when possible
+  // by spreading into a plain array only for the wire format expected by serde Vec<u8>.
+  const body = pixels instanceof Uint8Array && pixels.buffer.byteLength === pixels.length
+    ? Array.from(pixels)
+    : Array.from(pixels);
+  await invoke("vcam_push_frame", { rgba: body, width, height });
 }
