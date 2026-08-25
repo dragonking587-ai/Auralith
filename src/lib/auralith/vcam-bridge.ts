@@ -4,13 +4,14 @@ let width = 1920;
 let height = 1080;
 let lastPush = 0;
 let inflight = false;
-/** Reused RGB24 buffer to avoid per-frame allocations when size is stable. */
 let rgbBuf: Uint8Array | null = null;
+let consecutiveErrors = 0;
 
 export function setVcamCaptureActive(on: boolean, w = 1920, h = 1080) {
   active = on;
   width = w;
   height = h;
+  consecutiveErrors = 0;
   if (!on) rgbBuf = null;
 }
 
@@ -36,11 +37,16 @@ function rgbaToRgb24(src: Uint8ClampedArray, w: number, h: number): Uint8Array {
 }
 
 /**
- * Push canvas pixels to the virtual camera at most ~30 FPS to limit IPC load.
- * Softcam expects RGB24; conversion happens here once per frame.
+ * Push canvas pixels at most ~30 FPS. Never throws to the rAF loop.
+ * Softcam expects RGB24 sized to the camera; Rust resizes if needed.
  */
 export async function maybePushCanvas(canvas: HTMLCanvasElement, now: number) {
   if (!active || inflight) return;
+  if (consecutiveErrors > 30) {
+    // Stop hammering a broken sink.
+    active = false;
+    return;
+  }
   if (now - lastPush < 33) return;
   lastPush = now;
   const w = canvas.width;
@@ -54,8 +60,9 @@ export async function maybePushCanvas(canvas: HTMLCanvasElement, now: number) {
     inflight = true;
     const { vcamPushFrame } = await import("./vcam.ts");
     await vcamPushFrame(rgb, w, h);
+    consecutiveErrors = 0;
   } catch {
-    /* ignore frame drops */
+    consecutiveErrors += 1;
   } finally {
     inflight = false;
   }

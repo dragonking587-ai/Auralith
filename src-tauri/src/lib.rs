@@ -142,24 +142,69 @@ fn vcam_stop() {
 
 #[tauri::command]
 fn vcam_push_frame(rgba: Vec<u8>, width: u32, height: u32) -> Result<(), String> {
+    // Never panic into the webview — all failures are Result::Err.
+    let st = vcam::status();
+    if !st.running {
+        return Err("Virtual camera is not running".into());
+    }
+    // Softcam memcpy uses the camera's create dimensions, not the caller's claim.
+    let cw = st.width as usize;
+    let ch = st.height as usize;
+    let need = cw.saturating_mul(ch).saturating_mul(3);
+    if need == 0 {
+        return Err("Virtual camera has invalid size".into());
+    }
     let w = width as usize;
     let h = height as usize;
     let rgb_len = w.saturating_mul(h).saturating_mul(3);
     let rgba_len = w.saturating_mul(h).saturating_mul(4);
-    // Prefer RGB24 from the frontend (vcam-bridge) to avoid a second conversion.
-    if rgba.len() >= rgb_len && rgba.len() < rgba_len {
-        return vcam::push_rgb24(&rgba[..rgb_len]);
+
+    // Build an RGB24 buffer matching the *camera* size (letterbox/crop if needed).
+    let mut rgb = vec![0u8; need];
+    if rgba.len() >= rgb_len && rgba.len() < rgba_len && w == cw && h == ch {
+        rgb.copy_from_slice(&rgba[..need.min(rgba.len())]);
+        return vcam::push_rgb24(&rgb);
     }
-    if rgba.len() < rgba_len {
-        return Err(format!("Frame buffer too small: {} for {}x{}", rgba.len(), width, height));
+    if rgba.len() >= rgba_len && w > 0 && h > 0 {
+        // Convert RGBA → RGB into a temporary full-frame, then scale-copy if sizes differ.
+        let mut src = vec![0u8; rgb_len];
+        for i in 0..(w * h) {
+            let si = i * 4;
+            let di = i * 3;
+            src[di] = rgba[si];
+            src[di + 1] = rgba[si + 1];
+            src[di + 2] = rgba[si + 2];
+        }
+        if w == cw && h == ch {
+            rgb.copy_from_slice(&src[..need]);
+        } else {
+            // Nearest-neighbor resize into camera buffer (safe, no native crash on size mismatch).
+            for y in 0..ch {
+                let sy = y * h / ch;
+                for x in 0..cw {
+                    let sx = x * w / cw;
+                    let si = (sy * w + sx) * 3;
+                    let di = (y * cw + x) * 3;
+                    rgb[di] = src[si];
+                    rgb[di + 1] = src[si + 1];
+                    rgb[di + 2] = src[si + 2];
+                }
+            }
+        }
+        return vcam::push_rgb24(&rgb);
     }
-    let mut rgb = Vec::with_capacity(rgb_len);
-    for chunk in rgba[..rgba_len].chunks_exact(4) {
-        rgb.push(chunk[0]);
-        rgb.push(chunk[1]);
-        rgb.push(chunk[2]);
+    if rgba.len() >= need && w == cw && h == ch {
+        rgb.copy_from_slice(&rgba[..need]);
+        return vcam::push_rgb24(&rgb);
     }
-    vcam::push_rgb24(&rgb)
+    Err(format!(
+        "Unsupported frame: buf={} claim={}x{} camera={}x{}",
+        rgba.len(),
+        width,
+        height,
+        st.width,
+        st.height
+    ))
 }
 
 fn resolve_ui_dir(handle: &AppHandle) -> Option<PathBuf> {

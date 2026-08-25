@@ -583,6 +583,7 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
   const [status, setStatus] = useState<VcamStatus | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [details, setDetails] = useState("");
 
   useEffect(() => {
     void vcamStatus().then(setStatus);
@@ -592,43 +593,63 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
   }, []);
 
   const start = async () => {
+    if (busy || status?.running || status?.state === "STARTING") return;
     setBusy(true);
     setError("");
+    setDetails("");
+    // Do not attach the live renderer until native init + test frame succeed.
+    setVcamCaptureActive(false);
     try {
-      const st = await vcamStart(scene.output.width, scene.output.height, scene.output.fps || 30);
+      // Conservative proven mode first: 30 FPS delivery pacing; softcam uses fps=0 internally.
+      const w = scene.output.width || 1920;
+      const h = scene.output.height || 1080;
+      const st = await vcamStart(w, h, 30);
       setStatus(st);
-      setVcamCaptureActive(true, scene.output.width, scene.output.height);
-      // Stream Output runs the same final renderer that feeds the virtual camera.
+      if (!st.running) {
+        setError(st.last_error || "Failed to start Virtual Camera");
+        setDetails(st.last_stage || st.state || "");
+        setVcamCaptureActive(false);
+        return;
+      }
+      // Camera is RUNNING with a successful test frame — now connect the final renderer.
+      setVcamCaptureActive(true, st.width || w, st.height || h);
       const sessionId = useAuralith.getState().sessionId;
       useAuralith.getState().getPublisher()?.pushSnapshot();
       void import("@tauri-apps/api/core").then(({ invoke }) =>
         invoke("open_output", {
           session: sessionId,
-          width: scene.output.width,
-          height: scene.output.height,
+          width: st.width || w,
+          height: st.height || h,
         }).catch(() => undefined),
       );
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      setError(msg);
+      setDetails(msg);
       setVcamCaptureActive(false);
+      setStatus(await vcamStatus());
     } finally {
       setBusy(false);
     }
   };
 
   const stop = async () => {
+    if (busy) return;
     setBusy(true);
     setError("");
+    setVcamCaptureActive(false);
     try {
       await vcamStop();
-      setVcamCaptureActive(false);
       setStatus(await vcamStatus());
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e));
+      setStatus(await vcamStatus());
     } finally {
       setBusy(false);
     }
   };
+
+  const failed = Boolean(error) || status?.state === "ERROR";
 
   return (
     <Section title="Virtual Camera">
@@ -639,25 +660,39 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
       {status?.running ? (
         <>
           <p className="mt-2 text-xs text-fg">
-            Status: <span className="text-warm">Running</span> · {status.width}×{status.height} · {status.fps} fps
+            Status: <span className="text-warm">Running</span> · {status.width}×{status.height} · ~30 fps
           </p>
-          <GhostBtn onClick={() => void stop()} className="mt-2 w-full justify-center">
-            Stop Virtual Camera
+          <GhostBtn onClick={() => void stop()} className="mt-2 w-full justify-center" disabled={busy}>
+            {busy ? "Stopping…" : "Stop Virtual Camera"}
           </GhostBtn>
         </>
       ) : (
-        <GhostBtn onClick={() => void start()} className="mt-2 w-full justify-center">
-          {busy ? "Starting…" : "Start Virtual Camera"}
-        </GhostBtn>
+        <>
+          {failed ? (
+            <p className="mt-2 text-xs text-danger">Status: Failed to Start</p>
+          ) : (
+            <p className="mt-2 text-xs text-subtle">Status: Stopped</p>
+          )}
+          <GhostBtn onClick={() => void start()} className="mt-2 w-full justify-center" disabled={busy}>
+            {busy ? "Starting Virtual Camera…" : failed ? "Retry" : "Start Virtual Camera"}
+          </GhostBtn>
+        </>
       )}
-      {error ? <p className="mt-2 text-[11px] text-danger">{error}</p> : null}
+      {error ? (
+        <div className="mt-2 space-y-1">
+          <p className="text-[11px] text-danger">Reason: {error}</p>
+          {details && details !== error ? (
+            <p className="text-[11px] text-subtle">Details: {details}</p>
+          ) : null}
+        </div>
+      ) : null}
       {status && !status.dll_loaded && !status.running ? (
         <p className="mt-2 text-[11px] text-subtle">
-          softcam.dll is not loaded. Reinstall Auralith (Virtual Camera component registers the DirectShow filter).
+          softcam.dll is not loaded. Reinstall Auralith, or run elevated: regsvr32 softcam.dll next to the app.
         </p>
       ) : null}
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera. Open Stream Output so final frames are fed to the camera. Audio is not sent through the camera — use System Audio / WASAPI in Auralith for effects only.
+        OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera. Starting the camera opens Stream Output so final frames are fed. Audio is not sent through the camera.
       </p>
     </Section>
   );
@@ -874,16 +909,19 @@ function GhostBtn({
   children,
   onClick,
   className = "",
+  disabled = false,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-[12px] border border-border bg-bg-elevated px-3 text-sm font-medium text-fg transition-colors duration-150 hover:border-border-strong ${className}`}
+      disabled={disabled}
+      className={`inline-flex min-h-11 items-center gap-2 rounded-[12px] border border-border bg-bg-elevated px-3 text-sm font-medium text-fg transition-colors duration-150 hover:border-border-strong disabled:pointer-events-none disabled:opacity-50 ${className}`}
     >
       {children}
     </button>

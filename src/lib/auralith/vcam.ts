@@ -9,6 +9,8 @@ export interface VcamStatus {
   device_name: string;
   last_error: string | null;
   dll_loaded: boolean;
+  state?: string;
+  last_stage?: string | null;
 }
 
 async function invoke<T>(cmd: string, args?: Record<string, unknown>): Promise<T> {
@@ -26,6 +28,7 @@ export async function vcamStatus(): Promise<VcamStatus | null> {
 }
 
 export async function vcamStart(width: number, height: number, fps: number): Promise<VcamStatus> {
+  // Conservative first-start: softcam receives fps=0 internally; UI still reports target fps.
   return invoke<VcamStatus>("vcam_start", { width, height, fps });
 }
 
@@ -34,14 +37,18 @@ export async function vcamStop(): Promise<void> {
 }
 
 /**
- * Push one RGB24 frame (or RGBA — Rust accepts both by length) to the virtual camera.
- * Prefer RGB24 from vcam-bridge for lower IPC cost.
+ * Push one RGB24 (preferred) or RGBA frame. Failures never crash the UI — they reject.
  */
-export async function vcamPushFrame(pixels: Uint8Array | Uint8ClampedArray, width: number, height: number): Promise<void> {
-  // Tauri serializes typed arrays as number[]; avoid intermediate Array.from when possible
-  // by spreading into a plain array only for the wire format expected by serde Vec<u8>.
-  const body = pixels instanceof Uint8Array && pixels.buffer.byteLength === pixels.length
-    ? Array.from(pixels)
-    : Array.from(pixels);
+export async function vcamPushFrame(
+  pixels: Uint8Array | Uint8ClampedArray,
+  width: number,
+  height: number,
+): Promise<void> {
+  // Cap transfer size: reject absurd buffers instead of serializing hundreds of MB.
+  if (pixels.length > 3840 * 2160 * 4) {
+    throw new Error("Frame too large");
+  }
+  // Tauri serde path expects a sequence for Vec<u8>.
+  const body = Array.from(pixels);
   await invoke("vcam_push_frame", { rgba: body, width, height });
 }
