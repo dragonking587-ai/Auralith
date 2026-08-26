@@ -139,7 +139,7 @@ pub fn stop() {
         if hwnd != 0 {
             unsafe {
                 let _ = windows::Win32::UI::WindowsAndMessaging::PostMessageW(
-                    windows::Win32::Foundation::HWND(hwnd as isize),
+                    windows::Win32::Foundation::HWND(hwnd as *mut core::ffi::c_void),
                     windows::Win32::UI::WindowsAndMessaging::WM_CLOSE,
                     windows::Win32::Foundation::WPARAM(0),
                     windows::Win32::Foundation::LPARAM(0),
@@ -239,17 +239,13 @@ fn make_test_pattern(w: u32, h: u32) -> Vec<u8> {
 #[cfg(windows)]
 fn windows_run_window(shared: Arc<Shared>, init_w: u32, init_h: u32) -> Result<(), String> {
     use windows::core::PCWSTR;
-    use windows::Win32::Foundation::{HWND, LPARAM, LRESULT, RECT, WPARAM};
-    use windows::Win32::Graphics::Gdi::{
-        BeginPaint, EndPaint, GetDC, ReleaseDC, StretchDIBits, BITMAPINFO, BITMAPINFOHEADER,
-        BI_RGB, DIB_RGB_COLORS, HDC, PAINTSTRUCT, SRCCOPY,
-    };
+    use windows::Win32::Foundation::HWND;
     use windows::Win32::System::LibraryLoader::GetModuleHandleW;
     use windows::Win32::UI::WindowsAndMessaging::{
-        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, GetClientRect,
-        GetMessageW, LoadCursorW, PostQuitMessage, RegisterClassW, ShowWindow, TranslateMessage,
-        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, MSG, SW_SHOW, WM_CLOSE, WM_DESTROY,
-        WM_PAINT, WM_SIZE, WNDCLASSW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
+        CreateWindowExW, DefWindowProcW, DestroyWindow, DispatchMessageW, LoadCursorW,
+        PeekMessageW, PostQuitMessage, RegisterClassW, ShowWindow, TranslateMessage,
+        CS_HREDRAW, CS_VREDRAW, CW_USEDEFAULT, IDC_ARROW, MSG, PM_REMOVE, SW_SHOW, WM_CLOSE,
+        WM_DESTROY, WM_PAINT, WM_QUIT, WNDCLASSW, WS_OVERLAPPEDWINDOW, WS_VISIBLE,
     };
 
     unsafe {
@@ -286,7 +282,7 @@ fn windows_run_window(shared: Arc<Shared>, init_w: u32, init_h: u32) -> Result<(
         )
         .map_err(|e| format!("CreateWindowEx: {e}"))?;
 
-        shared.hwnd.store(hwnd.0 as u64, Ordering::SeqCst);
+        shared.hwnd.store(hwnd.0 as usize as u64, Ordering::SeqCst);
         *shared.backend.lock().unwrap_or_else(|e| e.into_inner()) =
             "Win32 HWND + GDI/DIB present (BGRA8); D3D11 path reserved".into();
         eprintln!(
@@ -302,15 +298,7 @@ fn windows_run_window(shared: Arc<Shared>, init_w: u32, init_h: u32) -> Result<(
         let mut msg = MSG::default();
         let mut last_seq = 0u64;
         while !shared.stop.load(Ordering::SeqCst) {
-            while windows::Win32::UI::WindowsAndMessaging::PeekMessageW(
-                &mut msg,
-                None,
-                0,
-                0,
-                windows::Win32::UI::WindowsAndMessaging::PM_REMOVE,
-            )
-            .as_bool()
-            {
+            while PeekMessageW(&mut msg, None, 0, 0, PM_REMOVE).as_bool() {
                 if msg.message == WM_QUIT {
                     shared.stop.store(true, Ordering::SeqCst);
                     break;
@@ -398,7 +386,7 @@ unsafe fn present_gdi(
         return Err("GetDC failed".into());
     }
 
-    let mut bmi = BITMAPINFO {
+    let bmi = BITMAPINFO {
         bmiHeader: BITMAPINFOHEADER {
             biSize: std::mem::size_of::<BITMAPINFOHEADER>() as u32,
             biWidth: width as i32,
