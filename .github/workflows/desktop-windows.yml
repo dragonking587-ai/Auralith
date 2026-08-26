@@ -20,7 +20,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: "22"
-          cache: npm
 
       - name: Install frontend dependencies
         run: npm ci
@@ -32,19 +31,21 @@ jobs:
         uses: ilammy/msvc-dev-cmd@v1
 
       - name: Build Auralith Virtual Camera (Softcam)
-        shell: cmd
+        shell: pwsh
         run: |
-          cd vendor\softcam
-          msbuild softcam.sln /t:BaseClasses;softcamcore;softcam /p:Configuration=Release /p:Platform=x64 /m
-          if not exist out mkdir out
-          if exist x64\Release\softcam.dll copy /Y x64\Release\softcam.dll out\softcam.dll
-          if exist dist\bin\x64\softcam.dll copy /Y dist\bin\x64\softcam.dll out\softcam.dll
-          if exist src\softcam\x64\Release\softcam.dll copy /Y src\softcam\x64\Release\softcam.dll out\softcam.dll
-          if exist src\x64\Release\softcam.dll copy /Y src\x64\Release\softcam.dll out\softcam.dll
-          dir /s /b softcam.dll
-          dir out
-          if not exist out\softcam.dll (echo softcam.dll missing & exit /b 1)
-          echo Softcam x64 DLL ready for Tauri resources
+          $ErrorActionPreference = "Stop"
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $msbuild = & $vswhere -latest -requires Microsoft.Component.MSBuild -find "MSBuild\**\Bin\MSBuild.exe" | Select-Object -First 1
+          if (-not $msbuild) { throw "MSBuild not found" }
+          New-Item -ItemType Directory -Force -Path "vendor\softcam\out" | Out-Null
+          & $msbuild "vendor\softcam\src\softcam\softcam.vcxproj" /p:Configuration=Release /p:Platform=x64 /m
+          if ($LASTEXITCODE -ne 0) { throw "Softcam MSBuild failed with $LASTEXITCODE" }
+          $dll = Get-ChildItem -Path "vendor\softcam" -Recurse -Filter "softcam.dll" |
+            Where-Object { $_.FullName -match "\\x64\\Release\\" -or $_.FullName -match "\\Release\\" } |
+            Select-Object -First 1
+          if (-not $dll) { throw "softcam.dll not produced" }
+          Copy-Item $dll.FullName "vendor\softcam\out\softcam.dll" -Force
+          Write-Host "Softcam DLL: $($dll.FullName) -> vendor\softcam\out\softcam.dll"
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -64,6 +65,26 @@ jobs:
           $json.build.beforeBuildCommand = ""
           $json | ConvertTo-Json -Depth 30 | Set-Content $path -Encoding utf8
 
+      - name: Derive release metadata from tag
+        id: meta
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            TAG="${{ github.ref_name }}"
+          else
+            TAG="v1.0.0-desktop-test.local"
+          fi
+          # v1.0.0-desktop-test.17 -> "Auralith Desktop Test 17"
+          NAME="$TAG"
+          if [[ "$TAG" =~ desktop-test\.([0-9]+)$ ]]; then
+            NAME="Auralith Desktop Test ${BASH_REMATCH[1]}"
+          elif [[ "$TAG" =~ ^v(.+)$ ]]; then
+            NAME="Auralith ${BASH_REMATCH[1]}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "Derived release: $NAME ($TAG)"
+
       - name: Build Windows NSIS installer (Tauri)
         uses: tauri-apps/tauri-action@v0
         env:
@@ -72,29 +93,46 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: src-tauri
-          tagName: ${{ github.ref_type == 'tag' && github.ref_name || 'v1.0.0-desktop-test.4' }}
-          releaseName: Auralith Desktop Test 4
+          tagName: ${{ steps.meta.outputs.tag }}
+          releaseName: ${{ steps.meta.outputs.name }}
           releaseBody: |
-            Auralith standalone Windows test build (`1.0.0-desktop-test.4`).
+            ${{ steps.meta.outputs.name }} (`${{ steps.meta.outputs.tag }}`).
 
-            ## Virtual Camera
-            Device name: **Auralith Virtual Camera** (DirectShow Softcam user-mode filter).
-            After install, run the included registration helper or: `regsvr32 softcam.dll` (admin once).
-            OBS / Streamlabs / TikTok LIVE Studio: Video Capture Device → Auralith Virtual Camera.
+            ## Recommended output
+            **Broadcast Output** — Window Capture → `Auralith — Broadcast Output`
+            (OBS: prefer capture method Windows 10 / 1903+ when available.)
 
-            ## Outputs
-            1. Virtual Camera (preferred)
-            2. Window Capture — Auralith — Stream Output
-            3. Browser Source — http://127.0.0.1:4317/source/<session>
+            ## Alternative
+            Browser Source — `http://127.0.0.1:<port>/source/<session>`
 
-            ## Updates
-            In-app **Check for Updates** (Output → Updates). No GitHub credentials in the app.
-            Private source repo cannot serve unauthenticated downloads — a public binary channel is recommended for full auto-update.
+            ## Experimental
+            Virtual Camera — install/start only if needed; not required for Window Capture.
 
-            This installer is **unsigned** (Windows code signing). SmartScreen may warn.
+            Installer is **unsigned** (SmartScreen may warn).
           releaseDraft: false
           prerelease: true
           includeUpdaterJson: false
+
+      - name: Verify NSIS installer exists
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $candidates = @(
+            "src-tauri\target\release\bundle\nsis\*.exe",
+            "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.exe"
+          )
+          $found = @()
+          foreach ($pat in $candidates) {
+            $found += Get-Item $pat -ErrorAction SilentlyContinue
+          }
+          if (-not $found -or $found.Count -eq 0) {
+            throw "P0 gate failed: no Auralith NSIS installer (*.exe) produced under src-tauri/target/**/bundle/nsis/"
+          }
+          $found | ForEach-Object { Write-Host "Installer: $($_.FullName) ($([math]::Round($_.Length/1MB,2)) MB)" }
+          if (-not (Test-Path "vendor\softcam\out\softcam.dll")) {
+            throw "P0 gate failed: softcam.dll missing from vendor/softcam/out (bundled resource required)"
+          }
+          Write-Host "softcam.dll present for bundle resources"
 
       - name: Upload NSIS installer artifact
         uses: actions/upload-artifact@v4
@@ -104,5 +142,5 @@ jobs:
             src-tauri/target/release/bundle/nsis/*.exe
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
             vendor/softcam/out/softcam.dll
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
