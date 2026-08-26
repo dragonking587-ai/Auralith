@@ -4,6 +4,7 @@ import { canvasToImageNorm, canvasToImageNormUnclamped, computeImageRect } from 
 import { createRenderer, hitTest, stampHandleHit, suggestionHit } from "@/lib/auralith/renderer";
 import { useAuralith } from "@/lib/auralith/store";
 import type { StampRegion } from "@/lib/auralith/types";
+import { tickFinalFrame } from "@/lib/auralith/final-frame-provider";
 
 export function EditorCanvas() {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -58,6 +59,13 @@ export function EditorCanvas() {
           hoverId: state.hoverId,
           suggestions: state.suggestions,
         },
+      });
+      // Native Broadcast Output: clean frame (no guides) via FinalFrameProvider
+      tickFinalFrame({
+        scene: state.scene,
+        image: state.getImage(),
+        bands,
+        now,
       });
     };
     loopRef.current = requestAnimationFrame(tick);

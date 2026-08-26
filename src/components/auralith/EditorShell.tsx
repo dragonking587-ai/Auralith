@@ -32,6 +32,7 @@ import { DESKTOP_AUTO_UPDATE_KEY, DESKTOP_VERSION, desktopHttpOrigin, isDesktopA
 import { applyDesktopUpdate, checkForUpdatesDetailed, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
 import { vcamStart, vcamStop, vcamStatus, vcamInstall, type VcamStatus } from "@/lib/auralith/vcam";
 import { setVcamCaptureActive } from "@/lib/auralith/vcam-bridge";
+import { closeNativeBroadcast, openNativeBroadcast } from "@/lib/auralith/final-frame-provider";
 
 
 const TOOLS: { id: ToolId; label: string; icon: typeof Circle }[] = [
@@ -89,7 +90,17 @@ export function EditorShell() {
       ? ""
       : `${isDesktopApp() ? desktopHttpOrigin() : window.location.origin}/source/${sessionId}`;
 
+  const openNativeOutput = () => {
+    const w = scene.output.width;
+    const h = scene.output.height;
+    if (!isDesktopApp()) return;
+    void openNativeBroadcast(w, h).catch((e) => {
+      console.error("[BroadcastNative] open failed", e);
+    });
+  };
+
   const openOutput = () => {
+    // Legacy WebView Broadcast Output (fallback)
     const w = scene.output.width;
     const h = scene.output.height;
     useAuralith.getState().getPublisher()?.pushSnapshot();
@@ -240,6 +251,7 @@ export function EditorShell() {
                 copied={copied}
                 onCopy={copyUrl}
                 onWindow={openOutput}
+                onNative={openNativeOutput}
                 saveName={saveName}
                 setSaveName={setSaveName}
               />
@@ -464,6 +476,7 @@ function OutputPane({
   copied,
   onCopy,
   onWindow,
+  onNative,
   saveName,
   setSaveName,
 }: {
@@ -471,6 +484,7 @@ function OutputPane({
   copied: boolean;
   onCopy: () => void;
   onWindow: () => void;
+  onNative?: () => void;
   saveName: string;
   setSaveName: (v: string) => void;
 }) {
@@ -499,11 +513,24 @@ function OutputPane({
             type="button"
             onClick={() => {
               useAuralith.getState().setOutputMethod("window");
-              onWindow();
+              (onNative ?? onWindow)();
             }}
             className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-white"
           >
             Open Broadcast Output
+          </button>
+          <p className="mt-2 text-[11px] text-subtle">
+            Native GPU/window path (recommended). Window title: Auralith — Broadcast Output.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              useAuralith.getState().setOutputMethod("window");
+              onWindow();
+            }}
+            className="mt-2 min-h-9 w-full rounded-[10px] border border-border px-3 text-xs text-muted"
+          >
+            Legacy WebView Broadcast Output
           </button>
           <label className="mt-2 flex items-center gap-2 text-[11px] text-muted">
             <input

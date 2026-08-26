@@ -1,5 +1,6 @@
 mod audio;
 mod vcam;
+mod broadcast;
 mod server;
 
 use serde_json::Value;
@@ -334,6 +335,33 @@ fn resolve_ui_dir(handle: &AppHandle) -> Option<PathBuf> {
     candidates.into_iter().find(|p| p.join("index.html").exists())
 }
 
+
+#[tauri::command]
+fn broadcast_open(width: u32, height: u32) -> Result<broadcast::BroadcastStatus, String> {
+    eprintln!("[BroadcastNative] open {}x{}", width, height);
+    broadcast::open(width, height)
+}
+
+#[tauri::command]
+fn broadcast_close() {
+    eprintln!("[BroadcastNative] close");
+    broadcast::stop();
+}
+
+#[tauri::command]
+fn broadcast_status() -> broadcast::BroadcastStatus {
+    broadcast::status()
+}
+
+#[tauri::command]
+fn broadcast_push_frame_b64(data: String, width: u32, height: u32) -> Result<(), String> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|e| format!("Invalid base64 frame: {e}"))?;
+    broadcast::push_bgra(width, height, bytes)
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
@@ -361,7 +389,11 @@ pub fn run() {
             vcam_start,
             vcam_stop,
             vcam_push_frame,
-            vcam_push_frame_b64
+            vcam_push_frame_b64,
+            broadcast_open,
+            broadcast_close,
+            broadcast_status,
+            broadcast_push_frame_b64
         ])
         .run(tauri::generate_context!())
         .expect("Auralith failed to start");
