@@ -3,7 +3,8 @@ import { ZERO_BANDS } from "@/lib/auralith/bands";
 import { LiveViewer } from "@/lib/auralith/live-client";
 import { createRenderer } from "@/lib/auralith/renderer";
 import type { LiveBands, Scene } from "@/lib/auralith/types";
-import { maybePushCanvas } from "@/lib/auralith/vcam-bridge";
+import { enableStreamOutputCapture, maybePushCanvas } from "@/lib/auralith/vcam-bridge";
+import { isDesktopApp } from "@/lib/auralith/platform";
 
 export function StreamView({ sessionId }: { sessionId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -51,12 +52,20 @@ export function StreamView({ sessionId }: { sessionId: string }) {
       }
     });
 
+    // Separate webview: enable VCam pushes here (main-window flag does not apply).
+    if (isDesktopApp()) {
+      enableStreamOutputCapture(1920, 1080);
+    }
+
     const fit = () => {
       const s = scene;
       const targetW = s?.output.width ?? 1920;
       const targetH = s?.output.height ?? 1080;
       if (canvas.width !== targetW) canvas.width = targetW;
       if (canvas.height !== targetH) canvas.height = targetH;
+      if (isDesktopApp() && targetW > 0 && targetH > 0) {
+        enableStreamOutputCapture(targetW, targetH);
+      }
     };
     fit();
     const ro = new ResizeObserver(fit);

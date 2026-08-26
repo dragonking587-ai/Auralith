@@ -247,6 +247,29 @@ fn vcam_push_frame(rgba: Vec<u8>, width: u32, height: u32) -> Result<(), String>
     ))
 }
 
+
+#[tauri::command]
+fn vcam_push_frame_b64(data: String, width: u32, height: u32) -> Result<(), String> {
+    use base64::Engine;
+    let bytes = base64::engine::general_purpose::STANDARD
+        .decode(data.as_bytes())
+        .map_err(|e| format!("Invalid base64 frame: {e}"))?;
+    // Prefer RGB24 length path
+    let w = width as usize;
+    let h = height as usize;
+    let need = w.saturating_mul(h).saturating_mul(3);
+    if bytes.len() < need {
+        return Err(format!(
+            "Decoded frame too small: {} need {} for {}x{}",
+            bytes.len(),
+            need,
+            width,
+            height
+        ));
+    }
+    vcam::push_rgb24(&bytes[..need])
+}
+
 fn resolve_ui_dir(handle: &AppHandle) -> Option<PathBuf> {
     let mut candidates = Vec::new();
     if let Ok(res) = handle.path().resource_dir() {
@@ -284,7 +307,8 @@ pub fn run() {
             vcam_uninstall,
             vcam_start,
             vcam_stop,
-            vcam_push_frame
+            vcam_push_frame,
+            vcam_push_frame_b64
         ])
         .run(tauri::generate_context!())
         .expect("Auralith failed to start");

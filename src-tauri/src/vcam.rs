@@ -37,6 +37,9 @@ pub struct VcamStatus {
     pub last_stage: Option<String>,
     /// Whether the DirectShow filter CLSID is present in the registry.
     pub filter_registered: bool,
+    pub live_frames: u64,
+    /// test_frame | live_renderer | idle
+    pub frame_source: String,
 }
 
 fn state_name(s: u8) -> &'static str {
@@ -77,7 +80,9 @@ mod win {
         last_error: Option<String>,
         last_stage: String,
         frames_ok: u64,
+        live_frames: u64,
         filter_registered: bool,
+        frame_source: String,
     }
 
     unsafe impl Send for VcamState {}
@@ -259,6 +264,8 @@ mod win {
                 state: state_name(phase).into(),
                 last_stage: Some(s.last_stage.clone()),
                 filter_registered: s.filter_registered || registered,
+                live_frames: s.live_frames,
+                frame_source: s.frame_source.clone(),
             }
         } else {
             VcamStatus {
@@ -277,6 +284,8 @@ mod win {
                 state: state_name(phase).into(),
                 last_stage: None,
                 filter_registered: registered,
+                live_frames: 0,
+                frame_source: "idle".into(),
             }
         }
     }
@@ -369,6 +378,8 @@ mod win {
                 state: state_name(phase).into(),
                 last_stage: Some(s.last_stage.clone()),
                 filter_registered: s.filter_registered || registered,
+                live_frames: s.live_frames,
+                frame_source: s.frame_source.clone(),
             }
         } else {
             VcamStatus {
@@ -387,6 +398,8 @@ mod win {
                 state: state_name(phase).into(),
                 last_stage: None,
                 filter_registered: registered,
+                live_frames: 0,
+                frame_source: "idle".into(),
             }
         }
     }
@@ -432,7 +445,9 @@ mod win {
                 last_error: Some(msg.clone()),
                 last_stage: stage.into(),
                 frames_ok: 0,
+                live_frames: 0,
                 filter_registered: registered,
+                frame_source: "idle".into(),
             });
         }
         Err(format!("[{stage}] {msg}"))
@@ -567,7 +582,9 @@ mod win {
                 last_error: None,
                 last_stage: "created".into(),
                 frames_ok: 0,
+                live_frames: 0,
                 filter_registered: true,
+                frame_source: "test_frame".into(),
             });
         }
         log_stage("Running state confirmed (sender ready for frames)");
@@ -657,7 +674,19 @@ mod win {
         match result {
             Ok(()) => {
                 s.frames_ok = s.frames_ok.saturating_add(1);
+                s.live_frames = s.live_frames.saturating_add(1);
+                s.frame_source = "live_renderer".into();
                 s.last_stage = "frame_ok".into();
+                if s.live_frames == 1 {
+                    log_stage("First live frame received (from Stream Output)");
+                    log_stage(&format!(
+                        "Live frame size: {}x{} RGB24",
+                        s.width, s.height
+                    ));
+                    log_stage("Switching source TEST_FRAME -> LIVE_RENDERER");
+                } else if s.live_frames % 30 == 0 {
+                    log_stage(&format!("Live frame #{} submitted", s.live_frames));
+                }
                 Ok(())
             }
             Err(_) => {
@@ -703,6 +732,8 @@ pub fn status() -> VcamStatus {
         state: "STOPPED".into(),
         last_stage: None,
         filter_registered: false,
+        live_frames: 0,
+        frame_source: "idle".into(),
     }
 }
 

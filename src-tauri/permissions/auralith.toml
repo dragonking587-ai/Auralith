@@ -16,5 +16,6 @@ commands.allow = [
   "vcam_uninstall",
   "vcam_start",
   "vcam_stop",
-  "vcam_push_frame"
+  "vcam_push_frame",
+  "vcam_push_frame_b64"
 ]
