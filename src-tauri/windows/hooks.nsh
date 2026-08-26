@@ -1,45 +1,60 @@
-; Auralith NSIS installer hooks — safe softcam.dll upgrade on overwrite installs.
-; Order: PREINSTALL (before file copy) → Tauri file install → POSTINSTALL
-; Do not offer Ignore for softcam.dll: mismatched VCam DLLs break OBS/TikTok.
+; Auralith NSIS hooks — upgrade must NEVER hang on Softcam unregister.
+;
+; Test 13 hang: nsExec::ExecToLog waited forever on
+;   regsvr32 /s /u softcam.dll
+; when DllUnregisterServer blocked with the DLL still loaded.
+;
+; Fix:
+;   • Close Auralith only (never kill OBS/Streamlabs/TikTok)
+;   • Remove COM CLSID with "reg delete" (does not load softcam.dll)
+;   • Any regsvr32 uses PowerShell WaitForExit(12000) — kill only that process
+;   • Delete/rename softcam.dll; if locked → Retry/Cancel (no Ignore)
 
-; ---------------------------------------------------------------------------
-; PREINSTALL — free locked softcam.dll BEFORE the installer writes files
-; ---------------------------------------------------------------------------
 !macro NSIS_HOOK_PREINSTALL
-  DetailPrint "[Auralith Installer] Existing installation check"
-  DetailPrint "[Auralith Installer] Checking virtual camera"
-
-  ; Close Auralith so the in-process Softcam sender releases the DLL
-  DetailPrint "[Auralith Installer] Stopping Auralith if running"
-  nsExec::ExecToLog 'taskkill /IM Auralith.exe /T'
-  Sleep 1200
-  nsExec::ExecToLog 'taskkill /F /IM Auralith.exe /T'
-  Sleep 600
+  DetailPrint "[Installer] PREINSTALL started"
+  DetailPrint "[Installer] Closing Auralith"
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process Auralith -EA SilentlyContinue | ForEach-Object { try { $_.CloseMainWindow() | Out-Null } catch {} }; Start-Sleep -Milliseconds 800; Get-Process Auralith -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue; exit 0"'
+  Pop $R0
+  DetailPrint "[Installer] Auralith closed"
 
 auralith_pre_retry:
-  ; --- $INSTDIR\softcam.dll (staged path used by in-app registration) ---
-  IfFileExists "$INSTDIR\softcam.dll" 0 auralith_pre_try_resources
-    DetailPrint "[Auralith Installer] softcam.dll present: $INSTDIR\softcam.dll"
-    DetailPrint "[Auralith Installer] Unregistering previous virtual camera"
-    nsExec::ExecToLog '"$SYSDIR\regsvr32.exe" /s /u "$INSTDIR\softcam.dll"'
-    Sleep 400
+  ; Registry-only cleanup — does NOT load softcam.dll (avoids DllUnregisterServer hang)
+  DetailPrint "[Installer] Removing previous COM CLSID via reg delete (no DLL load)"
+  nsExec::ExecToLog 'cmd /c reg delete "HKCR\CLSID\{A11A11A1-5A11-4A11-B111-A11A11A11A11}" /f >nul 2>&1'
+  Pop $R0
+  nsExec::ExecToLog 'cmd /c reg delete "HKCU\Software\Classes\CLSID\{A11A11A1-5A11-4A11-B111-A11A11A11A11}" /f >nul 2>&1'
+  Pop $R0
+  DetailPrint "[Installer] Registry cleanup finished"
+
+  ; Optional timed regsvr32 /u (12s max) — best-effort only; never block forever
+  IfFileExists "$INSTDIR\softcam.dll" 0 auralith_pre_del_inst
+    DetailPrint "[Installer] Starting Softcam timed unregister (max 12s)"
+    DetailPrint "[Installer] regsvr32 process started (unregister)"
+    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$dll=''$INSTDIR\softcam.dll''; $$p=Start-Process -FilePath (Join-Path $$env:SystemRoot ''System32\regsvr32.exe'') -ArgumentList ''/s'',''/u'',$$dll -PassThru -WindowStyle Hidden; if(-not $$p.WaitForExit(12000)){ try{$$p.Kill()}catch{}; Write-Output ''timeout''; exit 124 }; Write-Output (''exit='' + $$p.ExitCode); exit $$p.ExitCode"'
+    Pop $R0
+    DetailPrint "[Installer] Unregister exit code: $R0"
+    DetailPrint "[Installer] Unregister complete (or timed out)"
+
+auralith_pre_del_inst:
+  DetailPrint "[Installer] Attempting softcam.dll delete"
+  IfFileExists "$INSTDIR\softcam.dll" 0 auralith_pre_res
     ClearErrors
     Delete "$INSTDIR\softcam.dll"
-    IfErrors 0 auralith_pre_try_resources
-      DetailPrint "[Auralith Installer] Delete failed — trying rename"
+    IfErrors 0 auralith_pre_res
+      DetailPrint "[Installer] Delete failed — trying rename"
       ClearErrors
       Delete "$INSTDIR\softcam.dll.old"
       Rename "$INSTDIR\softcam.dll" "$INSTDIR\softcam.dll.old"
-      IfErrors 0 auralith_pre_try_resources
-        DetailPrint "[Auralith Installer] softcam.dll locked"
+      IfErrors 0 auralith_pre_res
+        DetailPrint "[Installer] softcam.dll locked"
         Goto auralith_pre_locked
 
-auralith_pre_try_resources:
-  ; --- $INSTDIR\resources\softcam.dll (Tauri resource layout) ---
+auralith_pre_res:
   IfFileExists "$INSTDIR\resources\softcam.dll" 0 auralith_pre_ok
-    DetailPrint "[Auralith Installer] softcam.dll present: $INSTDIR\resources\softcam.dll"
-    nsExec::ExecToLog '"$SYSDIR\regsvr32.exe" /s /u "$INSTDIR\resources\softcam.dll"'
-    Sleep 400
+    DetailPrint "[Installer] Timed unregister resources path (max 12s)"
+    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$dll=''$INSTDIR\resources\softcam.dll''; $$p=Start-Process -FilePath (Join-Path $$env:SystemRoot ''System32\regsvr32.exe'') -ArgumentList ''/s'',''/u'',$$dll -PassThru -WindowStyle Hidden; if(-not $$p.WaitForExit(12000)){ try{$$p.Kill()}catch{}; exit 124 }; exit $$p.ExitCode"'
+    Pop $R0
+    DetailPrint "[Installer] resources unregister exit: $R0"
     ClearErrors
     Delete "$INSTDIR\resources\softcam.dll"
     IfErrors 0 auralith_pre_ok
@@ -47,45 +62,41 @@ auralith_pre_try_resources:
       Delete "$INSTDIR\resources\softcam.dll.old"
       Rename "$INSTDIR\resources\softcam.dll" "$INSTDIR\resources\softcam.dll.old"
       IfErrors 0 auralith_pre_ok
-        DetailPrint "[Auralith Installer] resources\softcam.dll locked"
+        DetailPrint "[Installer] resources\softcam.dll locked"
         Goto auralith_pre_locked
 
 auralith_pre_ok:
-  DetailPrint "[Auralith Installer] softcam.dll available for replacement"
+  DetailPrint "[Installer] softcam.dll available for replacement"
   Goto auralith_pre_done
 
 auralith_pre_locked:
-  DetailPrint "[Auralith Installer] softcam.dll locked — prompting user"
+  DetailPrint "[Installer] softcam.dll still locked after timed cleanup"
   MessageBox MB_RETRYCANCEL|MB_ICONEXCLAMATION \
-    "Auralith Virtual Camera is currently in use (softcam.dll is locked).$\r$\n$\r$\nPlease close applications using Auralith Virtual Camera, such as:$\r$\n  • OBS Studio$\r$\n  • Streamlabs$\r$\n  • TikTok LIVE Studio$\r$\n  • Auralith$\r$\n$\r$\nThen click Retry.$\r$\n$\r$\nInstallation cannot use Ignore — the virtual camera component must be updated safely." \
+    "Auralith Virtual Camera could not be unregistered/replaced.$\r$\n$\r$\nThe previous virtual-camera component may still be in use.$\r$\n$\r$\nPlease close OBS, Streamlabs, TikTok LIVE Studio and Auralith, then click Retry.$\r$\n$\r$\nDo not leave those apps using Auralith Virtual Camera during upgrade." \
     IDRETRY auralith_pre_retry IDCANCEL auralith_pre_abort
 
 auralith_pre_abort:
-  DetailPrint "[Auralith Installer] Aborted — softcam.dll still locked"
+  DetailPrint "[Installer] Aborted — softcam.dll locked"
   MessageBox MB_OK|MB_ICONSTOP \
     "Installation stopped.$\r$\n$\r$\nClose any app using Auralith Virtual Camera, then run the installer again."
   Abort
 
 auralith_pre_done:
-  DetailPrint "[Auralith Installer] Pre-install complete"
+  DetailPrint "[Installer] PREINSTALL complete"
 !macroend
 
-; ---------------------------------------------------------------------------
-; POSTINSTALL — stage + register new softcam.dll
-; ---------------------------------------------------------------------------
 !macro NSIS_HOOK_POSTINSTALL
-  DetailPrint "[Auralith Installer] Post-install — virtual camera"
+  DetailPrint "[Installer] POSTINSTALL started"
 
   StrCpy $0 "$INSTDIR\resources\softcam.dll"
   IfFileExists "$0" auralith_post_have 0
   StrCpy $0 "$INSTDIR\softcam.dll"
   IfFileExists "$0" auralith_post_have 0
-  DetailPrint "[Auralith Installer] softcam.dll missing from package"
+  DetailPrint "[Installer] softcam.dll missing from package"
   Goto auralith_post_cleanup
 
 auralith_post_have:
-  DetailPrint "[Auralith Installer] softcam.dll found: $0"
-  ; Stage a stable copy next to Auralith.exe for in-app registration
+  DetailPrint "[Installer] softcam.dll found: $0"
   StrCmp "$0" "$INSTDIR\softcam.dll" auralith_post_reg 0
     ClearErrors
     CopyFiles /SILENT "$0" "$INSTDIR\softcam.dll"
@@ -93,31 +104,33 @@ auralith_post_have:
       StrCpy $0 "$INSTDIR\softcam.dll"
 
 auralith_post_reg:
-  DetailPrint "[Auralith Installer] Registering new virtual camera"
-  nsExec::ExecToLog '"$SYSDIR\regsvr32.exe" /s "$0"'
-  nsExec::ExecToLog 'reg query HKCR\CLSID\{A11A11A1-5A11-4A11-B111-A11A11A11A11}'
-  DetailPrint "[Auralith Installer] Registration attempted (elevated in-app Install may still be required on currentUser installs)"
+  DetailPrint "[Installer] Registering new virtual camera (timed, max 12s)"
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$dll=''$0''; $$p=Start-Process -FilePath (Join-Path $$env:SystemRoot ''System32\regsvr32.exe'') -ArgumentList ''/s'',$$dll -PassThru -WindowStyle Hidden; if(-not $$p.WaitForExit(12000)){ try{$$p.Kill()}catch{}; exit 124 }; exit $$p.ExitCode"'
+  Pop $R0
+  DetailPrint "[Installer] Register exit code: $R0"
+  nsExec::ExecToLog 'cmd /c reg query "HKCR\CLSID\{A11A11A1-5A11-4A11-B111-A11A11A11A11}" >nul 2>&1'
+  Pop $R0
+  DetailPrint "[Installer] CLSID query exit: $R0"
 
 auralith_post_cleanup:
   Delete "$INSTDIR\softcam.dll.old"
   Delete "$INSTDIR\resources\softcam.dll.old"
-  DetailPrint "[Auralith Installer] Installation complete"
+  DetailPrint "[Installer] Installation complete"
 !macroend
 
-; ---------------------------------------------------------------------------
-; PREUNINSTALL
-; ---------------------------------------------------------------------------
 !macro NSIS_HOOK_PREUNINSTALL
-  DetailPrint "[Auralith Installer] Pre-uninstall — stop Auralith and unregister VCam"
-  nsExec::ExecToLog 'taskkill /IM Auralith.exe /T'
-  Sleep 800
-  nsExec::ExecToLog 'taskkill /F /IM Auralith.exe /T'
-  Sleep 400
-
+  DetailPrint "[Installer] PREUNINSTALL started"
+  nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-Process Auralith -EA SilentlyContinue | Stop-Process -Force -EA SilentlyContinue; exit 0"'
+  Pop $R0
+  nsExec::ExecToLog 'cmd /c reg delete "HKCR\CLSID\{A11A11A1-5A11-4A11-B111-A11A11A11A11}" /f >nul 2>&1'
+  Pop $R0
   IfFileExists "$INSTDIR\softcam.dll" 0 auralith_un_res
-    nsExec::ExecToLog '"$SYSDIR\regsvr32.exe" /s /u "$INSTDIR\softcam.dll"'
+    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$dll=''$INSTDIR\softcam.dll''; $$p=Start-Process -FilePath (Join-Path $$env:SystemRoot ''System32\regsvr32.exe'') -ArgumentList ''/s'',''/u'',$$dll -PassThru -WindowStyle Hidden; if(-not $$p.WaitForExit(12000)){ try{$$p.Kill()}catch{}; exit 124 }; exit $$p.ExitCode"'
+    Pop $R0
 auralith_un_res:
   IfFileExists "$INSTDIR\resources\softcam.dll" 0 auralith_un_done
-    nsExec::ExecToLog '"$SYSDIR\regsvr32.exe" /s /u "$INSTDIR\resources\softcam.dll"'
+    nsExec::ExecToLog 'powershell -NoProfile -ExecutionPolicy Bypass -Command "$$dll=''$INSTDIR\resources\softcam.dll''; $$p=Start-Process -FilePath (Join-Path $$env:SystemRoot ''System32\regsvr32.exe'') -ArgumentList ''/s'',''/u'',$$dll -PassThru -WindowStyle Hidden; if(-not $$p.WaitForExit(12000)){ try{$$p.Kill()}catch{}; exit 124 }; exit $$p.ExitCode"'
+    Pop $R0
 auralith_un_done:
+  DetailPrint "[Installer] PREUNINSTALL complete"
 !macroend
