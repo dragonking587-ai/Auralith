@@ -152,8 +152,30 @@ export class LivePublisher {
       scene,
       dataUrl: this.lastDataUrl ?? undefined,
     };
-    if (scene) this.send({ op: "scene", session: this.session, rev: this.sceneRev, scene, imageRev: this.imageRev });
+    if (scene) {
+      this.send({ op: "scene", session: this.session, rev: this.sceneRev, scene, imageRev: this.imageRev });
+      // Ensure hub HTTP has the scene for newly opened Broadcast Output viewers
+      void fetch(`${liveHttpBase()}/api/auralith/live?session=${encodeURIComponent(this.session)}`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ session: this.session, scene, rev: this.sceneRev }),
+      }).catch(() => undefined);
+    }
+    // Include dataUrl on WS when small enough is skipped — always refresh HTTP image store
     this.send({ op: "image", session: this.session, imageRev: this.imageRev, imageId: msg.imageId });
+    if (this.lastDataUrl) {
+      const dataUrl = this.lastDataUrl;
+      const imageId = msg.imageId;
+      const localRev = this.imageRev;
+      void fetch(
+        `${liveHttpBase()}/api/auralith/image?session=${encodeURIComponent(this.session)}&id=${encodeURIComponent(imageId)}&rev=${localRev}`,
+        {
+          method: "POST",
+          headers: { "content-type": "text/plain", "cache-control": "no-store" },
+          body: dataUrl,
+        },
+      ).catch(() => undefined);
+    }
     try {
       this.bc?.postMessage(msg);
     } catch {

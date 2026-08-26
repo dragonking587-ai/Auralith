@@ -32,16 +32,49 @@ fn list_loopback_devices() -> Result<Vec<audio::LoopbackDevice>, String> {
 #[tauri::command]
 fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Result<(), String> {
     let port = local_port();
-    // Dedicated Broadcast Output: same final StreamView pipeline, separate HWND for Window Capture.
-    let url = format!("http://127.0.0.1:{port}/output?session={session}");
+    // Use /index.html?view=broadcast so relative ./assets resolve from document root.
+    // Path /output previously risked broken asset resolution / white empty document.
+    let url = format!(
+        "http://127.0.0.1:{port}/index.html?view=broadcast&session={}",
+        urlencoding_encode(&session)
+    );
+    eprintln!("[BroadcastOutput] Creating/focusing window");
+    eprintln!("[BroadcastOutput] Window label: output");
+    eprintln!("[BroadcastOutput] Target URL: {url}");
+    eprintln!("[BroadcastOutput] Hub port: {port}");
+
+    // Best-effort hub readiness (do not hang forever)
+    let meta = format!("http://127.0.0.1:{port}/api/auralith/meta");
+    for attempt in 1..=20 {
+        match std::net::TcpStream::connect_timeout(
+            &std::net::SocketAddr::from(([127, 0, 0, 1], port)),
+            std::time::Duration::from_millis(100),
+        ) {
+            Ok(_) => {
+                eprintln!("[BroadcastOutput] Hub TCP ready (attempt {attempt})");
+                break;
+            }
+            Err(e) => {
+                if attempt == 20 {
+                    eprintln!("[BroadcastOutput] Hub not reachable: {e}");
+                    return Err(format!("Local hub not ready on port {port}: {e}"));
+                }
+                std::thread::sleep(std::time::Duration::from_millis(50));
+            }
+        }
+    }
+    let _ = meta;
+
     let w = width.max(16).min(3840) as f64;
     let h = height.max(16).min(2160) as f64;
     if let Some(win) = app.get_webview_window("output") {
         let _ = win.set_title("Auralith — Broadcast Output");
         let _ = win.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
+        let _ = win.eval(&format!("window.location.replace({url:?})"));
         let _ = win.show();
         let _ = win.unminimize();
         let _ = win.set_focus();
+        eprintln!("[BroadcastOutput] Existing window navigated");
         return Ok(());
     }
     WebviewWindowBuilder::new(
@@ -61,7 +94,19 @@ fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Resu
     .skip_taskbar(false)
     .build()
     .map_err(|e| e.to_string())?;
+    eprintln!("[BroadcastOutput] Window created");
     Ok(())
+}
+
+fn urlencoding_encode(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for b in s.bytes() {
+        match b {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => out.push(b as char),
+            _ => out.push_str(&format!("%{b:02X}")),
+        }
+    }
+    out
 }
 
 fn data_dir(app: &AppHandle) -> Result<PathBuf, String> {
