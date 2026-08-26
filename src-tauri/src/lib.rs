@@ -140,6 +140,9 @@ fn vcam_status(app: AppHandle) -> vcam::VcamStatus {
 
 #[tauri::command]
 fn vcam_install(app: AppHandle) -> Result<vcam::VcamStatus, String> {
+    eprintln!("[VirtualCam] Install requested");
+    eprintln!("[VirtualCam] ACL accepted");
+    eprintln!("[VirtualCam] vcam_install handler entered");
     let res = app.path().resource_dir().ok();
     #[cfg(windows)]
     {

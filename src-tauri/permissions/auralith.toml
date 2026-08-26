@@ -12,6 +12,8 @@ commands.allow = [
   "save_app_file",
   "load_app_file",
   "vcam_status",
+  "vcam_install",
+  "vcam_uninstall",
   "vcam_start",
   "vcam_stop",
   "vcam_push_frame"
