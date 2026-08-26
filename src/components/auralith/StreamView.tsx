@@ -8,6 +8,9 @@ import { isDesktopApp } from "@/lib/auralith/platform";
 
 export function StreamView({ sessionId }: { sessionId: string }) {
   const wrapRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    document.title = "Auralith — Broadcast Output";
+  }, []);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [waiting, setWaiting] = useState(true);
 

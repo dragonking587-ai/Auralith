@@ -108,13 +108,23 @@ export function EditorShell() {
     const rev = scene.image?.rev ?? 0;
     const url = `/output?session=${encodeURIComponent(sessionId)}&irev=${rev}&t=${Date.now()}`;
     const features = `width=${Math.round(w * scale)},height=${Math.round(h * scale)},menubar=no,toolbar=no,location=no,status=no`;
-    const popup = window.open(url ?? undefined, "auralith-stream-output", features);
+    const popup = window.open(url ?? undefined, "auralith-broadcast-output", features);
     try {
       if (popup) popup.location.replace(url);
     } catch {
       /* popup just created */
     }
   };
+
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    if (window.localStorage.getItem("auralith.broadcast.keepOpen") !== "1") return;
+    const id = window.setTimeout(() => openOutput(), 1200);
+    return () => window.clearTimeout(id);
+    // openOutput closes over latest scene/session
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const copyUrl = async () => {
     try {
@@ -469,26 +479,69 @@ function OutputPane({
   const groups = useMemo(() => groupedPresets(), []);
   return (
     <div className="flex flex-col gap-4">
-      <Section title="Output method">
+      <Section title="Streaming outputs">
+        <div
+          className={`rounded-[12px] border px-3 py-3 ${
+            scene.output.method === "window" ? "border-accent bg-bg-subtle" : "border-border"
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <div className="text-sm font-medium text-fg">Broadcast Output</div>
+              <div className="mt-0.5 text-[11px] font-medium text-accent">Recommended</div>
+              <p className="mt-1 text-[11px] leading-snug text-subtle">
+                Dedicated window: backdrop + effects only. Capture with OBS / Streamlabs / TikTok LIVE Studio → Window Capture →{" "}
+                <span className="text-fg">Auralith — Broadcast Output</span>. Prefer OBS capture method “Windows 10 (1903+)”.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              useAuralith.getState().setOutputMethod("window");
+              onWindow();
+            }}
+            className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-white"
+          >
+            Open Broadcast Output
+          </button>
+          <label className="mt-2 flex items-center gap-2 text-[11px] text-muted">
+            <input
+              type="checkbox"
+              className="rounded border-border"
+              defaultChecked={
+                typeof window !== "undefined" &&
+                window.localStorage.getItem("auralith.broadcast.keepOpen") === "1"
+              }
+              onChange={(e) => {
+                window.localStorage.setItem(
+                  "auralith.broadcast.keepOpen",
+                  e.target.checked ? "1" : "0",
+                );
+              }}
+            />
+            Keep Broadcast Output open preference (re-open after launch from Output tab)
+          </label>
+        </div>
+
+        <div className="mt-3 rounded-[12px] border border-border px-3 py-3">
+          <div className="text-sm font-medium text-fg">Virtual Camera</div>
+          <div className="mt-0.5 text-[11px] text-subtle">Experimental</div>
+          <p className="mt-1 text-[11px] leading-snug text-subtle">
+            Appears as a webcam device. Use Broadcast Output until the live-frame bridge is fully reliable.
+          </p>
+          <p className="mt-1 text-[11px] text-muted">Configure below under Virtual Camera.</p>
+        </div>
+
         <button
           type="button"
           onClick={() => useAuralith.getState().setOutputMethod("browser")}
-          className={`flex min-h-12 w-full flex-col items-start rounded-[12px] border px-3 py-2 text-left ${
+          className={`mt-3 flex min-h-12 w-full flex-col items-start rounded-[12px] border px-3 py-2 text-left ${
             scene.output.method === "browser" ? "border-accent bg-bg-subtle" : "border-border"
           }`}
         >
           <span className="text-sm font-medium">Browser Source</span>
-          <span className="text-[11px] text-subtle">Lowest latency where supported</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => useAuralith.getState().setOutputMethod("window")}
-          className={`mt-2 flex min-h-12 w-full flex-col items-start rounded-[12px] border px-3 py-2 text-left ${
-            scene.output.method === "window" ? "border-accent bg-bg-subtle" : "border-border"
-          }`}
-        >
-          <span className="text-sm font-medium">Window Capture</span>
-          <span className="text-[11px] text-subtle">Maximum compatibility</span>
+          <span className="text-[11px] text-subtle">Alternative — local URL for OBS Browser Source</span>
         </button>
       </Section>
 
@@ -544,7 +597,7 @@ function OutputPane({
           Open stream output
         </GhostBtn>
         <p className="text-[11px] leading-relaxed text-subtle">
-          Opens “Auralith — Stream Output”. Capture that window. Editor marks never appear there.
+          Opens “Auralith — Broadcast Output”. Capture that window. Editor marks never appear there.
         </p>
       </Section>
 
@@ -676,10 +729,10 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
   const failed = Boolean(error) || status?.state === "ERROR";
 
   return (
-    <Section title="Virtual Camera">
+    <Section title="Virtual Camera (Experimental)">
       <p className="text-[11px] leading-relaxed text-subtle">
         Preferred output. Appears in OBS / Streamlabs / TikTok LIVE Studio as a Video Capture Device named{" "}
-        <span className="text-fg">Auralith Virtual Camera</span>. Feeds the same final stream as Window Capture (no editor UI).
+        <span className="text-fg">Auralith Virtual Camera</span>. Experimental webcam device. Prefer Broadcast Output for reliable Window Capture.
       </p>
       {status?.running ? (
         <>

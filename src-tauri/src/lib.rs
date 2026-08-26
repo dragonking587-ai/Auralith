@@ -31,11 +31,16 @@ fn list_loopback_devices() -> Result<Vec<audio::LoopbackDevice>, String> {
 
 #[tauri::command]
 fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Result<(), String> {
-    let port = PORT.load(Ordering::Relaxed);
+    let port = local_port();
+    // Dedicated Broadcast Output: same final StreamView pipeline, separate HWND for Window Capture.
     let url = format!("http://127.0.0.1:{port}/output?session={session}");
+    let w = width.max(16).min(3840) as f64;
+    let h = height.max(16).min(2160) as f64;
     if let Some(win) = app.get_webview_window("output") {
-        let _ = win.eval(&format!("window.location.replace({url:?})"));
+        let _ = win.set_title("Auralith — Broadcast Output");
+        let _ = win.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
         let _ = win.show();
+        let _ = win.unminimize();
         let _ = win.set_focus();
         return Ok(());
     }
@@ -47,10 +52,13 @@ fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Resu
             url::Url::from_str(&url).map_err(|e| e.to_string())?
         }),
     )
-    .title("Auralith — Stream Output")
-    .inner_size(width.min(1920) as f64, height.min(1080) as f64)
+    .title("Auralith — Broadcast Output")
+    .inner_size(w, h)
     .decorations(true)
     .resizable(true)
+    .visible(true)
+    .focused(false)
+    .skip_taskbar(false)
     .build()
     .map_err(|e| e.to_string())?;
     Ok(())
