@@ -30,9 +30,10 @@ export async function openNativeBroadcast(w: number, h: number): Promise<void> {
   height = Math.max(16, h | 0);
   ensureSurface(width, height);
   const { invoke } = await import("@tauri-apps/api/core");
+  console.info("[NativeBroadcast UI] invoking broadcast_open", { width, height });
   await invoke("broadcast_open", { width, height });
   nativeOpen = true;
-  console.info("[FinalFrameProvider] Native Broadcast open", { width, height });
+  console.info("[NativeBroadcast UI] broadcast_open OK — window should be visible");
 }
 
 export async function closeNativeBroadcast(): Promise<void> {

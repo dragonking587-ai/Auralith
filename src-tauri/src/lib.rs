@@ -69,7 +69,7 @@ fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Resu
     let w = width.max(16).min(3840) as f64;
     let h = height.max(16).min(2160) as f64;
     if let Some(win) = app.get_webview_window("output") {
-        let _ = win.set_title("Auralith — Broadcast Output");
+        let _ = win.set_title("Auralith — Legacy Broadcast Output");
         let _ = win.set_size(tauri::Size::Logical(tauri::LogicalSize { width: w, height: h }));
         let _ = win.eval(&format!("window.location.replace({url:?})"));
         let _ = win.show();
@@ -86,7 +86,7 @@ fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Resu
             url::Url::from_str(&url).map_err(|e| e.to_string())?
         }),
     )
-    .title("Auralith — Broadcast Output")
+    .title("Auralith — Legacy Broadcast Output")
     .inner_size(w, h)
     .decorations(true)
     .resizable(true)

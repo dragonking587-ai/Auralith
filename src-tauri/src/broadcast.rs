@@ -11,7 +11,7 @@ use serde::Serialize;
 use std::sync::atomic::{AtomicBool, AtomicU8, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 
-pub const WINDOW_TITLE: &str = "Auralith — Broadcast Output";
+pub const WINDOW_TITLE: &str = "Auralith — Native Broadcast Output";
 
 const ST_CLOSED: u8 = 0;
 const ST_STARTING: u8 = 1;
@@ -160,6 +160,7 @@ pub fn open(width: u32, height: u32) -> Result<BroadcastStatus, String> {
         s.height.store(h, Ordering::SeqCst);
         return Ok(status());
     }
+    eprintln!("[NativeBroadcast] Rust handler entered (broadcast_open)");
     PHASE.store(ST_STARTING, Ordering::SeqCst);
     let s = shared();
     s.stop.store(false, Ordering::SeqCst);
@@ -286,7 +287,7 @@ fn windows_run_window(shared: Arc<Shared>, init_w: u32, init_h: u32) -> Result<(
         *shared.backend.lock().unwrap_or_else(|e| e.into_inner()) =
             "Win32 HWND + GDI/DIB present (BGRA8); D3D11 path reserved".into();
         eprintln!(
-            "[BroadcastNative] HWND={:?} title=\"{}\" logical={}x{}",
+            "[NativeBroadcast] HWND created {:?} title=\"{}\" logical={}x{}",
             hwnd,
             WINDOW_TITLE,
             init_w,

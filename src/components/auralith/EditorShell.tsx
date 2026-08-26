@@ -90,13 +90,22 @@ export function EditorShell() {
       ? ""
       : `${isDesktopApp() ? desktopHttpOrigin() : window.location.origin}/source/${sessionId}`;
 
-  const openNativeOutput = () => {
+  const openNativeOutput = async () => {
     const w = scene.output.width;
     const h = scene.output.height;
-    if (!isDesktopApp()) return;
-    void openNativeBroadcast(w, h).catch((e) => {
-      console.error("[BroadcastNative] open failed", e);
-    });
+    console.info("[NativeBroadcast UI] Open requested", { w, h, desktop: isDesktopApp() });
+    if (!isDesktopApp()) {
+      console.error("[NativeBroadcast UI] not desktop — button should be hidden");
+      return;
+    }
+    try {
+      console.info("[NativeBroadcast UI] invoking broadcast_open");
+      await openNativeBroadcast(w, h);
+      console.info("[NativeBroadcast UI] broadcast_open resolved");
+    } catch (e) {
+      console.error("[NativeBroadcast UI] open failed", e);
+      throw e;
+    }
   };
 
   const openOutput = () => {
@@ -471,6 +480,124 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
   );
 }
 
+
+function NativeBroadcastCard({
+  scene,
+  onOpenNative,
+}: {
+  scene: ReturnType<typeof useAuralith.getState>["scene"];
+  onOpenNative: () => void | Promise<void>;
+}) {
+  const [phase, setPhase] = useState<"idle" | "starting" | "running" | "error">("idle");
+  const [err, setErr] = useState<string | null>(null);
+  const [statusLine, setStatusLine] = useState("");
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    let cancelled = false;
+    const tick = async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const st = (await invoke("broadcast_status")) as {
+          state?: string;
+          width?: number;
+          height?: number;
+          backend?: string;
+          last_error?: string | null;
+        };
+        if (cancelled) return;
+        const s = (st.state || "CLOSED").toUpperCase();
+        if (s === "RUNNING") {
+          setPhase("running");
+          setStatusLine(
+            `${st.width || scene.output.width}×${st.height || scene.output.height} · ${scene.output.fps} FPS`,
+          );
+          setErr(null);
+        } else if (s === "STARTING") {
+          setPhase("starting");
+        } else if (s === "ERROR") {
+          setPhase("error");
+          setErr(st.last_error || "Native Broadcast Output failed");
+        } else if (phase !== "starting") {
+          setPhase("idle");
+        }
+      } catch {
+        /* ignore poll errors */
+      }
+    };
+    void tick();
+    const id = window.setInterval(() => void tick(), 1500);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [scene.output.width, scene.output.height, scene.output.fps, phase]);
+
+  const onClick = async () => {
+    setPhase("starting");
+    setErr(null);
+    console.info("[NativeBroadcast UI] Open Native Broadcast Output clicked");
+    try {
+      await onOpenNative();
+      setPhase("running");
+      setStatusLine(
+        `${scene.output.width}×${scene.output.height} · ${scene.output.fps} FPS`,
+      );
+    } catch (e) {
+      setPhase("error");
+      setErr(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  return (
+    <div
+      className={`rounded-[12px] border px-3 py-3 ${
+        phase === "running" ? "border-accent bg-bg-subtle" : "border-border"
+      }`}
+    >
+      <div className="text-sm font-medium text-fg">NATIVE BROADCAST OUTPUT</div>
+      <div className="mt-0.5 text-[11px] font-medium text-accent">Recommended</div>
+      <p className="mt-1 text-[11px] leading-snug text-subtle">
+        Native window for OBS / Streamlabs / TikTok LIVE Studio → Window Capture →{" "}
+        <span className="text-fg">Auralith — Native Broadcast Output</span>. Prefer OBS
+        “Windows 10 (1903+)”.
+      </p>
+      <div className="mt-2 text-[11px] text-muted">
+        Status:{" "}
+        <span className="text-fg">
+          {phase === "idle" && "Closed"}
+          {phase === "starting" && "Starting…"}
+          {phase === "running" && `Running${statusLine ? ` · ${statusLine}` : ""}`}
+          {phase === "error" && "Error"}
+        </span>
+      </div>
+      {err ? (
+        <p className="mt-1 text-[11px] text-red-400" role="alert">
+          Native Broadcast Output failed to start. {err}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        disabled={phase === "starting"}
+        onClick={() => void onClick()}
+        className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-white disabled:opacity-60"
+      >
+        {phase === "running" ? "Re-open Native Broadcast Output" : "Open Native Broadcast Output"}
+      </button>
+      {phase === "error" ? (
+        <button
+          type="button"
+          onClick={() => void onClick()}
+          className="mt-2 min-h-9 w-full rounded-[10px] border border-border px-3 text-xs text-muted"
+        >
+          Retry
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
+
 function OutputPane({
   sourceUrl,
   copied,
@@ -484,7 +611,7 @@ function OutputPane({
   copied: boolean;
   onCopy: () => void;
   onWindow: () => void;
-  onNative?: () => void;
+  onNative?: () => void | Promise<void>;
   saveName: string;
   setSaveName: (v: string) => void;
 }) {
@@ -494,33 +621,23 @@ function OutputPane({
   return (
     <div className="flex flex-col gap-4">
       <Section title="Streaming outputs">
-        <div
-          className={`rounded-[12px] border px-3 py-3 ${
-            scene.output.method === "window" ? "border-accent bg-bg-subtle" : "border-border"
-          }`}
-        >
-          <div className="flex items-start justify-between gap-2">
-            <div>
-              <div className="text-sm font-medium text-fg">Broadcast Output</div>
-              <div className="mt-0.5 text-[11px] font-medium text-accent">Recommended</div>
-              <p className="mt-1 text-[11px] leading-snug text-subtle">
-                Dedicated window: backdrop + effects only. Capture with OBS / Streamlabs / TikTok LIVE Studio → Window Capture →{" "}
-                <span className="text-fg">Auralith — Broadcast Output</span>. Prefer OBS capture method “Windows 10 (1903+)”.
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => {
+        {isDesktopApp() ? (
+          <NativeBroadcastCard
+            scene={scene}
+            onOpenNative={async () => {
               useAuralith.getState().setOutputMethod("window");
-              (onNative ?? onWindow)();
+              if (onNative) await onNative();
+              else onWindow();
             }}
-            className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-white"
-          >
-            Open Broadcast Output
-          </button>
-          <p className="mt-2 text-[11px] text-subtle">
-            Native GPU/window path (recommended). Window title: Auralith — Broadcast Output.
+          />
+        ) : null}
+
+        <div className="mt-3 rounded-[12px] border border-border px-3 py-3">
+          <div className="text-sm font-medium text-fg">Legacy Broadcast Output</div>
+          <div className="mt-0.5 text-[11px] text-subtle">Fallback / WebView</div>
+          <p className="mt-1 text-[11px] leading-snug text-subtle">
+            Second WebView path. Window title:{" "}
+            <span className="text-fg">Auralith — Legacy Broadcast Output</span>.
           </p>
           <button
             type="button"
@@ -528,27 +645,10 @@ function OutputPane({
               useAuralith.getState().setOutputMethod("window");
               onWindow();
             }}
-            className="mt-2 min-h-9 w-full rounded-[10px] border border-border px-3 text-xs text-muted"
+            className="mt-3 min-h-11 w-full rounded-[10px] border border-border px-3 text-sm font-medium text-fg"
           >
-            Legacy WebView Broadcast Output
+            Open Legacy Broadcast Output
           </button>
-          <label className="mt-2 flex items-center gap-2 text-[11px] text-muted">
-            <input
-              type="checkbox"
-              className="rounded border-border"
-              defaultChecked={
-                typeof window !== "undefined" &&
-                window.localStorage.getItem("auralith.broadcast.keepOpen") === "1"
-              }
-              onChange={(e) => {
-                window.localStorage.setItem(
-                  "auralith.broadcast.keepOpen",
-                  e.target.checked ? "1" : "0",
-                );
-              }}
-            />
-            Keep Broadcast Output open preference (re-open after launch from Output tab)
-          </label>
         </div>
 
         <div className="mt-3 rounded-[12px] border border-border px-3 py-3">
