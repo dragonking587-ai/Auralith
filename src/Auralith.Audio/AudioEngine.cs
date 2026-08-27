@@ -76,7 +76,7 @@ public sealed class AudioEngine : IDisposable
     private void OnData(object? sender, WaveInEventArgs e)
     {
         if (e.BytesRecorded < 8) return;
-        var fmt = (_loop ?? (WaveInEventArgs?)null) is null ? WaveFormat.CreateIeeeFloatWaveFormat(48000, 2) : _loop!.WaveFormat;
+        var fmt = _loop?.WaveFormat ?? WaveFormat.CreateIeeeFloatWaveFormat(48000, 2);
         var bytes = e.Buffer;
         var count = e.BytesRecorded;
         if (fmt.Encoding == WaveFormatEncoding.IeeeFloat)
