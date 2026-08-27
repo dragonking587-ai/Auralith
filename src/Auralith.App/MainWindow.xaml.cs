@@ -331,7 +331,7 @@ public sealed partial class MainWindow : Window
         try
         {
             Directory.CreateDirectory(UpdateClient.UpdatesDir);
-            var dest = Path.Combine(UpdateClient.UpdatesDir, _available.AssetName);
+            var dest = System.IO.Path.Combine(UpdateClient.UpdatesDir, _available.AssetName);
             UpdateStatus.Text = "DOWNLOADING…";
             await _updates.DownloadAsync(_available.AssetUrl, dest, new Progress<(long done, long total)>(p =>
             {
@@ -345,7 +345,7 @@ public sealed partial class MainWindow : Window
             }), _dlCts.Token);
             UpdateStatus.Text = "VERIFYING…";
             UpdateClient.VerifySha256(dest, _available.Sha256);
-            var helper = Path.Combine(AppContext.BaseDirectory, "Auralith.Updater.exe");
+            var helper = System.IO.Path.Combine(AppContext.BaseDirectory, "Auralith.Updater.exe");
             if (!File.Exists(helper))
                 throw new InvalidOperationException("Auralith.Updater.exe is missing from the install folder.");
             UpdateStatus.Text = "INSTALLING… restarting";
@@ -357,7 +357,7 @@ public sealed partial class MainWindow : Window
                     "--package", dest,
                     "--target", AppContext.BaseDirectory,
                     "--pid", Environment.ProcessId.ToString(),
-                    "--launch", Path.Combine(AppContext.BaseDirectory, "Auralith.exe")
+                    "--launch", System.IO.Path.Combine(AppContext.BaseDirectory, "Auralith.exe")
                 }
             });
             Application.Current.Exit();
@@ -465,7 +465,7 @@ public sealed partial class MainWindow : Window
     private static float Distance(Region r, Windows.Foundation.Point p)
     {
         if (r.Points.Count < 2) return 999;
-        var dx = r.Points[0] - p.X; var dy = r.Points[1] - p.Y;
+        var dx = r.Points[0] - (float)p.X; var dy = r.Points[1] - (float)p.Y;
         return MathF.Sqrt(dx*dx+dy*dy);
     }
     private void OnOverlayMoved(object s, PointerRoutedEventArgs e)
