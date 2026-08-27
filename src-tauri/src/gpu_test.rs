@@ -354,8 +354,9 @@ fn windows_run(shared: Arc<Shared>, init_w: u32, init_h: u32, init_fps: u32) -> 
 
         let dxgi_dev: IDXGIDevice = device.cast().map_err(|e| format!("IDXGIDevice cast: {e}"))?;
         let adapter: IDXGIAdapter = dxgi_dev.GetAdapter().map_err(|e| format!("GetAdapter: {e}"))?;
-        let mut desc = DXGI_ADAPTER_DESC::default();
-        let _ = adapter.GetDesc(&mut desc);
+        let desc = adapter
+            .GetDesc()
+            .map_err(|e| format!("GetDesc: {e}"))?;
         let adapter_name = String::from_utf16_lossy(
             &desc.Description.iter().copied().take_while(|&c| c != 0).collect::<Vec<_>>(),
         );
@@ -375,9 +376,9 @@ fn windows_run(shared: Arc<Shared>, init_w: u32, init_h: u32, init_fps: u32) -> 
             SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
             BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
             BufferCount: 2,
-            Scaling: windows::Win32::Graphics::Dxgi::Common::DXGI_SCALING_STRETCH,
+            Scaling: windows::Win32::Graphics::Dxgi::Common::DXGI_SCALING(0), // STRETCH
             SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
-            AlphaMode: windows::Win32::Graphics::Dxgi::Common::DXGI_ALPHA_MODE_IGNORE,
+            AlphaMode: windows::Win32::Graphics::Dxgi::Common::DXGI_ALPHA_MODE(3), // IGNORE
             Flags: 0,
         };
 
@@ -448,7 +449,7 @@ fn windows_run(shared: Arc<Shared>, init_w: u32, init_h: u32, init_fps: u32) -> 
             if ncw != cw || nch != ch {
                 PHASE.store(ST_RECONFIG, Ordering::SeqCst);
                 eprintln!("[NativeGpuTest] Resize requested client {ncw}x{nch}");
-                let _ = swap.ResizeBuffers(0, ncw, nch, DXGI_FORMAT_B8G8R8A8_UNORM, 0);
+                let _ = swap.ResizeBuffers(0, ncw, nch, DXGI_FORMAT_B8G8R8A8_UNORM, windows::Win32::Graphics::Dxgi::DXGI_SWAP_CHAIN_FLAG(0));
                 cw = ncw;
                 ch = nch;
                 eprintln!("[NativeGpuTest] Swap chain buffers resized");
@@ -486,14 +487,21 @@ fn windows_run(shared: Arc<Shared>, init_w: u32, init_h: u32, init_fps: u32) -> 
                 context.CopyResource(&back, &scratch);
             }
 
-            match swap.Present(1, 0) {
-                Ok(_) => {
-                    PRESENTED.fetch_add(1, Ordering::Relaxed);
-                    fps_count += 1;
-                }
-                Err(e) => {
-                    eprintln!("[NativeGpuTest] Present error {e}");
-                    DROPPED.fetch_add(1, Ordering::Relaxed);
+            // windows-rs 0.58: Present returns HRESULT, flags are DXGI_PRESENT
+            let hr = swap.Present(1, windows::Win32::Graphics::Dxgi::DXGI_PRESENT(0));
+            if hr.is_ok() {
+                PRESENTED.fetch_add(1, Ordering::Relaxed);
+                fps_count += 1;
+            } else {
+                eprintln!("[NativeGpuTest] Present error HRESULT=0x{:08X}", hr.0 as u32);
+                DROPPED.fetch_add(1, Ordering::Relaxed);
+                // DXGI_ERROR_DEVICE_REMOVED = 0x887A0005, DEVICE_RESET = 0x887A0007
+                if hr.0 == -2005270523 || hr.0 == -2005270521 {
+                    eprintln!("[NativeGpuTest] Device lost HRESULT=0x{:08X}", hr.0 as u32);
+                    *shared.last_error.lock().unwrap_or_else(|e| e.into_inner()) =
+                        Some(format!("Device lost HRESULT=0x{:08X}", hr.0 as u32));
+                    PHASE.store(ST_ERROR, Ordering::SeqCst);
+                    break;
                 }
             }
 
