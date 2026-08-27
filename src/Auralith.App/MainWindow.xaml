@@ -8,12 +8,12 @@
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto" x:Name="BottomRow"/>
         </Grid.RowDefinitions>
-        <StackPanel x:Name="TopBar" Margin="16,12,16,8" Spacing="8">
-            <TextBlock Text="AURALITH" FontSize="22" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="140"/>
-            <StackPanel Orientation="Horizontal" Spacing="8">
+        <StackPanel x:Name="TopBar" Margin="16,10,16,6" Spacing="6">
+            <TextBlock Text="AURALITH" FontSize="20" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="140"/>
+            <StackPanel Orientation="Horizontal" Spacing="6">
                 <Button Content="Load Image" Click="OnLoadImage"/>
                 <Button Content="Remove Image" Click="OnClearImage"/>
-                <ComboBox x:Name="FitBox" Width="120" SelectionChanged="OnFitChanged">
+                <ComboBox x:Name="FitBox" Width="110" SelectionChanged="OnFitChanged">
                     <ComboBoxItem Content="Fit" IsSelected="True"/>
                     <ComboBoxItem Content="Fill"/>
                     <ComboBoxItem Content="Stretch"/>
@@ -22,17 +22,70 @@
                 <Button Content="Edit" Click="OnEdit"/>
                 <Button Content="Preview" Click="OnPreview"/>
                 <Button Content="Clean Capture" Click="OnClean"/>
-                <Button Content="Fullscreen Capture" Click="OnFullscreen"/>
-                <TextBlock x:Name="VersionText" VerticalAlignment="Center" Foreground="#9AA3B2" Margin="12,0,0,0"/>
+                <Button Content="Fullscreen" Click="OnFullscreen"/>
+                <Button Content="Undo" Click="OnUndo"/>
+                <Button Content="Redo" Click="OnRedo"/>
+                <Button Content="Save Project" Click="OnSaveProject"/>
+                <Button Content="Open Project" Click="OnOpenProject"/>
+                <TextBlock x:Name="VersionText" VerticalAlignment="Center" Foreground="#9AA3B2"/>
                 <Button Content="Check for Updates" Click="OnCheckUpdates"/>
                 <Button x:Name="InstallUpdateButton" Content="Download &amp; Install" Click="OnInstallUpdate" Visibility="Collapsed"/>
             </StackPanel>
             <TextBlock x:Name="UpdateStatus" Foreground="#E8E6E3" FontSize="12"/>
         </StackPanel>
-        <Border x:Name="CanvasBorder" Grid.Row="1" Margin="16,0" BorderBrush="#D4AF37" BorderThickness="2" Background="#08080C">
-            <Image x:Name="Preview" Stretch="Uniform"/>
-        </Border>
-        <TextBlock x:Name="Hud" Grid.Row="2" Margin="16,8,16,12" Foreground="#E8E6E3" FontSize="12"
-                   Text="Phase 2 — backdrop + Clean Capture. ESC exits Clean Capture."/>
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="280"/>
+            </Grid.ColumnDefinitions>
+            <StackPanel x:Name="LeftTools" Margin="12,0,8,0" Spacing="6" Width="120">
+                <TextBlock Text="TOOLS" Foreground="#D4AF37"/>
+                <Button Content="Select" Click="OnToolSelect"/>
+                <Button Content="Trace" Click="OnToolTrace"/>
+                <Button Content="Stamp" Click="OnToolStamp"/>
+                <Button Content="Emitter" Click="OnToolEmitter"/>
+                <CheckBox x:Name="OverlayCheck" Content="Show overlays" IsChecked="True" Checked="OnOverlayToggle" Unchecked="OnOverlayToggle"/>
+                <TextBlock x:Name="ToolHint" TextWrapping="Wrap" Foreground="#9AA3B2" FontSize="11" Text="Select a tool, then click the canvas."/>
+            </StackPanel>
+            <Border x:Name="CanvasBorder" Grid.Column="1" BorderBrush="#D4AF37" BorderThickness="2" Background="#08080C">
+                <Grid x:Name="CanvasHost">
+                    <Image x:Name="Preview" Stretch="Uniform"/>
+                    <Canvas x:Name="Overlay" Background="Transparent"
+                            PointerPressed="OnOverlayPressed"
+                            PointerMoved="OnOverlayMoved"
+                            PointerReleased="OnOverlayReleased"/>
+                </Grid>
+            </Border>
+            <ScrollViewer x:Name="RightPanel" Grid.Column="2" Margin="8,0,12,0">
+                <StackPanel Spacing="8">
+                    <TextBlock Text="OBJECT" Foreground="#D4AF37"/>
+                    <TextBlock x:Name="SelInfo" Text="None selected" Foreground="#E8E6E3" TextWrapping="Wrap"/>
+                    <Button Content="Delete selected" Click="OnDeleteSelected"/>
+                    <Button Content="Duplicate" Click="OnDuplicate"/>
+                    <CheckBox x:Name="MarkerCheck" Content="Show editor marker" IsChecked="True" Checked="OnMarkerToggle" Unchecked="OnMarkerToggle"/>
+                    <TextBlock Text="EFFECTS" Foreground="#D4AF37"/>
+                    <ComboBox x:Name="AddEffectBox" Width="240">
+                        <ComboBoxItem Content="Pulse" Tag="Pulse"/>
+                        <ComboBoxItem Content="Flicker" Tag="Flicker"/>
+                        <ComboBoxItem Content="Light Surge" Tag="LightSurge"/>
+                        <ComboBoxItem Content="Strobe" Tag="Strobe"/>
+                        <ComboBoxItem Content="Glow" Tag="Glow"/>
+                        <ComboBoxItem Content="Breathing Glow" Tag="BreathingGlow"/>
+                        <ComboBoxItem Content="Hue Shift" Tag="HueShift"/>
+                        <ComboBoxItem Content="Room Dim" Tag="RoomDim"/>
+                    </ComboBox>
+                    <Button Content="+ Add Effect" Click="OnAddEffect"/>
+                    <StackPanel x:Name="EffectList" Spacing="4"/>
+                    <TextBlock Text="AUDIO" Foreground="#D4AF37"/>
+                    <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
+                    <Button Content="Start Desktop Audio" Click="OnStartAudio"/>
+                    <TextBlock x:Name="AudioStatus" Foreground="#9AA3B2" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+        <TextBlock x:Name="Hud" Grid.Row="2" Margin="16,8,16,10" Foreground="#E8E6E3" FontSize="12"
+                   Text="Editor + desktop audio + Group A effects. ESC exits Clean Capture."/>
     </Grid>
 </Window>

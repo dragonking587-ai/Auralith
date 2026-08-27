@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Auralith.Core;
+using System.Collections.Generic;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
 using Vortice.DXGI;
@@ -19,6 +20,9 @@ public sealed class GpuCore : IDisposable
     private byte[]? _backdrop;
     private int _bdW, _bdH;
     private FitMode _fit = FitMode.Fit;
+    private List<Region> _regions = new();
+    private AudioBands _audio = new();
+    private Scene _sceneSnap = new();
     private readonly object _gate = new();
     private Thread? _thread;
     private volatile bool _stop;
@@ -55,6 +59,15 @@ public sealed class GpuCore : IDisposable
     }
 
     public void SetFit(FitMode fit) { lock (_gate) _fit = fit; }
+    public void SetSceneGraph(Scene scene, List<Region> regions, AudioBands audio)
+    {
+        lock (_gate)
+        {
+            _sceneSnap = scene;
+            _regions = regions;
+            _audio = audio;
+        }
+    }
 
     public void SetBackdrop(byte[] bgra, int w, int h)
     {
@@ -189,6 +202,10 @@ public sealed class GpuCore : IDisposable
             BlitBackdrop(buf, w, h, bd, bw, bh, fit);
         else
             DrawDiagnostic(buf, w, h, t);
+        List<Region> regs; AudioBands bands; Scene snap;
+        lock (_gate) { regs = _regions; bands = _audio; snap = _sceneSnap; }
+        if (regs.Count > 0)
+            EffectRenderer.Apply(buf, w, h, regs, bands, snap, t);
     }
 
     private static void BlitBackdrop(byte[] dest, int dw, int dh, byte[] src, int sw, int sh, FitMode fit)

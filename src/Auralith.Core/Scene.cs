@@ -1,22 +1,33 @@
 namespace Auralith.Core;
 
+public enum StampShape { Circle, Ellipse, Rectangle, RoundedRectangle, Line, Polygon }
+public enum TargetMode { FillRegion, Edge, Path, Inside, Outside, Center }
+
 public sealed class Region
 {
     public Guid Id { get; set; } = Guid.NewGuid();
     public RegionKind Kind { get; set; }
     public string Name { get; set; } = "";
     public bool ShowEditorMarker { get; set; } = true;
+    public bool Locked { get; set; }
     public float X { get; set; }
     public float Y { get; set; }
-    public float Width { get; set; } = 120;
-    public float Height { get; set; } = 120;
+    public float Width { get; set; } = 160;
+    public float Height { get; set; } = 160;
     public float Rotation { get; set; }
+    public float Radius { get; set; } = 80;
+    public float Direction { get; set; }
+    public float Spread { get; set; } = 0.5f;
+    public float Falloff { get; set; } = 0.5f;
+    public StampShape Shape { get; set; } = StampShape.Ellipse;
+    public TargetMode Target { get; set; } = TargetMode.FillRegion;
+    public List<float> Points { get; set; } = new(); // x,y pairs in canvas space
     public EffectStack Effects { get; set; } = new();
 }
 
 public sealed class Scene
 {
-    public int SchemaVersion { get; set; } = 1;
+    public int SchemaVersion { get; set; } = 2;
     public int CanvasWidth { get; set; } = 1920;
     public int CanvasHeight { get; set; } = 1080;
     public int TargetFps { get; set; } = 30;
@@ -60,7 +71,7 @@ public static class FitMath
                     var h = canvasW / ir;
                     return (0, (canvasH - h) / 2f, canvasW, h);
                 }
-            default: // Fit
+            default:
                 if (ir > cr)
                 {
                     var h = canvasW / ir;
@@ -73,4 +84,18 @@ public static class FitMath
                 }
         }
     }
+}
+
+public sealed class AudioBands
+{
+    public float Bass, Low, Mid, High, Full, Beat, Transient;
+}
+
+public static class EffectStatus
+{
+    public static readonly HashSet<EffectKind> Implemented =
+    [
+        EffectKind.Pulse, EffectKind.Flicker, EffectKind.LightSurge, EffectKind.Strobe,
+        EffectKind.Glow, EffectKind.BreathingGlow, EffectKind.HueShift, EffectKind.RoomDim
+    ];
 }

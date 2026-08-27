@@ -2,6 +2,12 @@ using System.Runtime.InteropServices;
 using Auralith.Core;
 using Auralith.Rendering;
 using Auralith.Update;
+using Auralith.Audio;
+using System.Text.Json;
+using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
+using Microsoft.UI.Input;
+using Windows.Foundation;
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.UI.Xaml;
@@ -31,6 +37,12 @@ public sealed partial class MainWindow : Window
     private CancellationTokenSource? _dlCts;
     private bool _checkOnStartup = true;
     private bool _holdDecodedPreview;
+    private readonly AudioEngine _audio = new();
+    private string _tool = "select";
+    private Region? _selected;
+    private Region? _draft;
+    private readonly Stack<string> _undo = new();
+    private readonly Stack<string> _redo = new();
     private string _imageDiag = "Image Load: idle";
 
     public MainWindow(bool smoke = false)
@@ -46,10 +58,14 @@ public sealed partial class MainWindow : Window
             Root.KeyDown += OnKeyDown;
             Root.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
             StartGpuSafely();
+            DeviceBox.Items.Clear();
+            foreach (var (id, name) in _audio.ListRenderDevices())
+                DeviceBox.Items.Add(new ComboBoxItem { Content = name, Tag = id });
+            if (DeviceBox.Items.Count > 0) DeviceBox.SelectedIndex = 0;
         };
         _timer.Tick += (_, _) => Pump();
         _timer.Start();
-        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); };
+        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); _audio.Dispose(); };
     }
 
     private void StartGpuSafely()
@@ -199,6 +215,9 @@ public sealed partial class MainWindow : Window
         var chrome = _scene.ShowChrome;
         TopBar.Visibility = chrome ? Visibility.Visible : Visibility.Collapsed;
         Hud.Visibility = chrome ? Visibility.Visible : Visibility.Collapsed;
+        if (LeftTools is not null) LeftTools.Visibility = chrome ? Visibility.Visible : Visibility.Collapsed;
+        if (RightPanel is not null) RightPanel.Visibility = chrome ? Visibility.Visible : Visibility.Collapsed;
+
         CanvasBorder.BorderThickness = chrome ? new Thickness(2) : new Thickness(0);
         CanvasBorder.Margin = chrome ? new Thickness(16, 0, 16, 0) : new Thickness(0);
         if (mode != ViewMode.CleanCapture && _appFullscreen)
@@ -224,9 +243,17 @@ public sealed partial class MainWindow : Window
             Hud.Text = s.Error ?? "Starting GPU core…";
             return;
         }
+        var bands = _audio.Snapshot();
+        _gpu.SetSceneGraph(_scene, _scene.Regions, bands);
+        if (Meters is not null)
+            Meters.Text = $"BASS {bands.Bass:0.00}  LOW {bands.Low:0.00}  MID {bands.Mid:0.00}  HIGH {bands.High:0.00}\nBEAT {bands.Beat:0.00}  TRN {bands.Transient:0.00}";
+        if (AudioStatus is not null) AudioStatus.Text = _audio.Status;
+        if (_scene.ShowOverlays) RedrawOverlay();
+        else Overlay.Children.Clear();
         if (_holdDecodedPreview)
         {
             Hud.Text = _imageDiag + $"  gpu={s.Width}x{s.Height} {s.ActualFps:0.0}fps";
+            // still allow GPU composite under the photo? keep photo pinned
             return;
         }
         Hud.Text = s.Error is null
@@ -358,4 +385,232 @@ public sealed partial class MainWindow : Window
         catch (Exception ex) { StartupLog.Error(ex); }
     }
 
+
+    private void PushUndo()
+    {
+        _undo.Push(JsonSerializer.Serialize(_scene.Regions));
+        _redo.Clear();
+    }
+    private void OnUndo(object sender, RoutedEventArgs e)
+    {
+        if (_undo.Count == 0) return;
+        _redo.Push(JsonSerializer.Serialize(_scene.Regions));
+        _scene.Regions = JsonSerializer.Deserialize<List<Region>>(_undo.Pop()) ?? new();
+        _selected = null; RedrawOverlay(); RefreshSel();
+    }
+    private void OnRedo(object sender, RoutedEventArgs e)
+    {
+        if (_redo.Count == 0) return;
+        _undo.Push(JsonSerializer.Serialize(_scene.Regions));
+        _scene.Regions = JsonSerializer.Deserialize<List<Region>>(_redo.Pop()) ?? new();
+        _selected = null; RedrawOverlay(); RefreshSel();
+    }
+    private void OnToolSelect(object s, RoutedEventArgs e) { _tool = "select"; ToolHint.Text = "Click a region to select."; }
+    private void OnToolTrace(object s, RoutedEventArgs e) { _tool = "trace"; ToolHint.Text = "Click to add points. Double-click to close."; }
+    private void OnToolStamp(object s, RoutedEventArgs e) { _tool = "stamp"; ToolHint.Text = "Drag on the canvas to place a stamp."; }
+    private void OnToolEmitter(object s, RoutedEventArgs e) { _tool = "emitter"; ToolHint.Text = "Click to place an emitter."; }
+    private void OnOverlayToggle(object s, RoutedEventArgs e)
+    {
+        _scene.ShowEditorOverlays = OverlayCheck.IsChecked == true;
+    }
+    private void OnMarkerToggle(object s, RoutedEventArgs e)
+    {
+        if (_selected is null) return;
+        _selected.ShowEditorMarker = MarkerCheck.IsChecked == true;
+    }
+    private Windows.Foundation.Point ToCanvas(PointerRoutedEventArgs e)
+    {
+        var pt = e.GetCurrentPoint(Preview).Position;
+        var aw = Preview.ActualWidth; var ah = Preview.ActualHeight;
+        if (aw < 1 || ah < 1) return new Windows.Foundation.Point(0,0);
+        return new Windows.Foundation.Point(pt.X / aw * _scene.CanvasWidth, pt.Y / ah * _scene.CanvasHeight);
+    }
+    private void OnOverlayPressed(object s, PointerRoutedEventArgs e)
+    {
+        if (!_scene.ShowOverlays) return;
+        var p = ToCanvas(e);
+        if (_tool == "select")
+        {
+            _selected = Hit((float)p.X, (float)p.Y);
+            RefreshSel(); return;
+        }
+        PushUndo();
+        if (_tool == "emitter")
+        {
+            var r = new Region { Kind = RegionKind.Emitter, Name = "Emitter", X = (float)p.X, Y = (float)p.Y, Radius = 70 };
+            r.Effects.Add(EffectKind.Glow);
+            _scene.Regions.Add(r); _selected = r; RefreshSel(); return;
+        }
+        if (_tool == "stamp")
+        {
+            _draft = new Region { Kind = RegionKind.Stamp, Name = "Stamp", X = (float)p.X, Y = (float)p.Y, Width = 8, Height = 8, Shape = StampShape.Ellipse };
+            _draft.Effects.Add(EffectKind.Pulse);
+            _scene.Regions.Add(_draft); _selected = _draft; Overlay.CapturePointer(e.Pointer); return;
+        }
+        if (_tool == "trace")
+        {
+            if (_draft is null || _draft.Kind != RegionKind.Trace)
+            {
+                _draft = new Region { Kind = RegionKind.Trace, Name = "Trace", X = (float)p.X, Y = (float)p.Y };
+                _draft.Effects.Add(EffectKind.Glow);
+                _scene.Regions.Add(_draft); _selected = _draft;
+            }
+            _draft.Points.Add((float)p.X); _draft.Points.Add((float)p.Y);
+            if (e.GetCurrentPoint(Overlay).Properties.PointerUpdateKind == Microsoft.UI.Input.PointerUpdateKind.LeftButtonPressed
+                && _draft.Points.Count >= 8 && Distance(_draft, p) < 18)
+            { _draft = null; }
+            RefreshSel();
+        }
+    }
+    private static float Distance(Region r, Windows.Foundation.Point p)
+    {
+        if (r.Points.Count < 2) return 999;
+        var dx = r.Points[0] - p.X; var dy = r.Points[1] - p.Y;
+        return MathF.Sqrt(dx*dx+dy*dy);
+    }
+    private void OnOverlayMoved(object s, PointerRoutedEventArgs e)
+    {
+        if (_draft is { Kind: RegionKind.Stamp })
+        {
+            var p = ToCanvas(e);
+            _draft.Width = Math.Max(8, (float)p.X - _draft.X);
+            _draft.Height = Math.Max(8, (float)p.Y - _draft.Y);
+        }
+    }
+    private void OnOverlayReleased(object s, PointerRoutedEventArgs e)
+    {
+        Overlay.ReleasePointerCaptures();
+        if (_draft is { Kind: RegionKind.Stamp }) _draft = null;
+        RefreshSel();
+    }
+    private Region? Hit(float x, float y)
+    {
+        foreach (var r in Enumerable.Reverse(_scene.Regions))
+        {
+            if (r.Kind == RegionKind.Emitter)
+            {
+                var dx = x - r.X; var dy = y - r.Y;
+                if (dx*dx+dy*dy <= r.Radius*r.Radius) return r;
+            }
+            else if (x >= r.X && y >= r.Y && x <= r.X+r.Width && y <= r.Y+r.Height) return r;
+        }
+        return null;
+    }
+    private void OnDeleteSelected(object s, RoutedEventArgs e)
+    {
+        if (_selected is null) return;
+        PushUndo();
+        _scene.Regions.Remove(_selected); _selected = null; RefreshSel();
+    }
+    private void OnDuplicate(object s, RoutedEventArgs e)
+    {
+        if (_selected is null) return;
+        PushUndo();
+        var copy = JsonSerializer.Deserialize<Region>(JsonSerializer.Serialize(_selected))!;
+        copy.Id = Guid.NewGuid(); copy.X += 30; copy.Y += 30; copy.Name += " copy";
+        _scene.Regions.Add(copy); _selected = copy; RefreshSel();
+    }
+    private void OnAddEffect(object s, RoutedEventArgs e)
+    {
+        if (_selected is null || AddEffectBox.SelectedItem is not ComboBoxItem item) return;
+        if (!Enum.TryParse<EffectKind>(item.Tag?.ToString(), out var kind)) return;
+        PushUndo();
+        _selected.Effects.Add(kind);
+        RefreshSel();
+    }
+    private void RefreshSel()
+    {
+        if (_selected is null) { SelInfo.Text = "None selected"; EffectList.Children.Clear(); return; }
+        SelInfo.Text = $"{_selected.Kind}  {_selected.Name}\nmarker={_selected.ShowEditorMarker} locked={_selected.Locked}\neffects={_selected.Effects.Items.Count}";
+        MarkerCheck.IsChecked = _selected.ShowEditorMarker;
+        EffectList.Children.Clear();
+        foreach (var fx in _selected.Effects.Items)
+        {
+            var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 4 };
+            var cb = new CheckBox { Content = fx.Kind.ToString(), IsChecked = fx.Enabled, Tag = fx };
+            cb.Checked += (_, _) => fx.Enabled = true;
+            cb.Unchecked += (_, _) => fx.Enabled = false;
+            row.Children.Add(cb);
+            EffectList.Children.Add(row);
+        }
+        RedrawOverlay();
+    }
+    private void RedrawOverlay()
+    {
+        Overlay.Children.Clear();
+        if (!_scene.ShowOverlays) return;
+        var sx = Overlay.ActualWidth / _scene.CanvasWidth;
+        var sy = Overlay.ActualHeight / _scene.CanvasHeight;
+        if (sx <= 0 || sy <= 0) { sx = Preview.ActualWidth / _scene.CanvasWidth; sy = Preview.ActualHeight / _scene.CanvasHeight; }
+        if (sx <= 0 || sy <= 0) return;
+        foreach (var r in _scene.Regions)
+        {
+            if (!r.ShowEditorMarker) continue;
+            var color = r == _selected ? "#FFD4AF37" : "#88E8E6E3";
+            var brush = new SolidColorBrush(Microsoft.UI.Colors.Gold);
+            if (r.Kind == RegionKind.Emitter)
+            {
+                Overlay.Children.Add(new Ellipse
+                {
+                    Width = r.Radius * 2 * sx, Height = r.Radius * 2 * sy,
+                    Stroke = brush, StrokeThickness = 2,
+                });
+                Canvas.SetLeft(Overlay.Children[^1], (r.X - r.Radius) * sx);
+                Canvas.SetTop(Overlay.Children[^1], (r.Y - r.Radius) * sy);
+            }
+            else if (r.Kind == RegionKind.Trace && r.Points.Count >= 4)
+            {
+                var poly = new Polygon { Stroke = brush, StrokeThickness = 2, Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(40, 212, 175, 55)) };
+                var pts = new PointCollection();
+                for (var i = 0; i + 1 < r.Points.Count; i += 2)
+                    pts.Add(new Windows.Foundation.Point(r.Points[i] * sx, r.Points[i + 1] * sy));
+                poly.Points = pts;
+                Overlay.Children.Add(poly);
+            }
+            else
+            {
+                Overlay.Children.Add(new Rectangle
+                {
+                    Width = Math.Max(8, r.Width * sx), Height = Math.Max(8, r.Height * sy),
+                    Stroke = brush, StrokeThickness = 2
+                });
+                Canvas.SetLeft(Overlay.Children[^1], r.X * sx);
+                Canvas.SetTop(Overlay.Children[^1], r.Y * sy);
+            }
+        }
+    }
+    private void OnStartAudio(object s, RoutedEventArgs e)
+    {
+        string? id = null;
+        if (DeviceBox.SelectedItem is ComboBoxItem item) id = item.Tag as string;
+        _audio.StartLoopback(id);
+        AudioStatus.Text = _audio.Status;
+    }
+    private void OnDeviceChanged(object s, SelectionChangedEventArgs e) { }
+    private async void OnSaveProject(object s, RoutedEventArgs e)
+    {
+        var picker = new FileSavePicker();
+        picker.FileTypeChoices.Add("Auralith", new List<string> { ".auralith" });
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+        var file = await picker.PickSaveFileAsync();
+        if (file is null) return;
+        await FileIO.WriteTextAsync(file, JsonSerializer.Serialize(_scene, new JsonSerializerOptions { WriteIndented = true }));
+    }
+    private async void OnOpenProject(object s, RoutedEventArgs e)
+    {
+        var picker = new FileOpenPicker();
+        picker.FileTypeFilter.Add(".auralith");
+        WinRT.Interop.InitializeWithWindow.Initialize(picker, WinRT.Interop.WindowNative.GetWindowHandle(this));
+        var file = await picker.PickSingleFileAsync();
+        if (file is null) return;
+        var json = await FileIO.ReadTextAsync(file);
+        var loaded = JsonSerializer.Deserialize<Scene>(json);
+        if (loaded is null) return;
+        if (!string.IsNullOrEmpty(loaded.BackdropPath) && !File.Exists(loaded.BackdropPath))
+            Hud.Text = "Backdrop file not found. [Locate Image] — continue without.";
+        _scene.Regions = loaded.Regions;
+        _scene.Fit = loaded.Fit;
+        _scene.ShowEditorOverlays = loaded.ShowEditorOverlays;
+        RefreshSel();
+    }
 }

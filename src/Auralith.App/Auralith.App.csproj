@@ -25,6 +25,7 @@
     <ProjectReference Include="..\Auralith.Core\Auralith.Core.csproj" />
     <ProjectReference Include="..\Auralith.Rendering\Auralith.Rendering.csproj" />
     <ProjectReference Include="..\Auralith.Update\Auralith.Update.csproj" />
+    <ProjectReference Include="..\Auralith.Audio\Auralith.Audio.csproj" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
   <ItemGroup>
