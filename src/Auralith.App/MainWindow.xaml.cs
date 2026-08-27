@@ -264,21 +264,20 @@ public sealed partial class MainWindow : Window
         if (AudioDiag is not null) AudioDiag.Text = _audio.Diagnostics;
         if (LoopbackDiag is not null)
         {
+            var b = _audio.Snapshot();
             var src = _audio.ProcessSource;
-            if (src is null) LoopbackDiag.Text = "Native process source idle. Select Application Audio and Start.";
-            else
-            {
-                var b = _audio.Snapshot();
-                LoopbackDiag.Text =
-                    $"Application: {src.Name}\nPID: see selector\nWindows: {ProcessLoopbackSource.WindowsVersion()}\n" +
-                    $"Stage: {src.LastStage}\nHRESULT: {src.LastHresult}\n" +
-                    $"IAudioClient: {(src.ClientOk ? "SUCCESS" : "PENDING/ERROR")}\n" +
-                    $"Capture Client: {(src.CaptureClientOk ? "SUCCESS" : "PENDING/ERROR")}\n" +
-                    $"First Audio Packet: {(src.FirstPacket ? "YES" : "NO")}\n" +
-                    $"Packets: {src.Packets}\n" +
-                    $"RAW Peak: {b.Raw:0.00}   RAW RMS: {b.Raw:0.00}\n" +
-                    $"BASS {b.Bass:0.00}  LOW {b.Low:0.00}  MID {b.Mid:0.00}  HIGH {b.High:0.00}";
-            }
+            var age = _audio.LastPacketAgeSec;
+            LoopbackDiag.Text =
+                $"Mode: {_audio.CaptureModeLabel}\nSource: {_audio.DeviceName}\n" +
+                $"State: {_audio.Status}\n" +
+                $"First Packet: {(_audio.FirstPacket ? "YES" : "NO")}\n" +
+                $"Total Packets: {_audio.PacketCount}  Silent: {_audio.SilentPackets}\n" +
+                $"Last Packet Age: {(age < 0 ? "n/a" : age.ToString("0.00") + "s")}\n" +
+                $"RAW Peak: {_audio.RawPeak:0.000}  RAW RMS: {_audio.RawRms:0.000}\n" +
+                $"BASS {b.Bass:0.00} LOW {b.Low:0.00} MID {b.Mid:0.00} HIGH {b.High:0.00}\n" +
+                (src is null
+                    ? "PROCESS LOOPBACK: IDLE"
+                    : $"PROCESS LOOPBACK: {src.LastStage} HRESULT {src.LastHresult} FirstPacket {(src.FirstPacket ? "YES" : "NO")} Packets {src.Packets}");
         }
 
         if (_scene.ShowOverlays) RedrawOverlay();

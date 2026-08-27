@@ -5,10 +5,10 @@
     <LangVersion>latest</LangVersion>
     <Platforms>x64</Platforms>
     <PlatformTarget>x64</PlatformTarget>
-    <AuralithVersion>2.0.0-alpha.16</AuralithVersion>
+    <AuralithVersion>2.0.0-alpha.17</AuralithVersion>
     <Version>$(AuralithVersion)</Version>
     <AssemblyVersion>2.0.0.0</AssemblyVersion>
-    <FileVersion>2.0.0.16</FileVersion>
+    <FileVersion>2.0.0.17</FileVersion>
     <InformationalVersion>$(AuralithVersion)</InformationalVersion>
   </PropertyGroup>
 </Project>

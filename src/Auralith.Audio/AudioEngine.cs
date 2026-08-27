@@ -36,6 +36,15 @@ public sealed class AudioEngine : IDisposable
     public string DeviceId { get; private set; } = "";
     public string Diagnostics { get; private set; } = "";
     public ProcessLoopbackSource? ProcessSource => _procSrc;
+    public string CaptureModeLabel => _mode;
+    public bool FirstPacket => _packets > 0;
+    public long PacketCount => _packets;
+    public long FrameCount => _frames;
+    public long SilentPackets => _silentPackets;
+    public double LastPacketAgeSec => _lastPacket == DateTime.MinValue ? -1 : (DateTime.UtcNow - _lastPacket).TotalSeconds;
+    public float RawPeak => _rawPeak;
+    public float RawRms => _rawRms;
+
 
 
     public event Action<string>? Logged;
@@ -127,7 +136,10 @@ public sealed class AudioEngine : IDisposable
             Log("[Audio] Capture client created");
             _loop.StartRecording();
             Log("[Audio] Audio client started");
-            Status = "Audio Capture: CAPTURING  " + DeviceName;
+            Status = "Audio Capture: WAITING FOR PACKETS  " + DeviceName;
+            _mode = "Desktop Output";
+            _firstPacketLogged = false;
+            _packetLogCount = 0;
             _windowStart = DateTime.UtcNow;
             _packets = _frames = _fftRuns = _silentPackets = 0;
         }
@@ -165,7 +177,8 @@ public sealed class AudioEngine : IDisposable
                 _channels = Math.Max(1, fmt.Channels);
                 _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
             }
-            Status = $"Audio Capture: CAPTURING  Application PID {pid}";
+            Status = $"Audio Capture: WAITING FOR PACKETS  Application PID {pid}";
+            _mode = "Application Audio";
             Log("[AppAudio] Capture started process-loopback pid=" + pid + " tree=" + includeTree);
             DeviceName = "App PID " + pid;
         }
@@ -225,6 +238,11 @@ public sealed class AudioEngine : IDisposable
     {
         _packets++;
         _lastPacket = DateTime.UtcNow;
+        if (!_firstPacketLogged)
+        {
+            _firstPacketLogged = true;
+            Log($"[Audio] First packet YES bytes={bytes} encoding={fmt.Encoding} rate={fmt.SampleRate} ch={fmt.Channels} bits={fmt.BitsPerSample}");
+        }
 
         float peak = 0;
         double sumSq = 0;
@@ -232,7 +250,14 @@ public sealed class AudioEngine : IDisposable
         if (samples.Count == 0)
         {
             _silentPackets++;
+            if (_packetLogCount < 10)
+            {
+                _packetLogCount++;
+                Log($"[Audio] Packet {_packetLogCount} Frames:0 Bytes:{bytes} SilentFlag:true Peak:0 RMS:0");
+            }
             UpdateWindow(0);
+            if (_packets > 10) Status = "Audio Capture: NO SIGNAL  " + DeviceName;
+            else Status = "Audio Capture: WAITING FOR PACKETS  " + DeviceName;
             return;
         }
         _frames += samples.Count;
@@ -250,11 +275,18 @@ public sealed class AudioEngine : IDisposable
             _rawRms = rms;
             _bands.Raw = Math.Clamp(rms * 4f, 0, 1);
         }
+        if (_packetLogCount < 10)
+        {
+            _packetLogCount++;
+            Log($"[Audio] Packet {_packetLogCount} Frames:{samples.Count} Bytes:{bytes} SilentFlag:false Peak:{peak:0.000} RMS:{rms:0.000}");
+        }
         UpdateWindow(samples.Count);
         if (peak < 1e-5f && rms < 1e-5f)
         {
-            if ((DateTime.UtcNow - _windowStart).TotalSeconds > 1.5 && _packets > 10)
+            if (_packets > 10)
                 Status = "Audio Capture: NO SIGNAL  " + DeviceName;
+            else
+                Status = "Audio Capture: WAITING FOR PACKETS  " + DeviceName;
         }
         else
             Status = "Audio Capture: CAPTURING  " + DeviceName;
@@ -270,8 +302,13 @@ public sealed class AudioEngine : IDisposable
             if (fmt is WaveFormatExtensible ext)
             {
                 var sub = ext.SubFormat.ToString();
-                if (encoding == WaveFormatEncoding.IeeeFloat || sub.Contains("00000003-0000-0010-8000-00aa00389b71", StringComparison.OrdinalIgnoreCase))
+                if (encoding == WaveFormatEncoding.IeeeFloat
+                    || sub.Contains("00000003-0000-0010-8000-00aa00389b71", StringComparison.OrdinalIgnoreCase)
+                    || sub.Contains("00000003", StringComparison.OrdinalIgnoreCase))
                     encoding = WaveFormatEncoding.IeeeFloat;
+                else if (sub.Contains("00000001-0000-0010-8000-00aa00389b71", StringComparison.OrdinalIgnoreCase))
+                    encoding = WaveFormatEncoding.Pcm;
+                Log($"[Audio] Extensible SubFormat={sub} treated as {encoding}");
             }
 
             if (encoding == WaveFormatEncoding.IeeeFloat || fmt.BitsPerSample == 32 && encoding != WaveFormatEncoding.Pcm)
