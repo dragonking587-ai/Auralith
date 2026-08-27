@@ -18,6 +18,7 @@ public sealed class AudioEngine : IDisposable
     private NAudio.CoreAudioApi.WasapiCapture? _mic;
     private readonly object _gate = new();
     private readonly float[] _fft = new float[FftSize];
+    private readonly WebStyleAnalyzer _web = new();
     private int _fftFill;
     private AudioBands _bands = new();
     private float _prevBass, _beatEnv, _transEnv, _peakHold;
@@ -359,59 +360,20 @@ public sealed class AudioEngine : IDisposable
 
     private void Analyze(float[] time, int sampleRate)
     {
-        var n = time.Length;
-        var spec = new Complex[n];
-        double rms = 0;
-        for (var i = 0; i < n; i++)
-        {
-            var w = 0.5f * (1 - MathF.Cos(2 * MathF.PI * i / (n - 1)));
-            var v = time[i] * w;
-            spec[i] = new Complex(v, 0);
-            rms += time[i] * time[i];
-        }
-        rms = Math.Sqrt(rms / n);
-        Fft(spec);
-
-        var binHz = sampleRate / (float)n;
-        float Band(float hz0, float hz1)
-        {
-            var i0 = Math.Max(1, (int)(hz0 / binHz));
-            var i1 = Math.Min(n / 2 - 1, (int)(hz1 / binHz));
-            double e = 0;
-            var c = 0;
-            for (var i = i0; i <= i1; i++, c++)
-            {
-                var mag = spec[i].Magnitude;
-                e += mag * mag;
-            }
-            if (c == 0) return 0;
-            var mean = e / c;
-            return (float)Math.Log10(1 + mean * 50);
-        }
-
-        var bass = Band(20, 120);
-        var low = Band(120, 400);
-        var mid = Band(400, 4000);
-        var high = Band(4000, 16000);
-        var peak = Math.Max(Math.Max(bass, low), Math.Max(mid, high));
-        _peakHold = Math.Max(peak, _peakHold * 0.995f + peak * 0.005f);
-        float Norm(float v) => _peakHold < 1e-6f ? 0 : Math.Clamp(v / _peakHold, 0, 1);
-
-        var nb = Norm(bass); var nl = Norm(low); var nm = Norm(mid); var nh = Norm(high);
-        var flux = nb + nl;
+        _web.Process(time, sampleRate, 1f, out var bass, out var low, out var mid, out var high, out var full);
+        var flux = bass + low;
         var beat = flux > _prevBass * 1.25f + 0.12f ? 1f : 0f;
         var trans = Math.Max(0, flux - _prevBass);
         _prevBass = flux;
         _beatEnv = MathF.Max(beat, _beatEnv * 0.82f);
         _transEnv = MathF.Max(trans > 0.18f ? 1f : 0f, _transEnv * 0.75f);
-
         lock (_gate)
         {
-            _bands.Bass = Smooth(_bands.Bass, nb, 0.45f, 0.12f);
-            _bands.Low = Smooth(_bands.Low, nl, 0.4f, 0.12f);
-            _bands.Mid = Smooth(_bands.Mid, nm, 0.35f, 0.1f);
-            _bands.High = Smooth(_bands.High, nh, 0.3f, 0.08f);
-            _bands.Full = Smooth(_bands.Full, Math.Clamp((float)rms * 6f, 0, 1), 0.35f, 0.12f);
+            _bands.Bass = bass;
+            _bands.Low = low;
+            _bands.Mid = mid;
+            _bands.High = high;
+            _bands.Full = full;
             _bands.Beat = _beatEnv;
             _bands.Transient = _transEnv;
         }
@@ -432,7 +394,7 @@ public sealed class AudioEngine : IDisposable
             $"Frames/s: {_frameWindow / sec:0}\n" +
             $"Raw Peak: {_rawPeak:0.000}  RMS: {_rawRms:0.000}\n" +
             $"FFT {FftSize}  FFT/s: {_fftRuns / sec:0.0}\n" +
-            $"Bands Hz: B20-120 L120-400 M400-4k H4k-16k";
+            $"Bands Hz: B20-80 L80-250 M250-2k H2k-12k (web AnalyserNode mapping)";
         _pktWindow = _frameWindow = 0;
         _fftRuns = 0;
         _windowStart = now;
