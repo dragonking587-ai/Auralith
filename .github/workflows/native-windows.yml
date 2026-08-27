@@ -1,0 +1,53 @@
+name: Auralith Native Windows
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "Auralith-Native-Test-*"
+      - "v2-native-*"
+
+permissions:
+  contents: write
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Build
+        run: dotnet build Auralith.sln -c Release
+      - name: Test
+        run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release --no-build
+      - name: Publish self-contained x64
+        run: |
+          dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/Auralith
+      - name: Verify exe
+        shell: pwsh
+        run: |
+          $exe = Get-ChildItem artifacts/Auralith/*.exe | Select-Object -First 1
+          if (-not $exe) { throw "No Auralith exe produced" }
+          Write-Host "EXE $($exe.FullName) $($exe.Length)"
+      - name: Zip package
+        shell: pwsh
+        run: Compress-Archive -Path artifacts/Auralith/* -DestinationPath artifacts/Auralith-Native-Test-01-win-x64.zip -Force
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auralith-Native-Test-01
+          path: artifacts/Auralith-Native-Test-01-win-x64.zip
+          if-no-files-found: error
+      - name: Create prerelease if tagged
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          prerelease: true
+          name: Auralith Native Test 01
+          files: artifacts/Auralith-Native-Test-01-win-x64.zip
+          body: |
+            Native Windows Phase 1 diagnostic build.
+            Branch: rebuild/auralith-native
+            Open Auralith → Open Native GPU Test Output
+            Capture window title: Auralith — Native GPU Test Output

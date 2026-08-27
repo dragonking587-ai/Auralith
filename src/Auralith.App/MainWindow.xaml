@@ -1,0 +1,21 @@
+<Window
+    x:Class="Auralith.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#050509" Padding="28">
+        <StackPanel MaxWidth="640" Spacing="12">
+            <TextBlock Text="AURALITH" FontSize="28" FontWeight="SemiBold" Foreground="#D4AF37" LetterSpacing="6"/>
+            <TextBlock Text="Native Windows · Phase 1" Foreground="#9AA3B2" FontSize="14"/>
+            <TextBlock TextWrapping="Wrap" Foreground="#E8E6E3" FontSize="14"
+                       Text="Native GPU Test Output is a standalone Direct3D 11 window. It does not use Tauri, WebView, or the old editor."/>
+            <TextBlock x:Name="StatusText" Foreground="#E8E6E3" FontSize="16" Text="Status: CLOSED"/>
+            <TextBlock x:Name="DetailText" Foreground="#9AA3B2" FontSize="12" TextWrapping="Wrap"/>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Content="Open Native GPU Test Output" Click="OnOpen" Padding="16,10"/>
+                <Button Content="Close" Click="OnClose" Padding="16,10"/>
+            </StackPanel>
+            <TextBlock Foreground="#6B7280" FontSize="12" TextWrapping="Wrap"
+                       Text="Window title: Auralith — Native GPU Test Output. Capture it with OBS / Streamlabs / TikTok Window Capture."/>
+        </StackPanel>
+    </Grid>
+</Window>

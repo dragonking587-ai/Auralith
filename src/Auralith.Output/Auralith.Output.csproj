@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <RootNamespace>Auralith.Output</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Auralith.Core\Auralith.Core.csproj" />
+    <ProjectReference Include="..\Auralith.Rendering\Auralith.Rendering.csproj" />
+  </ItemGroup>
+</Project>
