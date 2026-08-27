@@ -61,10 +61,13 @@ jobs:
         shell: pwsh
         run: |
           $dir = Join-Path $env:TEMP "AuralithCiInstall"
+          $log = Join-Path $env:TEMP "auralith-inno.log"
           if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
-          $setup = Join-Path "artifacts" $env:SETUP
-          & $setup /VERYSILENT /NORESTART /SUPPRESSMSGBOXES /DIR="$dir"
-          if ($LASTEXITCODE -ne 0) { throw "silent install failed $LASTEXITCODE" }
+          $setup = (Get-Item artifacts/*-Setup.exe).FullName
+          Write-Host "setup $setup"
+          $p = Start-Process -FilePath $setup -ArgumentList "/VERYSILENT","/NORESTART","/SUPPRESSMSGBOXES","/CURRENTUSER","/DIR=$dir","/LOG=$log" -Wait -PassThru
+          if (Test-Path $log) { Get-Content $log | Select-Object -Last 40 }
+          if ($p.ExitCode -ne 0) { throw "silent install failed $($p.ExitCode)" }
           $exe = Join-Path $dir "Auralith.exe"
           if (-not (Test-Path $exe)) { throw "installed Auralith.exe missing" }
           $p = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -WorkingDirectory $dir
