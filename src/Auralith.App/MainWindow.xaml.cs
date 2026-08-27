@@ -1,6 +1,9 @@
 using System.Runtime.InteropServices;
 using Auralith.Core;
 using Auralith.Rendering;
+using Auralith.Update;
+using System.Diagnostics;
+using System.Reflection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -22,12 +25,18 @@ public sealed partial class MainWindow : Window
     private WriteableBitmap? _bmp;
     private byte[] _copy = new byte[1920 * 1080 * 4];
     private bool _appFullscreen;
+    private readonly UpdateClient _updates = new();
+    private UpdateManifest? _available;
+    private CancellationTokenSource? _dlCts;
+    private bool _checkOnStartup = true;
 
     public MainWindow(bool smoke = false)
     {
         _smoke = smoke;
         InitializeComponent();
         Title = "Auralith";
+        VersionText.Text = "v" + AppVersion;
+        if (_checkOnStartup && !_smoke) _ = CheckUpdatesAsync(silent: true);
         Root.Loaded += (_, _) =>
         {
             Root.IsTabStop = true;
@@ -183,4 +192,91 @@ public sealed partial class MainWindow : Window
     [Guid("905a0fef-bc53-11df-8c49-001e4fc686da")]
     [InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
     private interface IBufferByteAccess { void Buffer(out nint value); }
+
+    private static string AppVersion =>
+        typeof(App).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? typeof(App).Assembly.GetName().Version?.ToString() ?? "0.0.0";
+
+    private async void OnCheckUpdates(object sender, RoutedEventArgs e) => await CheckUpdatesAsync(false);
+
+    private async Task CheckUpdatesAsync(bool silent)
+    {
+        UpdateStatus.Text = "CHECKING…";
+        try
+        {
+            var found = await _updates.FindLatestPreviewAsync(AppVersion, CancellationToken.None);
+            if (found is null)
+            {
+                _available = null;
+                InstallUpdateButton.Visibility = Visibility.Collapsed;
+                UpdateStatus.Text = silent ? "" : "Auralith is up to date.";
+                return;
+            }
+            _available = found;
+            InstallUpdateButton.Visibility = Visibility.Visible;
+            UpdateStatus.Text = $"UPDATE AVAILABLE  Installed {AppVersion} → {found.Version}";
+        }
+        catch (Exception ex)
+        {
+            UpdateClient.Log(ex.ToString());
+            UpdateStatus.Text = "Update check failed: " + ex.Message;
+        }
+    }
+
+    private async void OnInstallUpdate(object sender, RoutedEventArgs e)
+    {
+        if (_available is null) return;
+        var dlg = new ContentDialog
+        {
+            Title = "Install update",
+            Content = $"Installing {_available.Version} will restart Auralith. Save any work first.",
+            PrimaryButtonText = "Download & Install",
+            CloseButtonText = "Cancel",
+            XamlRoot = Root.XamlRoot
+        };
+        if (await dlg.ShowAsync() != ContentDialogResult.Primary) return;
+        _dlCts = new CancellationTokenSource();
+        try
+        {
+            Directory.CreateDirectory(UpdateClient.UpdatesDir);
+            var dest = Path.Combine(UpdateClient.UpdatesDir, _available.AssetName);
+            UpdateStatus.Text = "DOWNLOADING…";
+            await _updates.DownloadAsync(_available.AssetUrl, dest, new Progress<(long done, long total)>(p =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (p.total > 0)
+                        UpdateStatus.Text = $"Downloading {_available.Version}  {p.done * 100.0 / p.total:0}%  {p.done / 1e6:0.0} MB / {p.total / 1e6:0.0} MB";
+                    else
+                        UpdateStatus.Text = $"Downloading {_available.Version}  {p.done / 1e6:0.0} MB";
+                });
+            }), _dlCts.Token);
+            UpdateStatus.Text = "VERIFYING…";
+            UpdateClient.VerifySha256(dest, _available.Sha256);
+            var helper = Path.Combine(AppContext.BaseDirectory, "Auralith.Updater.exe");
+            if (!File.Exists(helper))
+                throw new InvalidOperationException("Auralith.Updater.exe is missing from the install folder.");
+            UpdateStatus.Text = "INSTALLING… restarting";
+            Process.Start(new ProcessStartInfo(helper)
+            {
+                UseShellExecute = false,
+                ArgumentList =
+                {
+                    "--package", dest,
+                    "--target", AppContext.BaseDirectory,
+                    "--pid", Environment.ProcessId.ToString(),
+                    "--launch", Path.Combine(AppContext.BaseDirectory, "Auralith.exe")
+                }
+            });
+            Application.Current.Exit();
+        }
+        catch (Exception ex)
+        {
+            UpdateClient.Log(ex.ToString());
+            UpdateStatus.Text = "Automatic update failed. " + ex.Message;
+            if (!string.IsNullOrEmpty(_available.ReleaseUrl))
+                UpdateStatus.Text += "  Open GitHub Release from the browser if needed: " + _available.ReleaseUrl;
+        }
+    }
+
 }

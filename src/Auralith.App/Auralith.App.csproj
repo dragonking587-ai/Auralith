@@ -24,6 +24,7 @@
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.26100.1742" />
     <ProjectReference Include="..\Auralith.Core\Auralith.Core.csproj" />
     <ProjectReference Include="..\Auralith.Rendering\Auralith.Rendering.csproj" />
+    <ProjectReference Include="..\Auralith.Update\Auralith.Update.csproj" />
     <Manifest Include="$(ApplicationManifest)" />
   </ItemGroup>
   <ItemGroup>

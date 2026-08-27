@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
   push:
     tags:
-      - "Auralith-Native-Core-Test-*"
+      - "Auralith-Native-*"
 
 permissions:
   contents: write
@@ -23,40 +23,67 @@ jobs:
         run: dotnet build Auralith.sln -c Release --no-restore -p:Platform=x64
       - name: Test
         run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
-      - name: Publish self-contained x64
+      - name: Publish app
         run: dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
+      - name: Publish updater helper
+        run: |
+          dotnet publish src/Auralith.Updater/Auralith.Updater.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -o artifacts/updater
+          Copy-Item artifacts/updater/Auralith.Updater.exe artifacts/Auralith/Auralith.Updater.exe
       - name: Verify publish payload
         shell: pwsh
         run: |
           $exe = Get-Item artifacts/Auralith/Auralith.exe
-          if (-not $exe) { throw "Auralith.exe missing" }
+          $upd = Get-Item artifacts/Auralith/Auralith.Updater.exe
+          if (-not $exe -or -not $upd) { throw "Auralith.exe or Auralith.Updater.exe missing" }
           $pri = Get-ChildItem artifacts/Auralith -Filter *.pri -Recurse
           $boot = Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll
-          Write-Host "EXE $($exe.Length) PRI=$($pri.Name -join ',') Bootstrap=$boot"
-          if (-not $boot) { throw "Windows App Runtime Bootstrap.dll missing from publish" }
-          if ($pri.Count -lt 3) { throw "Expected app + WinUI PRI packages; found $($pri.Count)" }
-          $hasAppPri = $pri.Name -contains "resources.pri"
-          if (-not $hasAppPri) { Write-Host "WARNING: resources.pri name not found; PRI files: $($pri.Name -join ',')" }
+          Write-Host "EXE $($exe.Length) UPD $($upd.Length) PRI=$($pri.Count) Bootstrap=$boot"
+          if (-not $boot) { throw "Windows App Runtime Bootstrap.dll missing" }
+          if ($pri.Count -lt 3) { throw "Expected PRI packages" }
       - name: Smoke test published exe
         shell: pwsh
         run: |
           $p = Start-Process -FilePath "artifacts/Auralith/Auralith.exe" -ArgumentList "--smoke-test" -PassThru -WorkingDirectory "artifacts/Auralith"
           $ok = $p.WaitForExit(45000)
           if (-not $ok) { Stop-Process -Id $p.Id -Force; throw "Smoke test timed out" }
-          Write-Host "smoke exit $($p.ExitCode)"
           if ($p.ExitCode -ne 0) { throw "Smoke test failed exit $($p.ExitCode)" }
-      - name: Zip
+      - name: Package + checksum + manifest
         shell: pwsh
-        run: Compress-Archive -Path artifacts/Auralith/* -DestinationPath artifacts/Auralith-Native-Core-Test-03-win-x64.zip -Force
+        run: |
+          $ver = (Select-String -Path Directory.Build.props -Pattern '<AuralithVersion>(.+)</AuralithVersion>').Matches[0].Groups[1].Value
+          $name = "Auralith-Native-$ver-win-x64.zip"
+          Compress-Archive -Path artifacts/Auralith/* -DestinationPath "artifacts/$name" -Force
+          $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
+          Set-Content -Path "artifacts/$name.sha256" -Value "$hash  $name" -NoNewline
+          $manifest = @{
+            version = $ver
+            channel = "preview"
+            releaseUrl = "https://github.com/dragonking587-ai/Auralith/releases/tag/Auralith-Native-$ver"
+            assetUrl = "https://github.com/dragonking587-ai/Auralith/releases/download/Auralith-Native-$ver/$name"
+            assetName = $name
+            sha256 = $hash
+            publishedAt = (Get-Date).ToUniversalTime().ToString("o")
+            releaseNotes = "Native Auralith $ver"
+          } | ConvertTo-Json
+          Set-Content -Path artifacts/update.json -Value $manifest
+          echo "PKG=$name" >> $env:GITHUB_ENV
+          echo "VER=$ver" >> $env:GITHUB_ENV
+          Write-Host "packaged $name sha256=$hash"
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Native-Core
-          path: artifacts/*.zip
+          name: Auralith-Native-Windows
+          path: |
+            artifacts/*.zip
+            artifacts/*.sha256
+            artifacts/update.json
           if-no-files-found: error
-      - name: Release
-        if: startsWith(github.ref, 'refs/tags/Auralith-Native-Core-Test-')
+      - name: GitHub Release
+        if: startsWith(github.ref, 'refs/tags/Auralith-Native-')
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          name: ${{ github.ref_name }}
-          files: artifacts/*.zip
+          name: Auralith Native ${{ env.VER }}
+          files: |
+            artifacts/${{ env.PKG }}
+            artifacts/${{ env.PKG }}.sha256
+            artifacts/update.json
