@@ -322,9 +322,17 @@ export async function checkDesktopUpdate(
   return r.status === "available" ? r.info : null;
 }
 
+export type UpdateProgressEvent = {
+  phase: "downloading" | "verifying" | "installing";
+  downloaded?: number;
+  total?: number;
+  percent?: number;
+};
+
 /** Download + install via Tauri updater when canAutoInstall; else open release page. */
 export async function applyDesktopUpdate(
   info: DesktopUpdateInfo,
+  onProgress?: (e: UpdateProgressEvent) => void,
 ): Promise<{ mode: "installed" | "opened" | "error"; message?: string }> {
   if (info.canAutoInstall && isDesktopApp()) {
     try {
@@ -332,11 +340,34 @@ export async function applyDesktopUpdate(
       const { relaunch } = await import("@tauri-apps/plugin-process");
       const update = await check();
       if (!update) return { mode: "error", message: "Update no longer available" };
-      await update.downloadAndInstall();
+      let downloaded = 0;
+      let total = 0;
+      onProgress?.({ phase: "downloading", downloaded: 0, total: 0, percent: 0 });
+      await update.downloadAndInstall((event) => {
+        if (event.event === "Started") {
+          total = event.data.contentLength ?? 0;
+          downloaded = 0;
+          onProgress?.({ phase: "downloading", downloaded, total, percent: 0 });
+        } else if (event.event === "Progress") {
+          downloaded += event.data.chunkLength ?? 0;
+          const percent = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : undefined;
+          onProgress?.({ phase: "downloading", downloaded, total, percent });
+        } else if (event.event === "Finished") {
+          onProgress?.({ phase: "verifying", downloaded, total, percent: 100 });
+        }
+      });
+      onProgress?.({ phase: "installing", downloaded, total, percent: 100 });
       await relaunch();
       return { mode: "installed" };
     } catch (e) {
-      return { mode: "error", message: e instanceof Error ? e.message : String(e) };
+      const message = e instanceof Error ? e.message : String(e);
+      if (/signat/i.test(message)) {
+        return { mode: "error", message: "Update signature verification failed." };
+      }
+      if (/network|fetch|download/i.test(message)) {
+        return { mode: "error", message: `Download interrupted. ${message}` };
+      }
+      return { mode: "error", message: message || "Installation failed." };
     }
   }
   if (typeof window !== "undefined") {

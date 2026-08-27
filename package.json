@@ -1,6 +1,6 @@
 {
   "name": "auralith",
-  "version": "1.0.0-rebuild",
+  "version": "2.0.0-alpha.2",
   "private": true,
   "sideEffects": false,
   "type": "module",

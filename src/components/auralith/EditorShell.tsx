@@ -29,7 +29,7 @@ import { useAuralith } from "@/lib/auralith/store";
 import { EditorCanvas } from "./EditorCanvas";
 import type { LiveBands } from "@/lib/auralith/types";
 import { DESKTOP_AUTO_UPDATE_KEY, DESKTOP_VERSION, desktopHttpOrigin, isDesktopApp } from "@/lib/auralith/platform";
-import { applyDesktopUpdate, checkForUpdatesDetailed, resolveWindowsInstallerUrl, type UpdateCheckResult } from "@/lib/auralith/desktop-release";
+import { applyDesktopUpdate, checkForUpdatesDetailed, resolveWindowsInstallerUrl, type UpdateCheckResult, type UpdateProgressEvent } from "@/lib/auralith/desktop-release";
 import { vcamStart, vcamStop, vcamStatus, vcamInstall, type VcamStatus } from "@/lib/auralith/vcam";
 import { setVcamCaptureActive } from "@/lib/auralith/vcam-bridge";
 import { closeNativeBroadcast, openNativeBroadcast } from "@/lib/auralith/final-frame-provider";
@@ -1027,17 +1027,30 @@ function VirtualCameraSection({ scene }: { scene: Scene }) {
 }
 
 function DesktopUpdatesSection() {
-  type Phase = "idle" | "checking" | "up_to_date" | "update_available" | "error";
+  type Phase =
+    | "idle"
+    | "checking"
+    | "up_to_date"
+    | "update_available"
+    | "downloading"
+    | "verifying"
+    | "installing"
+    | "restarting"
+    | "error";
   const [phase, setPhase] = useState<Phase>("idle");
   const [result, setResult] = useState<UpdateCheckResult | null>(null);
   const [installing, setInstalling] = useState(false);
+  const [progress, setProgress] = useState<UpdateProgressEvent | null>(null);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const checkingRef = useRef(false);
   const [auto, setAuto] = useState(() => {
     try {
-      // Default OFF until manual check is proven; only run auto if user opted in.
-      return localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY) === "1";
+      const v = localStorage.getItem(DESKTOP_AUTO_UPDATE_KEY);
+      // V2 alpha: default ON unless user opted out
+      if (v === null) return true;
+      return v === "1";
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -1088,18 +1101,46 @@ function DesktopUpdatesSection() {
     }
   };
 
+  const liveOutputActive = async () => {
+    if (!isDesktopApp()) return false;
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      const gpu = (await invoke("gpu_test_status")) as { state?: string };
+      const bc = (await invoke("broadcast_status")) as { running?: boolean; state?: string };
+      const gpuOn = typeof gpu?.state === "string" && !["CLOSED", "ERROR", "STOPPING"].includes(gpu.state);
+      const bcOn = Boolean(bc?.running) || (typeof bc?.state === "string" && bc.state === "RUNNING");
+      return gpuOn || bcOn;
+    } catch {
+      return false;
+    }
+  };
+
   const onUpdate = async () => {
     if (!result || result.status !== "available") return;
+    if (!confirmRestart && (await liveOutputActive())) {
+      setConfirmRestart(true);
+      return;
+    }
+    setConfirmRestart(false);
     setInstalling(true);
+    setProgress({ phase: "downloading", percent: 0 });
+    setPhase("downloading");
     try {
-      const out = await applyDesktopUpdate(result.info);
+      const out = await applyDesktopUpdate(result.info, (ev) => {
+        setProgress(ev);
+        if (ev.phase === "downloading") setPhase("downloading");
+        if (ev.phase === "verifying") setPhase("verifying");
+        if (ev.phase === "installing") setPhase("installing");
+      });
       if (out.mode === "error") {
         setResult({
           status: "error",
-          message: out.message || "Update failed",
+          message: out.message || "Installation failed.",
           installed: DESKTOP_VERSION,
         });
         setPhase("error");
+      } else if (out.mode === "installed") {
+        setPhase("restarting");
       }
     } catch (e) {
       setResult({
@@ -1168,6 +1209,32 @@ function DesktopUpdatesSection() {
         <p className="mt-2 text-xs text-subtle">Press Check for Updates to query the update source.</p>
       ) : null}
 
+      {confirmRestart ? (
+        <div className="mt-2 rounded-[8px] border border-border px-2 py-2 text-[11px] text-fg">
+          Installing this update will restart Auralith and stop the current broadcast/GPU output.
+          <div className="mt-2 flex gap-2">
+            <button type="button" className="min-h-9 rounded-[8px] bg-accent px-3 text-xs text-accent-fg" onClick={() => void onUpdate()}>
+              Install &amp; Restart
+            </button>
+            <button type="button" className="min-h-9 rounded-[8px] border border-border px-3 text-xs" onClick={() => setConfirmRestart(false)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {phase === "downloading" || phase === "verifying" || phase === "installing" || phase === "restarting" ? (
+        <div className="mt-2 text-xs text-muted">
+          {phase === "downloading" ? "Downloading update…" : phase === "verifying" ? "Verifying update…" : phase === "installing" ? "Installing…" : "Restarting Auralith…"}
+          {progress?.total ? (
+            <p className="mt-1">
+              {((progress.downloaded ?? 0) / 1048576).toFixed(1)} / {(progress.total / 1048576).toFixed(1)} MB
+              {typeof progress.percent === "number" ? ` · ${progress.percent}%` : ""}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="mt-3 flex flex-wrap gap-2">
         <button
           type="button"
@@ -1192,10 +1259,10 @@ function DesktopUpdatesSection() {
             disabled={installing}
             onClick={() => void onUpdate()}
           >
-            {installing
-              ? "Updating…"
+            {installing || phase === "downloading" || phase === "verifying" || phase === "installing"
+              ? "Update Now…"
               : result.info.canAutoInstall
-                ? "Download and Install Update"
+                ? "Update Now"
                 : "Open Download Page"}
           </button>
         ) : null}
@@ -1221,10 +1288,10 @@ function DesktopUpdatesSection() {
           checked={auto}
           onChange={(e) => toggleAuto(e.target.checked)}
         />
-        Automatically check for updates on startup
+        Check for updates when Auralith starts
       </label>
       <p className="mt-2 text-[11px] leading-relaxed text-subtle">
-        Checks a public update manifest over HTTPS (no GitHub credentials in the app). One-click install requires signed Tauri updater artifacts; until then Open Download Page opens the release page. Core features work fully offline.
+        Uses the Tauri 2 signed updater over HTTPS. Private keys never ship in the app. GitHub Releases remain the manual recovery download. Windows Authenticode is not yet configured (SmartScreen may warn).
       </p>
     </Section>
   );

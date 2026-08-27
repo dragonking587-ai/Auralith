@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Auralith",
-  "version": "1.0.0",
+  "version": "2.0.0-alpha.2",
   "identifier": "ai.auralith.desktop",
   "build": {
     "beforeDevCommand": "npm --prefix .. run desktop:dev",
@@ -53,12 +53,15 @@
     "publisher": "Auralith",
     "shortDescription": "Local audio-reactive streaming backgrounds",
     "longDescription": "Auralith Desktop runs entirely on your computer. System audio, Smart Detect, Stream Output, and Browser Source stay local. No Netlify or cloud runtime is required after install.",
-    "createUpdaterArtifacts": false
+    "createUpdaterArtifacts": true
   },
   "plugins": {
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEI2MTgxNEQ4OTJGMkI5QUEKUldTcXVmS1MyQlFZdGhzdlMvSXIzYnBXMVhsM1YrblZScEpueSsrZzRoOENhdjRZU1FWUWJNdFAK",
-      "endpoints": [],
+      "endpoints": [
+        "https://raw.githubusercontent.com/dragonking587-ai/Auralith-desktop-updates/main/latest.json",
+        "https://github.com/dragonking587-ai/Auralith/releases/download/auralith-v2-channel/latest.json"
+      ],
       "windows": {
         "installMode": "passive"
       }

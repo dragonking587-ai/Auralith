@@ -1,6 +1,6 @@
 [package]
 name = "auralith"
-version = "1.0.0"
+version = "2.0.0-alpha.2"
 description = "Auralith desktop — local audio-reactive streaming backgrounds"
 authors = ["Auralith"]
 edition = "2021"

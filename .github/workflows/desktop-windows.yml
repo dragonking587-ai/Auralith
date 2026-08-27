@@ -2,9 +2,15 @@ name: Auralith Desktop Windows
 
 on:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to publish (e.g. v2.0.0-alpha.2)"
+        required: false
+        default: "v2.0.0-alpha.2"
   push:
     tags:
       - "v*-desktop*"
+      - "v2.*"
 
 permissions:
   contents: write
@@ -71,8 +77,10 @@ jobs:
         run: |
           if [ "${{ github.ref_type }}" = "tag" ]; then
             TAG="${{ github.ref_name }}"
+          elif [ -n "${{ github.event.inputs.release_tag }}" ]; then
+            TAG="${{ github.event.inputs.release_tag }}"
           else
-            TAG="v1.0.0-desktop-test.local"
+            TAG="v2.0.0-alpha.2"
           fi
           # v1.0.0-desktop-test.17 -> "Auralith Desktop Test 17"
           NAME="$TAG"
@@ -111,7 +119,7 @@ jobs:
             Installer is **unsigned** (SmartScreen may warn).
           releaseDraft: false
           prerelease: true
-          includeUpdaterJson: false
+          includeUpdaterJson: true
 
       - name: Verify NSIS installer exists
         shell: pwsh
@@ -133,6 +141,19 @@ jobs:
             throw "P0 gate failed: softcam.dll missing from vendor/softcam/out (bundled resource required)"
           }
           Write-Host "softcam.dll present for bundle resources"
+          $sig = @()
+          $sig += Get-Item "src-tauri\target\release\bundle\nsis\*.sig" -ErrorAction SilentlyContinue
+          $sig += Get-Item "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.sig" -ErrorAction SilentlyContinue
+          $zip = @()
+          $zip += Get-Item "src-tauri\target\release\bundle\nsis\*.nsis.zip" -ErrorAction SilentlyContinue
+          $zip += Get-Item "src-tauri\target\x86_64-pc-windows-msvc\release\bundle\nsis\*.nsis.zip" -ErrorAction SilentlyContinue
+          if (-not $sig -or $sig.Count -eq 0) {
+            throw "Updater gate failed: no minisign .sig produced (TAURI_SIGNING_PRIVATE_KEY missing or createUpdaterArtifacts failed)"
+          }
+          if (-not $zip -or $zip.Count -eq 0) {
+            Write-Host "WARNING: no .nsis.zip updater artifact (installer exe still present)"
+          }
+          $sig | ForEach-Object { Write-Host "Updater signature: $($_.FullName)" }
 
       - name: Upload NSIS installer artifact
         uses: actions/upload-artifact@v4
@@ -140,7 +161,11 @@ jobs:
           name: auralith-windows-nsis
           path: |
             src-tauri/target/release/bundle/nsis/*.exe
+            src-tauri/target/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/release/bundle/nsis/*.sig
             src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.exe
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.nsis.zip
+            src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis/*.sig
             vendor/softcam/out/softcam.dll
           if-no-files-found: error
           retention-days: 14

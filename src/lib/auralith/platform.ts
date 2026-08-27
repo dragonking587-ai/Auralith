@@ -14,8 +14,8 @@ export function desktopHttpOrigin(): string {
  * Single source of truth for the installed desktop marketing version.
  * Bump this (and DESKTOP_RELEASE_TAG) for every desktop release build.
  */
-export const DESKTOP_VERSION = "1.0.0-desktop-gpu-phase1";
-export const DESKTOP_RELEASE_TAG = "v1.0.0-desktop-gpu-phase1";
+export const DESKTOP_VERSION = "2.0.0-alpha.2";
+export const DESKTOP_RELEASE_TAG = "v2.0.0-alpha.2";
 export const DESKTOP_RELEASE_PAGE = `https://github.com/dragonking587-ai/Auralith/releases/tag/${DESKTOP_RELEASE_TAG}`;
 export const DESKTOP_RELEASES_PAGE = "https://github.com/dragonking587-ai/Auralith/releases";
 
@@ -24,8 +24,11 @@ export const DESKTOP_RELEASES_PAGE = "https://github.com/dragonking587-ai/Aurali
  * Hosted on a public repo so private Auralith source can still advertise latest desktop builds.
  * Update this file on every desktop release: Auralith-desktop-updates/desktop-latest.json
  */
+/** Tauri 2 updater + UI fallback. Public repo so private source still advertises builds. */
 export const DESKTOP_UPDATE_ENDPOINT =
-  "https://raw.githubusercontent.com/dragonking587-ai/Auralith-desktop-updates/main/desktop-latest.json";
+  "https://raw.githubusercontent.com/dragonking587-ai/Auralith-desktop-updates/main/latest.json";
+export const DESKTOP_UPDATE_CHANNEL_ENDPOINT =
+  "https://github.com/dragonking587-ai/Auralith/releases/download/auralith-v2-channel/latest.json";
 
-/** localStorage key for auto-check preference (default OFF until manual check is proven). */
+/** localStorage key for auto-check preference (V2 alpha default ON). */
 export const DESKTOP_AUTO_UPDATE_KEY = "auralith.desktop.autoUpdateCheck";
