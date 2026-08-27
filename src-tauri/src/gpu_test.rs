@@ -368,18 +368,19 @@ fn windows_run(shared: Arc<Shared>, init_w: u32, init_h: u32, init_fps: u32) -> 
         let mut logical_w = LOG_W.load(Ordering::SeqCst).max(16);
         let mut logical_h = LOG_H.load(Ordering::SeqCst).max(16);
 
-        let mk_desc = |cw: u32, ch: u32| DXGI_SWAP_CHAIN_DESC1 {
-            Width: cw,
-            Height: ch,
-            Format: DXGI_FORMAT_B8G8R8A8_UNORM,
-            Stereo: false.into(),
-            SampleDesc: DXGI_SAMPLE_DESC { Count: 1, Quality: 0 },
-            BufferUsage: DXGI_USAGE_RENDER_TARGET_OUTPUT,
-            BufferCount: 2,
-            Scaling: windows::Win32::Graphics::Dxgi::Common::DXGI_SCALING(0), // STRETCH
-            SwapEffect: DXGI_SWAP_EFFECT_FLIP_DISCARD,
-            AlphaMode: windows::Win32::Graphics::Dxgi::Common::DXGI_ALPHA_MODE(3), // IGNORE
-            Flags: 0,
+        let mk_desc = |cw: u32, ch: u32| {
+            // Default() supplies DXGI_SCALING / DXGI_ALPHA_MODE values that are
+            // not always exported as named constants in windows-rs 0.58 Common.
+            let mut d = DXGI_SWAP_CHAIN_DESC1::default();
+            d.Width = cw;
+            d.Height = ch;
+            d.Format = DXGI_FORMAT_B8G8R8A8_UNORM;
+            d.SampleDesc = DXGI_SAMPLE_DESC { Count: 1, Quality: 0 };
+            d.BufferUsage = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            d.BufferCount = 2;
+            d.SwapEffect = DXGI_SWAP_EFFECT_FLIP_DISCARD;
+            d.Flags = 0;
+            d
         };
 
         let mut rc = windows::Win32::Foundation::RECT::default();
