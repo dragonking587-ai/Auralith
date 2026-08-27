@@ -104,8 +104,8 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             const int EventCb = 0x00040000;
             const int AutoPcm = unchecked((int)0x80000000);
             const int SrcQual = 0x08000000;
-            var flags = Loopback | EventCb | AutoPcm | SrcQual;
-            var hr = IAudioClient_Initialize(client, 0, flags, 0, 0, fmtPtr, IntPtr.Zero);
+            var streamFlags = Loopback | EventCb | AutoPcm | SrcQual;
+            var hr = IAudioClient_Initialize(client, 0, streamFlags, 0, 0, fmtPtr, IntPtr.Zero);
             if (hr < 0)
             {
                 Log($"ProcessLoopback Initialize with event/auto flags failed {Hex(hr)}; retry 1s buffer");
@@ -373,6 +373,13 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         => Call<PktDel>(c, 5)(c, out frames);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int PktDel(nint s, out uint frames);
+
+    [DllImport("kernel32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
+    private static extern nint CreateEventW(nint attr, bool manual, bool initial, string? name);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern uint WaitForSingleObject(nint handle, uint ms);
+    [DllImport("kernel32.dll", SetLastError = true)]
+    private static extern bool CloseHandle(nint handle);
 
     private static T Call<T>(nint c, int slot) where T : Delegate
         => Marshal.GetDelegateForFunctionPointer<T>(Marshal.ReadIntPtr(Marshal.ReadIntPtr(c), slot * IntPtr.Size));
