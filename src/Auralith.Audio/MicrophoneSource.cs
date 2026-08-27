@@ -1,10 +1,11 @@
+using NAudio.CoreAudioApi;
 using NAudio.Wave;
 
 namespace Auralith.Audio;
 
 public sealed class MicrophoneSource : IAudioCaptureSource
 {
-    private NAudio.Wave.WasapiCapture? _cap;
+    private NAudio.CoreAudioApi.WasapiCapture? _cap;
     public string Name => "Microphone";
     public WaveFormat? Format => _cap?.WaveFormat;
     public event EventHandler<WaveInEventArgs>? DataAvailable;
@@ -15,7 +16,7 @@ public sealed class MicrophoneSource : IAudioCaptureSource
         Stop();
         try
         {
-            _cap = new NAudio.Wave.WasapiCapture();
+            _cap = new NAudio.CoreAudioApi.WasapiCapture();
             _cap.DataAvailable += (_, e) => DataAvailable?.Invoke(this, e);
             _cap.RecordingStopped += (_, e) =>
             {

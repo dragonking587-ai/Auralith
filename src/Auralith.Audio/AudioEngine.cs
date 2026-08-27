@@ -15,7 +15,7 @@ public sealed class AudioEngine : IDisposable
 
     private WasapiLoopbackCapture? _loop;
     private ProcessLoopbackSource? _procSrc;
-    private NAudio.Wave.WasapiCapture? _mic;
+    private NAudio.CoreAudioApi.WasapiCapture? _mic;
     private readonly object _gate = new();
     private readonly float[] _fft = new float[FftSize];
     private int _fftFill;
@@ -179,7 +179,7 @@ public sealed class AudioEngine : IDisposable
         Status = "Desktop Audio: STARTING";
         try
         {
-            _mic = new NAudio.Wave.WasapiCapture();
+            _mic = new NAudio.CoreAudioApi.WasapiCapture();
             _mic.DataAvailable += OnDataFromWave;
             _mic.RecordingStopped += (_, args) => Status = args.Exception is null ? "Desktop Audio: STOPPED" : "Desktop Audio: ERROR " + args.Exception.Message;
             var fmt = _mic.WaveFormat;
