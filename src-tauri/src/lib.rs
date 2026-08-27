@@ -356,10 +356,7 @@ fn broadcast_status() -> broadcast::BroadcastStatus {
 }
 
 #[tauri::command]
-fn broadcast_push_frame_b64,
-            gpu_test_open,
-            gpu_test_close,
-            gpu_test_status(data: String, width: u32, height: u32) -> Result<(), String> {
+fn broadcast_push_frame_b64(data: String, width: u32, height: u32) -> Result<(), String> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(data.as_bytes())
