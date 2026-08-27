@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using Auralith.Core;
 
 namespace Auralith.Platform.Windows;
 
@@ -12,11 +13,11 @@ public sealed class NativeWindow : IDisposable
     public event Action? Closed;
 
     private bool _disposed;
-    private static NativeWindow? _current;
     private WndProc? _procKeepAlive;
 
     public void Create(int width, int height)
     {
+        NativeLog.Write("[NativeBroadcast] Registering window class");
         _procKeepAlive = WndProcImpl;
         var wc = new WNDCLASSEXW
         {
@@ -27,16 +28,22 @@ public sealed class NativeWindow : IDisposable
             lpszClassName = ClassName,
             hCursor = LoadCursorW(0, 32512)
         };
-        RegisterClassExW(ref wc);
+        var atom = RegisterClassExW(ref wc);
+        var regErr = Marshal.GetLastWin32Error();
+        if (atom == 0 && regErr != 1410) // ERROR_CLASS_ALREADY_EXISTS
+            throw new InvalidOperationException($"RegisterClassEx failed Win32={regErr}");
+        NativeLog.Write("[NativeBroadcast] Window class registered");
 
+        NativeLog.Write("[NativeBroadcast] Creating HWND");
         var style = 0x00CF0000; // WS_OVERLAPPEDWINDOW
+        var w = Math.Clamp(width / 2, 640, 1600);
+        var h = Math.Clamp(height / 2, 360, 900);
         Hwnd = CreateWindowExW(0, ClassName, Title, style,
             unchecked((int)0x80000000), unchecked((int)0x80000000),
-            Math.Max(640, width / 2), Math.Max(360, height / 2),
-            0, 0, wc.hInstance, 0);
+            w, h, 0, 0, wc.hInstance, 0);
         if (Hwnd == 0)
             throw new InvalidOperationException($"CreateWindowEx failed Win32={Marshal.GetLastWin32Error()}");
-        _current = this;
+        NativeLog.Write($"[NativeBroadcast] HWND created: 0x{Hwnd:X}");
         ShowWindow(Hwnd, 5);
         UpdateWindow(Hwnd);
     }
@@ -45,7 +52,7 @@ public sealed class NativeWindow : IDisposable
     {
         while (PeekMessageW(out var msg, 0, 0, 0, 1))
         {
-            if (msg.message == 0x0012) // WM_QUIT
+            if (msg.message == 0x0012)
                 return;
             TranslateMessage(ref msg);
             DispatchMessageW(ref msg);
@@ -61,21 +68,19 @@ public sealed class NativeWindow : IDisposable
             DestroyWindow(Hwnd);
             Hwnd = 0;
         }
-        if (ReferenceEquals(_current, this))
-            _current = null;
     }
 
     private nint WndProcImpl(nint hWnd, uint msg, nint wParam, nint lParam)
     {
         switch (msg)
         {
-            case 0x0005: // WM_SIZE
+            case 0x0005:
                 SizeChanged?.Invoke((int)(lParam & 0xFFFF), (int)((lParam >> 16) & 0xFFFF));
                 break;
-            case 0x0010: // WM_CLOSE
+            case 0x0010:
                 DestroyWindow(hWnd);
                 return 0;
-            case 0x0002: // WM_DESTROY
+            case 0x0002:
                 Closed?.Invoke();
                 PostQuitMessage(0);
                 return 0;
@@ -107,7 +112,7 @@ public sealed class NativeWindow : IDisposable
         public int ptX, ptY;
     }
 
-    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern ushort RegisterClassExW(ref WNDCLASSEXW lpwcx);
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern nint CreateWindowExW(int ex, string cls, string title, int style,

@@ -5,4 +5,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <UseWindowsForms>false</UseWindowsForms>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Auralith.Core\Auralith.Core.csproj" />
+  </ItemGroup>
 </Project>
+
