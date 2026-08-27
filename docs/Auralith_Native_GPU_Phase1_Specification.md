@@ -996,19 +996,194 @@ Phase 1 is NOT the complete Broadcast Output.
 
 Do NOT connect:
 
-- backdrop
-- scene state
-- renderer.ts
-- audio bands
-- Trace
-- Stamp
-- Pulse
-- Flicker
-- Strobe
-- Room Dim
-- Fit / Fill scene composition
-- live Auralith frames
+backdrop
+scene state
+renderer.ts
+audio bands
+Trace
+Stamp
+Pulse
+Flicker
+Strobe
+Room Dim
+Magic Energy
+FinalFrameProvider live frames
 
-until Phase 1 has proven that the native GPU window itself is reliable and capturable.
+The test output must remain a standalone diagnostic native GPU renderer.
 
-This specification is the source of truth for Phase 1 implementation on the Auralith Desktop V2 rebuild branch.
+The purpose is to prove Windows presentation and streaming-app capture FIRST.
+
+==================================================
+41. DO NOT REMOVE LEGACY OUTPUT YET
+==================================================
+
+Keep the existing output implementations available while Phase 1 is being tested.
+
+Do not remove:
+
+legacy Broadcast Output
+Browser Source
+Virtual Camera
+
+during this phase.
+
+They are not the focus.
+
+Once the new architecture is proven, cleanup happens later.
+
+==================================================
+42. PHASE 1 PASS GATE
+==================================================
+
+PHASE 1 PASSES ONLY IF:
+
+1. Auralith launches normally.
+2. Open Native GPU Test Output button exists.
+3. Button reaches Rust command.
+4. Native thread starts.
+5. Real HWND is created.
+6. D3D11 initializes.
+7. Swap chain initializes.
+8. Animated diagnostic scene appears.
+9. Animation continues smoothly.
+10. 1920×1080 works.
+11. 1280×720 works.
+12. 1080×1920 works.
+13. 720×1280 works.
+14. 30 FPS is stable.
+15. 60 FPS is stable where hardware allows.
+16. Window resize works.
+17. Minimize/restore works or limitations are clearly documented.
+18. DPI scaling works.
+19. Close/reopen works.
+20. 50 open/close cycles do not crash or leak significantly.
+21. 30-minute soak succeeds.
+22. OBS Window Capture sees the window.
+23. OBS captures live animation.
+24. Streamlabs sees/captures it.
+25. TikTok LIVE Studio sees/captures it.
+26. Main Auralith does not crash.
+27. No second WebView is involved.
+28. No Axum hub is involved.
+29. No Softcam/DirectShow dependency exists.
+
+DO NOT BEGIN PHASE 2 UNTIL THIS PASS GATE IS SATISFIED OR ANY HARDWARE-only tests that cannot be run in Grok's environment are explicitly handed back to me for verification.
+
+==================================================
+43. HARDWARE TEST HONESTY
+==================================================
+
+If your environment cannot actually launch:
+
+OBS
+Streamlabs
+TikTok LIVE Studio
+
+do NOT mark those tests PASS.
+
+Mark them:
+
+REQUIRES USER WINDOWS TEST
+
+Provide exact instructions for me to test them.
+
+Likewise, do not invent:
+
+CPU measurements
+GPU measurements
+memory measurements
+FPS measurements
+
+if they were not actually measured.
+
+==================================================
+44. PHASE 1 REPORT
+==================================================
+
+Return a complete Phase 1 report containing:
+
+1. Branch used.
+2. Commit hash.
+3. Files/modules added.
+4. Native command name.
+5. ACL permission added.
+6. HWND creation method.
+7. Windows message-loop design.
+8. D3D11 device creation method.
+9. GPU adapter selected.
+10. D3D feature level.
+11. DXGI swap-chain configuration.
+12. Whether DirectComposition is used.
+13. Backbuffer format.
+14. Frame-pacing implementation.
+15. Threading model.
+16. Resize implementation.
+17. DPI implementation.
+18. Device-loss handling.
+19. 1920×1080 result.
+20. 1280×720 result.
+21. 1080×1920 result.
+22. 720×1280 result.
+23. 30 FPS result.
+24. 60 FPS result.
+25. Open/close stress result.
+26. Memory result.
+27. CPU result.
+28. GPU result.
+29. OBS result or REQUIRES USER WINDOWS TEST.
+30. Streamlabs result or REQUIRES USER WINDOWS TEST.
+31. TikTok LIVE Studio result or REQUIRES USER WINDOWS TEST.
+32. Remaining blockers.
+33. Whether Phase 1 is ready for my Windows verification.
+34. Whether Phase 1 is safe to mark PASS.
+35. Exact instructions for my local verification.
+
+==================================================
+45. DO NOT START PHASE 2
+==================================================
+
+When Phase 1 implementation is complete:
+
+STOP.
+
+Do not automatically begin connecting Auralith's real renderer.
+
+Do not connect the backdrop.
+
+Do not connect audio effects.
+
+Do not implement FinalFrameProvider integration.
+
+Wait for the Phase 1 native GPU diagnostic engine to be tested and approved.
+
+==================================================
+FINAL INSTRUCTION
+==================================================
+
+Build ONLY the standalone Auralith Native GPU Diagnostic Output Engine.
+
+The success path is:
+
+Auralith
+→ Open Native GPU Test Output
+→ Rust native command
+→ Native Windows HWND
+→ D3D11
+→ DXGI presentation
+→ animated diagnostic scene
+→ OBS / Streamlabs / TikTok LIVE Studio Window Capture
+
+No second WebView.
+No Axum scene transport.
+No DirectShow.
+No Virtual Camera.
+No full Auralith renderer integration yet.
+
+PHASE 1 PROVES THE OUTPUT ENGINE.
+
+Once Phase 1 is verified on Windows, we will move to Phase 2:
+
+Native GPU Output
+→ static Auralith backdrop.
+
+Do not begin Phase 2 until I explicitly approve it.
