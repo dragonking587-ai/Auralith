@@ -1,2 +1,7 @@
 # Auralith
-Auralith is a real-time audio-reactive background creator for OBS, Streamlabs, and TikTok LIVE Studio. Create custom lighting effects including flame, pulse, hue, flicker, and strobe, synchronized to music with Browser Source and Window Capture support.
+
+Native Windows application.
+
+Stack: C# / .NET 8 / WinUI 3 / Direct3D 11.
+
+This repository was reset. The previous Tauri/React/Rust application is not part of the active tree.
