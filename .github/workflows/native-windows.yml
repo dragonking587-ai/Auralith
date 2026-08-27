@@ -31,7 +31,7 @@ jobs:
           Get-ChildItem -Recurse -Filter *.xamlcompiler* src/Auralith.App -ErrorAction SilentlyContinue |
             ForEach-Object { Write-Host "==== $($_.FullName) ===="; Get-Content $_.FullName -Raw }
       - name: Test
-        run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release --no-build
+        run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64 --verbosity normal
       - name: Publish self-contained x64
         run: |
           dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
