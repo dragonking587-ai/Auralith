@@ -91,6 +91,9 @@
                     <TextBlock x:Name="AudioStatus" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                     <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3" TextWrapping="Wrap"/>
                     <TextBlock x:Name="AudioDiag" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>
+                    <TextBlock Text="NATIVE PROCESS LOOPBACK TEST" Foreground="#D4AF37" Margin="0,12,0,4"/>
+                    <TextBlock x:Name="LoopbackDiag" FontFamily="Consolas" FontSize="11" Foreground="#C9B896" TextWrapping="Wrap"
+                               Text="Start Application Audio to run the native PCM test."/>
                 </StackPanel>
             </ScrollViewer>
         </Grid>

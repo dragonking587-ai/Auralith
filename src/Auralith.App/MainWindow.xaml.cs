@@ -262,6 +262,25 @@ public sealed partial class MainWindow : Window
                 $"BEAT {Bar(bands.Beat)}  {bands.Beat:0.00}  TRN {Bar(bands.Transient)}  {bands.Transient:0.00}";
         if (AudioStatus is not null) AudioStatus.Text = _audio.Status;
         if (AudioDiag is not null) AudioDiag.Text = _audio.Diagnostics;
+        if (LoopbackDiag is not null)
+        {
+            var src = _audio.ProcessSource;
+            if (src is null) LoopbackDiag.Text = "Native process source idle. Select Application Audio and Start.";
+            else
+            {
+                var b = _audio.Snapshot();
+                LoopbackDiag.Text =
+                    $"Application: {src.Name}\nPID: see selector\nWindows: {ProcessLoopbackSource.WindowsVersion()}\n" +
+                    $"Stage: {src.LastStage}\nHRESULT: {src.LastHresult}\n" +
+                    $"IAudioClient: {(src.ClientOk ? "SUCCESS" : "PENDING/ERROR")}\n" +
+                    $"Capture Client: {(src.CaptureClientOk ? "SUCCESS" : "PENDING/ERROR")}\n" +
+                    $"First Audio Packet: {(src.FirstPacket ? "YES" : "NO")}\n" +
+                    $"Packets: {src.Packets}\n" +
+                    $"RAW Peak: {b.Raw:0.00}   RAW RMS: {b.Raw:0.00}\n" +
+                    $"BASS {b.Bass:0.00}  LOW {b.Low:0.00}  MID {b.Mid:0.00}  HIGH {b.High:0.00}";
+            }
+        }
+
         if (_scene.ShowOverlays) RedrawOverlay();
         else Overlay.Children.Clear();
         if (_holdDecodedPreview)

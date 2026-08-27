@@ -23,6 +23,13 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     private readonly bool _includeTree;
     public string Name { get; }
     public WaveFormat? Format => _format;
+    public string LastStage { get; private set; } = "idle";
+    public string LastHresult { get; private set; } = "";
+    public bool ClientOk { get; private set; }
+    public bool CaptureClientOk { get; private set; }
+    public bool FirstPacket { get; private set; }
+    public long Packets { get; private set; }
+
     public event EventHandler<WaveInEventArgs>? DataAvailable;
     public event EventHandler<string>? Failed;
 
@@ -81,8 +88,10 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         nint client = 0, capture = 0, fmtPtr = 0;
         try
         {
+            LastStage = "ActivateAudioInterfaceAsync";
             Log($"ProcessLoopback Stage: ActivateAudioInterfaceAsync PID:{_pid} Mode:{(_includeTree ? "IncludeProcessTree" : "ExcludeProcessTree")} Win:{WindowsVersion()} Interface:{VirtualDevice}");
             client = ActivateClient(_pid, _includeTree);
+            ClientOk = true; LastStage = "IAudioClient"; LastHresult = "0x00000000";
             Log("ProcessLoopback IAudioClient obtained: YES");
             // Process-loopback clients return E_NOTIMPL (0x80004001) from GetMixFormat.
             // Use the Microsoft ApplicationLoopback capture format instead.
@@ -99,7 +108,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             };
             fmtPtr = Marshal.AllocHGlobal(Marshal.SizeOf<WaveFormatEx>());
             Marshal.StructureToPtr(wf, fmtPtr, false);
-            Log("ProcessLoopback Stage: CaptureFormat PCM16 stereo 44100 (GetMixFormat skipped)");
+            LastStage = "CaptureFormat"; Log("ProcessLoopback Stage: CaptureFormat PCM16 stereo 44100 (GetMixFormat skipped)");
             const int Loopback = 0x00020000;
             const int EventCb = 0x00040000;
             const int AutoPcm = unchecked((int)0x80000000);
@@ -112,6 +121,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
                 hr = IAudioClient_Initialize(client, 0, Loopback | AutoPcm, 10_000_000, 0, fmtPtr, IntPtr.Zero);
             }
             if (hr < 0) throw Com("IAudioClient.Initialize", hr);
+            LastStage = "Initialize"; LastHresult = Hex(hr);
             Log($"ProcessLoopback Stage: Initialize SUCCESS {Hex(hr)}");
             hr = IAudioClient_GetBufferSize(client, out var bufFrames);
             if (hr < 0) throw Com("GetBufferSize", hr);
@@ -119,6 +129,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             var iid = IidCaptureClient;
             hr = IAudioClient_GetService(client, ref iid, out capture);
             if (hr < 0) throw Com("GetService IAudioCaptureClient", hr);
+            CaptureClientOk = true; LastStage = "GetCaptureClient"; LastHresult = "0x00000000";
             Log("ProcessLoopback Stage: GetCaptureClient SUCCESS");
             var evt = CreateEventW(IntPtr.Zero, false, false, null);
             if (evt == 0) throw Com("CreateEvent", Marshal.GetHRForLastWin32Error());
@@ -132,6 +143,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             else Log("ProcessLoopback Stage: SetEventHandle SUCCESS");
             hr = IAudioClient_Start(client);
             if (hr < 0) throw Com("IAudioClient.Start", hr);
+            LastStage = "Start"; LastHresult = "0x00000000";
             Log("ProcessLoopback Stage: Start SUCCESS");
             ready.Set();
             _eventHandle = evt;
@@ -157,12 +169,13 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
                     Marshal.Copy(data, packet, 0, bytes);
                     if (!first)
                     {
-                        first = true;
+                        first = true; FirstPacket = true; LastStage = "FirstPacket"; Packets++;
                         float peak = 0;
                         for (var i = 0; i + 3 < Math.Min(bytes, 256); i += 4)
                             peak = Math.Max(peak, Math.Abs(BitConverter.ToSingle(packet, i)));
                         Log($"ProcessLoopback First packet received: YES bytes={bytes} frames={got} peak~={peak:0.000}");
                     }
+                    Packets++;
                     DataAvailable?.Invoke(this, new WaveInEventArgs(packet, bytes));
                 }
                 IAudioCaptureClient_ReleaseBuffer(capture, got);
@@ -236,6 +249,12 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     }
 
     internal static string Hex(int hr) => $"0x{unchecked((uint)hr):X8}";
+    private COMException Fail(string stage, int hr)
+    {
+        LastStage = stage;
+        LastHresult = Hex(hr);
+        return new COMException($"ProcessLoopback Stage: {stage} HRESULT: {Hex(hr)} ({hr}) {Marshal.GetExceptionForHR(hr)?.Message}", hr);
+    }
     private static COMException Com(string stage, int hr)
         => new($"ProcessLoopback Stage: {stage} HRESULT: {Hex(hr)} ({hr}) {Marshal.GetExceptionForHR(hr)?.Message}", hr);
 

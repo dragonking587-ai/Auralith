@@ -35,6 +35,8 @@ public sealed class AudioEngine : IDisposable
     public string DeviceName { get; private set; } = "Default Output";
     public string DeviceId { get; private set; } = "";
     public string Diagnostics { get; private set; } = "";
+    public ProcessLoopbackSource? ProcessSource => _procSrc;
+
 
     public event Action<string>? Logged;
 
