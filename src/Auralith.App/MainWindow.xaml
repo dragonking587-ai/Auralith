@@ -1,0 +1,20 @@
+<Window
+    x:Class="Auralith.App.MainWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+    <Grid Background="#050509">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+        <StackPanel Margin="20,16,20,8">
+            <TextBlock Text="AURALITH" FontSize="26" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="160"/>
+            <TextBlock Text="NATIVE GPU CORE TEST" Foreground="#9AA3B2" FontSize="13"/>
+        </StackPanel>
+        <Border Grid.Row="1" Margin="20,0" BorderBrush="#D4AF37" BorderThickness="2" Background="#08080C">
+            <Image x:Name="Preview" Stretch="Uniform"/>
+        </Border>
+        <TextBlock x:Name="Hud" Grid.Row="2" Margin="20,10,20,16" Foreground="#E8E6E3" FontSize="13"/>
+    </Grid>
+</Window>

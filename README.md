@@ -1,7 +1,9 @@
 # Auralith
 
-Native Windows application.
+Native Windows visual-audio application.
 
-Stack: C# / .NET 8 / WinUI 3 / Direct3D 11.
+- C# / .NET 8
+- WinUI 3 / Windows App SDK
+- Direct3D 11
 
-This repository was reset. The previous Tauri/React/Rust application is not part of the active tree.
+Phase 1 is a GPU core diagnostic preview inside the app. There is no OBS output, updater, or editor yet.
