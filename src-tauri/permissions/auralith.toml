@@ -21,5 +21,8 @@ commands.allow = [
   "broadcast_open",
   "broadcast_close",
   "broadcast_status",
-  "broadcast_push_frame_b64"
+  "broadcast_push_frame_b64",
+  "gpu_test_open",
+  "gpu_test_close",
+  "gpu_test_status"
 ]

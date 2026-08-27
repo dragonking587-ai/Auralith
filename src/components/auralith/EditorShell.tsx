@@ -481,6 +481,119 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
 }
 
 
+
+function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.getState>["scene"] }) {
+  const [phase, setPhase] = useState("CLOSED");
+  const [err, setErr] = useState<string | null>(null);
+  const [info, setInfo] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!isDesktopApp()) return;
+    let stop = false;
+    const poll = async () => {
+      try {
+        const { invoke } = await import("@tauri-apps/api/core");
+        const st = (await invoke("gpu_test_status")) as {
+          state?: string;
+          width?: number;
+          height?: number;
+          target_fps?: number;
+          actual_fps?: number;
+          adapter?: string;
+          feature_level?: string;
+          last_error?: string | null;
+        };
+        if (stop) return;
+        setPhase((st.state || "CLOSED").toUpperCase());
+        const bits = [
+          st.width && st.height ? `${st.width}×${st.height}` : "",
+          st.target_fps ? `target ${st.target_fps} FPS` : "",
+          st.actual_fps != null ? `actual ${st.actual_fps} FPS` : "",
+          st.adapter || "",
+          st.feature_level ? `FL ${st.feature_level}` : "",
+        ].filter(Boolean);
+        setInfo(bits.join(" · "));
+        if (st.last_error) setErr(st.last_error);
+      } catch {
+        /* ignore */
+      }
+    };
+    void poll();
+    const id = window.setInterval(() => void poll(), 1000);
+    return () => {
+      stop = true;
+      window.clearInterval(id);
+    };
+  }, []);
+
+  const open = async () => {
+    setBusy(true);
+    setErr(null);
+    console.info("[NativeGpuTest UI] Open requested");
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      console.info("[NativeGpuTest UI] invoking gpu_test_open");
+      await invoke("gpu_test_open", {
+        width: scene.output.width,
+        height: scene.output.height,
+        fps: scene.output.fps,
+      });
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setPhase("ERROR");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const close = async () => {
+    try {
+      const { invoke } = await import("@tauri-apps/api/core");
+      await invoke("gpu_test_close");
+    } catch {
+      /* ignore */
+    }
+  };
+
+  return (
+    <div className="mb-3 rounded-[12px] border border-border px-3 py-3">
+      <div className="text-sm font-medium text-fg">NATIVE GPU TEST OUTPUT</div>
+      <div className="mt-0.5 text-[11px] text-subtle">Phase 1 diagnostic — D3D11 / DXGI (not live scene)</div>
+      <p className="mt-1 text-[11px] leading-snug text-subtle">
+        Standalone HWND <span className="text-fg">Auralith — Native GPU Test Output</span>. Animated gold orb + energy
+        band. No WebView, no hub, no Softcam.
+      </p>
+      <div className="mt-2 text-[11px] text-muted">
+        Status: <span className="text-fg">{phase}</span>
+        {info ? <span> · {info}</span> : null}
+      </div>
+      {err ? (
+        <p className="mt-1 text-[11px] text-red-400" role="alert">
+          {err}
+        </p>
+      ) : null}
+      <button
+        type="button"
+        disabled={busy}
+        onClick={() => void open()}
+        className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-accent-fg disabled:opacity-60"
+      >
+        Open Native GPU Test Output
+      </button>
+      {phase === "RUNNING" || phase === "STARTING" ? (
+        <button
+          type="button"
+          onClick={() => void close()}
+          className="mt-2 min-h-9 w-full rounded-[10px] border border-border px-3 text-xs text-muted"
+        >
+          Close Native GPU Test
+        </button>
+      ) : null}
+    </div>
+  );
+}
+
 function NativeBroadcastCard({
   scene,
   onOpenNative,
@@ -621,6 +734,8 @@ function OutputPane({
   return (
     <div className="flex flex-col gap-4">
       <Section title="Streaming outputs">
+        {isDesktopApp() ? <NativeGpuTestCard scene={scene} /> : null}
+
         {isDesktopApp() ? (
           <NativeBroadcastCard
             scene={scene}

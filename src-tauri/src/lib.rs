@@ -1,6 +1,7 @@
 mod audio;
 mod vcam;
 mod broadcast;
+mod gpu_test;
 mod server;
 
 use serde_json::Value;
@@ -355,12 +356,32 @@ fn broadcast_status() -> broadcast::BroadcastStatus {
 }
 
 #[tauri::command]
-fn broadcast_push_frame_b64(data: String, width: u32, height: u32) -> Result<(), String> {
+fn broadcast_push_frame_b64,
+            gpu_test_open,
+            gpu_test_close,
+            gpu_test_status(data: String, width: u32, height: u32) -> Result<(), String> {
     use base64::Engine;
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(data.as_bytes())
         .map_err(|e| format!("Invalid base64 frame: {e}"))?;
     broadcast::push_bgra(width, height, bytes)
+}
+
+
+#[tauri::command]
+fn gpu_test_open(width: u32, height: u32, fps: Option<u32>) -> Result<gpu_test::GpuTestStatus, String> {
+    eprintln!("[NativeGpuTest] Rust handler entered");
+    gpu_test::open(width, height, fps.unwrap_or(30))
+}
+
+#[tauri::command]
+fn gpu_test_close() {
+    gpu_test::close();
+}
+
+#[tauri::command]
+fn gpu_test_status() -> gpu_test::GpuTestStatus {
+    gpu_test::status()
 }
 
 pub fn run() {
@@ -394,7 +415,10 @@ pub fn run() {
             broadcast_open,
             broadcast_close,
             broadcast_status,
-            broadcast_push_frame_b64
+            broadcast_push_frame_b64,
+            gpu_test_open,
+            gpu_test_close,
+            gpu_test_status
         ])
         .run(tauri::generate_context!())
         .expect("Auralith failed to start");
