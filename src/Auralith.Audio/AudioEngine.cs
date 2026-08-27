@@ -31,7 +31,7 @@ public sealed class AudioEngine : IDisposable
     private double _pktWindow, _frameWindow, _fftWindow;
     private DateTime _windowStart = DateTime.UtcNow;
 
-    public string Status { get; private set; } = "Desktop Audio: STOPPED";
+    public string Status { get; private set; } = "Audio Capture: STOPPED";
     public string DeviceName { get; private set; } = "Default Output";
     public string DeviceId { get; private set; } = "";
     public string Diagnostics { get; private set; } = "";
@@ -72,7 +72,7 @@ public sealed class AudioEngine : IDisposable
     public void StartLoopback(string? deviceId = null)
     {
         Stop();
-        Status = "Desktop Audio: STARTING";
+        Status = "Audio Capture: STARTING";
         try
         {
             var e = new MMDeviceEnumerator();
@@ -117,21 +117,21 @@ public sealed class AudioEngine : IDisposable
             {
                 if (args.Exception is not null)
                 {
-                    Status = "Desktop Audio: ERROR " + args.Exception.Message;
+                    Status = "Audio Capture: ERROR " + args.Exception.Message;
                     Log("[Audio] RecordingStopped " + args.Exception);
                 }
-                else Status = "Desktop Audio: STOPPED";
+                else Status = "Audio Capture: STOPPED";
             };
             Log("[Audio] Capture client created");
             _loop.StartRecording();
             Log("[Audio] Audio client started");
-            Status = "Desktop Audio: CAPTURING  " + DeviceName;
+            Status = "Audio Capture: CAPTURING  " + DeviceName;
             _windowStart = DateTime.UtcNow;
             _packets = _frames = _fftRuns = _silentPackets = 0;
         }
         catch (Exception ex)
         {
-            Status = "Desktop Audio: ERROR " + ex.Message;
+            Status = "Audio Capture: ERROR " + ex.Message;
             Log("[Audio] " + ex);
         }
     }
@@ -139,10 +139,10 @@ public sealed class AudioEngine : IDisposable
     public void StartApplication(int pid, string? endpointId, bool includeTree = true)
     {
         Stop();
-        Status = "Desktop Audio: STARTING";
+        Status = "Audio Capture: STARTING";
         try
         {
-            Log($"[AppAudio] Selected application PID: {pid}");
+            Log($"[AppAudio] Mode: Application Audio PID: {pid} Win: {ProcessLoopbackSource.WindowsVersion()}");
             Log($"[AppAudio] Endpoint: {endpointId}");
             if (!ProcessLoopbackSource.IsSupported())
                 throw new InvalidOperationException("Application Audio requires Windows 10 2004+ process loopback. Desktop Output Device remains available.");
@@ -152,7 +152,7 @@ public sealed class AudioEngine : IDisposable
             {
                 Status = msg.Contains("no longer") || msg.Contains("lost", StringComparison.OrdinalIgnoreCase)
                     ? "SOURCE LOST"
-                    : "Desktop Audio: ERROR " + msg;
+                    : "Audio Capture: ERROR " + msg;
                 Log("[AppAudio] " + msg);
             };
             cap.Start();
@@ -163,13 +163,13 @@ public sealed class AudioEngine : IDisposable
                 _channels = Math.Max(1, fmt.Channels);
                 _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
             }
-            Status = "Desktop Audio: CAPTURING  process " + pid;
+            Status = $"Audio Capture: CAPTURING  Application PID {pid}";
             Log("[AppAudio] Capture started process-loopback pid=" + pid + " tree=" + includeTree);
             DeviceName = "App PID " + pid;
         }
         catch (Exception ex)
         {
-            Status = "Desktop Audio: ERROR " + ex.Message;
+            Status = "Audio Capture: ERROR " + ex.Message;
             Log("[AppAudio] " + ex);
         }
     }
@@ -177,23 +177,23 @@ public sealed class AudioEngine : IDisposable
     public void StartMicrophone()
     {
         Stop();
-        Status = "Desktop Audio: STARTING";
+        Status = "Audio Capture: STARTING";
         try
         {
             _mic = new NAudio.CoreAudioApi.WasapiCapture();
             _mic.DataAvailable += OnDataFromWave;
-            _mic.RecordingStopped += (_, args) => Status = args.Exception is null ? "Desktop Audio: STOPPED" : "Desktop Audio: ERROR " + args.Exception.Message;
+            _mic.RecordingStopped += (_, args) => Status = args.Exception is null ? "Audio Capture: STOPPED" : "Audio Capture: ERROR " + args.Exception.Message;
             var fmt = _mic.WaveFormat;
             _sampleRate = fmt.SampleRate;
             _channels = Math.Max(1, fmt.Channels);
             _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
             _mic.StartRecording();
             DeviceName = "Microphone";
-            Status = "Desktop Audio: CAPTURING  Microphone";
+            Status = "Audio Capture: CAPTURING  Microphone";
         }
         catch (Exception ex)
         {
-            Status = "Desktop Audio: ERROR " + ex.Message;
+            Status = "Audio Capture: ERROR " + ex.Message;
             Log("[Audio] mic " + ex);
         }
     }
@@ -213,8 +213,8 @@ public sealed class AudioEngine : IDisposable
         try { _mic?.StopRecording(); } catch { }
         _loop?.Dispose(); _procSrc?.Dispose(); _mic?.Dispose();
         _loop = null; _procSrc = null; _mic = null;
-        if (!Status.StartsWith("Desktop Audio: ERROR"))
-            Status = "Desktop Audio: STOPPED";
+        if (!Status.StartsWith("Audio Capture: ERROR"))
+            Status = "Audio Capture: STOPPED";
     }
 
     private void OnData(object? sender, WaveInEventArgs e) => OnDataFromWave(sender, e);
@@ -252,10 +252,10 @@ public sealed class AudioEngine : IDisposable
         if (peak < 1e-5f && rms < 1e-5f)
         {
             if ((DateTime.UtcNow - _windowStart).TotalSeconds > 1.5 && _packets > 10)
-                Status = "Desktop Audio: NO SIGNAL  " + DeviceName;
+                Status = "Audio Capture: NO SIGNAL  " + DeviceName;
         }
         else
-            Status = "Desktop Audio: CAPTURING  " + DeviceName;
+            Status = "Audio Capture: CAPTURING  " + DeviceName;
     }
 
     private List<float> ConvertToMono(byte[] buffer, int bytes, WaveFormat fmt)
