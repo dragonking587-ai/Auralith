@@ -28,6 +28,9 @@ public sealed class AudioEngine : IDisposable
     private int _channels = 2;
     private string _format = "";
     private float _rawPeak, _rawRms;
+    private string _mode = "Desktop Output";
+    private bool _firstPacketLogged;
+    private int _packetLogCount;
     private double _pktWindow, _frameWindow, _fftWindow;
     private DateTime _windowStart = DateTime.UtcNow;
 
