@@ -157,7 +157,7 @@ export function EditorShell() {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-bg text-fg">
+    <div className="auralith-shell flex h-full min-h-0 flex-col bg-bg text-fg">
       <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
         <div className="min-w-0">
           <p className="font-display text-xl italic leading-tight tracking-tight">Auralith</p>
@@ -271,7 +271,7 @@ export function EditorShell() {
 
       <footer className="flex shrink-0 items-center justify-between gap-3 border-t border-border px-4 py-2 text-[11px] text-subtle">
         <span>
-          {APP_NAME} {isDesktopApp() ? DESKTOP_VERSION : APP_VERSION}
+          <span className="auralith-mark tracking-[0.18em]">{APP_NAME}</span>{" "}{isDesktopApp() ? DESKTOP_VERSION : APP_VERSION}
         </span>
         <span className="tabular-nums">
           {scene.output.width}×{scene.output.height} · {scene.output.fps} FPS
