@@ -1,14 +1,18 @@
 using Microsoft.UI.Xaml;
+using System.Threading;
 
 namespace Auralith.App;
 
 public partial class App : Application
 {
     private Window? _window;
+    private static Mutex? _singleInstance;
 
     public App()
     {
         StartupLog.Write("Auralith process started");
+        _singleInstance = new Mutex(true, @"Local\AuralithAppMutex", out var created);
+        if (!created) StartupLog.Write("another Auralith instance is running");
         StartupLog.Write(".NET runtime initialized " + Environment.Version);
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {

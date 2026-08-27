@@ -36,44 +36,67 @@ jobs:
           $upd = Get-Item artifacts/Auralith/Auralith.Updater.exe
           if (-not $exe -or -not $upd) { throw "Auralith.exe or Auralith.Updater.exe missing" }
           $pri = Get-ChildItem artifacts/Auralith -Filter *.pri -Recurse
-          $boot = Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll
-          Write-Host "EXE $($exe.Length) UPD $($upd.Length) PRI=$($pri.Count) Bootstrap=$boot"
-          if (-not $boot) { throw "Windows App Runtime Bootstrap.dll missing" }
           if ($pri.Count -lt 3) { throw "Expected PRI packages" }
-      - name: Smoke test published exe
+          if (-not (Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll)) { throw "Bootstrap missing" }
+      - name: Install Inno Setup
         shell: pwsh
-        run: |
-          $p = Start-Process -FilePath "artifacts/Auralith/Auralith.exe" -ArgumentList "--smoke-test" -PassThru -WorkingDirectory "artifacts/Auralith"
-          $ok = $p.WaitForExit(45000)
-          if (-not $ok) { Stop-Process -Id $p.Id -Force; throw "Smoke test timed out" }
-          if ($p.ExitCode -ne 0) { throw "Smoke test failed exit $($p.ExitCode)" }
-      - name: Package + checksum + manifest
+        run: choco install innosetup --no-progress -y
+      - name: Build installer
         shell: pwsh
         run: |
           $ver = (Select-String -Path Directory.Build.props -Pattern '<AuralithVersion>(.+)</AuralithVersion>').Matches[0].Groups[1].Value
-          $name = "Auralith-Native-$ver-win-x64.zip"
-          Compress-Archive -Path artifacts/Auralith/* -DestinationPath "artifacts/$name" -Force
-          $hash = (Get-FileHash "artifacts/$name" -Algorithm SHA256).Hash.ToLower()
-          Set-Content -Path "artifacts/$name.sha256" -Value "$hash  $name" -NoNewline
+          $iss = Resolve-Path installer/Auralith.iss
+          $pub = (Resolve-Path artifacts/Auralith).Path
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { $iscc = "$env:ProgramFiles\Inno Setup 6\ISCC.exe" }
+          & $iscc $iss "/DMyAppVersion=$ver" "/DPublishDir=$pub"
+          if ($LASTEXITCODE -ne 0) { throw "ISCC failed $LASTEXITCODE" }
+          $setup = Get-Item "installer/Auralith-$ver-x64-Setup.exe"
+          if ($setup.Length -lt 1000000) { throw "installer too small $($setup.Length)" }
+          Copy-Item $setup.FullName "artifacts/$($setup.Name)"
+          echo "VER=$ver" >> $env:GITHUB_ENV
+          echo "SETUP=$($setup.Name)" >> $env:GITHUB_ENV
+          Write-Host "installer $($setup.FullName) $($setup.Length)"
+      - name: Silent install + installed smoke + uninstall
+        shell: pwsh
+        run: |
+          $dir = Join-Path $env:TEMP "AuralithCiInstall"
+          if (Test-Path $dir) { Remove-Item $dir -Recurse -Force }
+          $setup = Join-Path "artifacts" $env:SETUP
+          & $setup /VERYSILENT /NORESTART /SUPPRESSMSGBOXES /DIR="$dir"
+          if ($LASTEXITCODE -ne 0) { throw "silent install failed $LASTEXITCODE" }
+          $exe = Join-Path $dir "Auralith.exe"
+          if (-not (Test-Path $exe)) { throw "installed Auralith.exe missing" }
+          $p = Start-Process -FilePath $exe -ArgumentList "--smoke-test" -PassThru -WorkingDirectory $dir
+          $ok = $p.WaitForExit(45000)
+          if (-not $ok) { Stop-Process -Id $p.Id -Force; throw "installed smoke timed out" }
+          if ($p.ExitCode -ne 0) { throw "installed smoke failed $($p.ExitCode)" }
+          $unins = Get-ChildItem $dir -Filter "unins*.exe" | Select-Object -First 1
+          if (-not $unins) { throw "uninstaller missing" }
+          & $unins.FullName /VERYSILENT /NORESTART /SUPPRESSMSGBOXES
+          Write-Host "silent install, smoke, uninstall ok"
+      - name: SHA-256
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash "artifacts/$env:SETUP" -Algorithm SHA256).Hash.ToLower()
+          Set-Content "artifacts/$env:SETUP.sha256" "$hash  $env:SETUP"
           $manifest = @{
-            version = $ver
+            version = $env:VER
             channel = "preview"
-            releaseUrl = "https://github.com/dragonking587-ai/Auralith/releases/tag/Auralith-Native-$ver"
-            assetUrl = "https://github.com/dragonking587-ai/Auralith/releases/download/Auralith-Native-$ver/$name"
-            assetName = $name
+            releaseUrl = "https://github.com/dragonking587-ai/Auralith/releases/tag/Auralith-Native-$($env:VER)"
+            assetUrl = "https://github.com/dragonking587-ai/Auralith/releases/download/Auralith-Native-$($env:VER)/$($env:SETUP)"
+            assetName = $env:SETUP
             sha256 = $hash
             publishedAt = (Get-Date).ToUniversalTime().ToString("o")
-            releaseNotes = "Native Auralith $ver"
+            releaseNotes = "Auralith $env:VER installer"
           } | ConvertTo-Json
-          Set-Content -Path artifacts/update.json -Value $manifest
-          echo "PKG=$name" >> $env:GITHUB_ENV
-          echo "VER=$ver" >> $env:GITHUB_ENV
-          Write-Host "packaged $name sha256=$hash"
+          Set-Content artifacts/update.json $manifest
+          echo "SHA=$hash" >> $env:GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
           name: Auralith-Native-Windows
           path: |
-            artifacts/*.zip
+            artifacts/*-Setup.exe
             artifacts/*.sha256
             artifacts/update.json
           if-no-files-found: error
@@ -82,8 +105,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          name: Auralith Native ${{ env.VER }}
+          name: Auralith Native — ${{ env.VER }} Installer
+          body: |
+            Pre-release / unsigned test installer.
+
+            Native C# / WinUI 3 / D3D11 rebuild.
+            Per-user install: %LOCALAPPDATA%\Programs\Auralith
+            Image loading repair, Clean Capture, Check for Updates.
+
+            Not included: Trace, Stamp, Emitter, WASAPI, effect library.
           files: |
-            artifacts/${{ env.PKG }}
-            artifacts/${{ env.PKG }}.sha256
+            artifacts/${{ env.SETUP }}
+            artifacts/${{ env.SETUP }}.sha256
             artifacts/update.json

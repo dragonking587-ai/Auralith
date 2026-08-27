@@ -62,11 +62,18 @@ public sealed class UpdateClient
             foreach (var asset in rel.GetProperty("assets").EnumerateArray())
             {
                 var name = asset.GetProperty("name").GetString() ?? "";
-                if (!name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase)) continue;
                 if (name.Contains("Source", StringComparison.OrdinalIgnoreCase)) continue;
-                assetName = name;
-                assetUrl = asset.GetProperty("browser_download_url").GetString();
-                break;
+                var isSetup = name.EndsWith("-x64-Setup.exe", StringComparison.OrdinalIgnoreCase)
+                    || name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase);
+                var isZip = name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase)
+                    || name.EndsWith("-win-x64-portable.zip", StringComparison.OrdinalIgnoreCase);
+                if (!isSetup && !isZip) continue;
+                if (isSetup || assetUrl is null)
+                {
+                    assetName = name;
+                    assetUrl = asset.GetProperty("browser_download_url").GetString();
+                    if (isSetup) break;
+                }
             }
             if (string.IsNullOrEmpty(assetUrl) || string.IsNullOrEmpty(assetName)) continue;
             var sha = "";

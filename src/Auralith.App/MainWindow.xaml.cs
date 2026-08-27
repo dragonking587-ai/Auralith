@@ -13,6 +13,7 @@ using Windows.Storage.Pickers;
 using Windows.Storage.Streams;
 using Windows.Graphics.Imaging;
 using WinRT.Interop;
+using System.Runtime.InteropServices.WindowsRuntime;
 
 namespace Auralith.App;
 
@@ -66,24 +67,39 @@ public sealed partial class MainWindow : Window
 
     private async void OnLoadImage(object sender, RoutedEventArgs e)
     {
-        var picker = new FileOpenPicker();
-        picker.FileTypeFilter.Add(".png");
-        picker.FileTypeFilter.Add(".jpg");
-        picker.FileTypeFilter.Add(".jpeg");
-        picker.FileTypeFilter.Add(".webp");
-        picker.FileTypeFilter.Add(".bmp");
-        InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
-        var file = await picker.PickSingleFileAsync();
-        if (file is null) return;
-        using var stream = await file.OpenReadAsync();
-        var decoder = await BitmapDecoder.CreateAsync(stream);
-        var transform = new BitmapTransform { ScaledWidth = decoder.PixelWidth, ScaledHeight = decoder.PixelHeight };
-        var pixels = await decoder.GetPixelDataAsync(
-            BitmapPixelFormat.Bgra8, BitmapAlphaMode.Premultiplied, transform,
-            ExifOrientationMode.IgnoreExifOrientation, ColorManagementMode.DoNotColorManage);
-        var data = pixels.DetachPixelData();
-        _scene.BackdropPath = file.Path;
-        _gpu.SetBackdrop(data, (int)decoder.PixelWidth, (int)decoder.PixelHeight);
+        try
+        {
+            var picker = new FileOpenPicker();
+            picker.SuggestedStartLocation = PickerLocationId.PicturesLibrary;
+            picker.FileTypeFilter.Add(".png");
+            picker.FileTypeFilter.Add(".jpg");
+            picker.FileTypeFilter.Add(".jpeg");
+            picker.FileTypeFilter.Add(".webp");
+            picker.FileTypeFilter.Add(".bmp");
+            InitializeWithWindow.Initialize(picker, WindowNative.GetWindowHandle(this));
+            var file = await picker.PickSingleFileAsync();
+            if (file is null) return;
+            using var src = await file.OpenReadAsync();
+            using var mem = new InMemoryRandomAccessStream();
+            await RandomAccessStream.CopyAsync(src, mem);
+            mem.Seek(0);
+            var decoder = await BitmapDecoder.CreateAsync(mem);
+            var bitmap = await decoder.GetSoftwareBitmapAsync(
+                BitmapPixelFormat.Bgra8, BitmapAlphaMode.Ignore);
+            var data = new byte[checked(4 * bitmap.PixelWidth * bitmap.PixelHeight)];
+            bitmap.CopyToBuffer(data.AsBuffer());
+            if (data.Length < 16)
+                throw new InvalidOperationException("Decoded image was empty.");
+            _scene.BackdropPath = file.Path;
+            _gpu.SetBackdrop(data, (int)bitmap.PixelWidth, (int)bitmap.PixelHeight);
+            Hud.Text = $"Loaded {file.Name}  {bitmap.PixelWidth}×{bitmap.PixelHeight}";
+            StartupLog.Write($"backdrop {file.Name} {bitmap.PixelWidth}x{bitmap.PixelHeight} bytes={data.Length}");
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Error(ex);
+            Hud.Text = "Image load failed: " + ex.Message;
+        }
     }
 
     private void OnClearImage(object sender, RoutedEventArgs e)
