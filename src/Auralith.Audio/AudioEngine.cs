@@ -14,6 +14,8 @@ public sealed class AudioEngine : IDisposable
     public const int FftSize = 2048;
 
     private WasapiLoopbackCapture? _loop;
+    private ProcessLoopbackCapture? _appCap;
+    private WasapiCapture? _mic;
     private readonly object _gate = new();
     private readonly float[] _fft = new float[FftSize];
     private int _fftFill;
@@ -133,25 +135,98 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
+    public void StartApplication(int pid, string? endpointId)
+    {
+        Stop();
+        Status = "Desktop Audio: STARTING";
+        try
+        {
+            Log($"[AppAudio] Selected application PID: {pid}");
+            Log($"[AppAudio] Endpoint: {endpointId}");
+            var cap = new ProcessLoopbackCapture();
+            cap.DataAvailable += OnDataFromWave;
+            cap.RecordingStopped += (_, args) =>
+            {
+                if (args.Exception is not null)
+                {
+                    Status = "Desktop Audio: ERROR " + args.Exception.Message;
+                    Log("[AppAudio] " + args.Exception);
+                }
+                else Status = "SOURCE LOST";
+            };
+            cap.Start(pid, endpointId);
+            _appCap = cap;
+            _loop = null;
+            if (cap.WaveFormat is { } fmt)
+            {
+                _sampleRate = fmt.SampleRate;
+                _channels = Math.Max(1, fmt.Channels);
+                _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
+            }
+            Status = "Desktop Audio: CAPTURING  app pid " + pid + "  " + cap.Mode;
+            Log("[AppAudio] Capture started " + cap.Status);
+            DeviceName = "App PID " + pid;
+        }
+        catch (Exception ex)
+        {
+            Status = "Desktop Audio: ERROR " + ex.Message;
+            Log("[AppAudio] " + ex);
+        }
+    }
+
+    public void StartMicrophone()
+    {
+        Stop();
+        Status = "Desktop Audio: STARTING";
+        try
+        {
+            _mic = new WasapiCapture();
+            _mic.DataAvailable += OnDataFromWave;
+            _mic.RecordingStopped += (_, args) => Status = args.Exception is null ? "Desktop Audio: STOPPED" : "Desktop Audio: ERROR " + args.Exception.Message;
+            var fmt = _mic.WaveFormat;
+            _sampleRate = fmt.SampleRate;
+            _channels = Math.Max(1, fmt.Channels);
+            _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
+            _mic.StartRecording();
+            DeviceName = "Microphone";
+            Status = "Desktop Audio: CAPTURING  Microphone";
+        }
+        catch (Exception ex)
+        {
+            Status = "Desktop Audio: ERROR " + ex.Message;
+            Log("[Audio] mic " + ex);
+        }
+    }
+
+    private void OnDataFromWave(object? sender, WaveInEventArgs e)
+    {
+        if (e.BytesRecorded <= 0) return;
+        WaveFormat? fmt = _loop?.WaveFormat ?? _appCap?.WaveFormat ?? _mic?.WaveFormat;
+        if (fmt is null) return;
+        OnPacket(e.Buffer, e.BytesRecorded, fmt);
+    }
+
     public void Stop()
     {
         try { _loop?.StopRecording(); } catch { }
-        _loop?.Dispose();
-        _loop = null;
+        try { _appCap?.Stop(); } catch { }
+        try { _mic?.StopRecording(); } catch { }
+        _loop?.Dispose(); _appCap?.Dispose(); _mic?.Dispose();
+        _loop = null; _appCap = null; _mic = null;
         if (!Status.StartsWith("Desktop Audio: ERROR"))
             Status = "Desktop Audio: STOPPED";
     }
 
-    private void OnData(object? sender, WaveInEventArgs e)
+    private void OnData(object? sender, WaveInEventArgs e) => OnDataFromWave(sender, e);
+
+    private void OnPacket(byte[] buffer, int bytes, WaveFormat fmt)
     {
-        if (_loop is null || e.BytesRecorded <= 0) return;
-        var fmt = _loop.WaveFormat;
         _packets++;
         _lastPacket = DateTime.UtcNow;
 
         float peak = 0;
         double sumSq = 0;
-        var samples = ConvertToMono(e.Buffer, e.BytesRecorded, fmt);
+        var samples = ConvertToMono(buffer, bytes, fmt);
         if (samples.Count == 0)
         {
             _silentPackets++;

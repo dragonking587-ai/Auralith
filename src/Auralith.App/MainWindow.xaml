@@ -77,8 +77,16 @@
                     <Slider x:Name="MasterBri" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
                     <Slider x:Name="MasterSens" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
                     <TextBlock Text="AUDIO" Foreground="#D4AF37"/>
+                    <ComboBox x:Name="CaptureModeBox" Width="240" SelectionChanged="OnCaptureModeChanged">
+                        <ComboBoxItem Content="Desktop Output Device" Tag="DesktopOutput" IsSelected="True"/>
+                        <ComboBoxItem Content="Application Audio" Tag="Application"/>
+                        <ComboBoxItem Content="Microphone" Tag="Microphone"/>
+                    </ComboBox>
                     <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
-                    <Button Content="Start Desktop Audio" Click="OnStartAudio"/>
+                    <ComboBox x:Name="AppBox" Width="240" Visibility="Collapsed"/>
+                    <Button Content="Refresh Apps" Click="OnRefreshApps"/>
+                    <Button Content="Start Audio" Click="OnStartAudio"/>
+                    <TextBlock x:Name="CoordHud" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                     <TextBlock x:Name="AudioStatus" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                     <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3" TextWrapping="Wrap"/>
                     <TextBlock x:Name="AudioDiag" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>

@@ -159,7 +159,8 @@ public sealed partial class MainWindow : Window
             data.AsBuffer(), BitmapPixelFormat.Bgra8, w, h, BitmapAlphaMode.Ignore);
         var source = new SoftwareBitmapSource();
         await source.SetBitmapAsync(sb);
-        _holdDecodedPreview = true;
+        // keep decoded preview only until GPU presents the same 1920x1080 scene
+        _holdDecodedPreview = false;
         Preview.Source = source;
         _imageDiag = $"Image Load Diagnostics  {file.Name}  decode=OK  {w}x{h}  scene=OK  preview=OK";
         Hud.Text = _imageDiag;
@@ -683,56 +684,84 @@ public sealed partial class MainWindow : Window
     {
         Overlay.Children.Clear();
         if (!_scene.ShowOverlays) return;
-        var sx = Overlay.ActualWidth / _scene.CanvasWidth;
-        var sy = Overlay.ActualHeight / _scene.CanvasHeight;
-        if (sx <= 0 || sy <= 0) { sx = Preview.ActualWidth / _scene.CanvasWidth; sy = Preview.ActualHeight / _scene.CanvasHeight; }
-        if (sx <= 0 || sy <= 0) return;
+        var aw = (float)Preview.ActualWidth; var ah = (float)Preview.ActualHeight;
+        if (aw < 1 || ah < 1) return;
+        var (sw, sh) = PreviewSourceSize();
+        (float x, float y) Map(float sx, float sy) =>
+            CanvasSpace.SceneToPointer(sx, sy, aw, ah, _scene.CanvasWidth, _scene.CanvasHeight, sw, sh);
         foreach (var r in _scene.Regions)
         {
             if (!r.ShowEditorMarker) continue;
-            var color = r == _selected ? "#FFD4AF37" : "#88E8E6E3";
             var brush = new SolidColorBrush(Microsoft.UI.Colors.Gold);
             if (r.Kind == RegionKind.Emitter)
             {
-                Overlay.Children.Add(new Ellipse
-                {
-                    Width = r.Radius * 2 * sx, Height = r.Radius * 2 * sy,
-                    Stroke = brush, StrokeThickness = 2,
-                });
-                Canvas.SetLeft(Overlay.Children[^1], (r.X - r.Radius) * sx);
-                Canvas.SetTop(Overlay.Children[^1], (r.Y - r.Radius) * sy);
+                var (cx, cy) = Map(r.X, r.Y);
+                var (rx, _) = Map(r.X + r.Radius, r.Y);
+                var rad = Math.Max(4, Math.Abs(rx - cx));
+                Overlay.Children.Add(new Ellipse { Width = rad * 2, Height = rad * 2, Stroke = brush, StrokeThickness = 2 });
+                Canvas.SetLeft(Overlay.Children[^1], cx - rad);
+                Canvas.SetTop(Overlay.Children[^1], cy - rad);
             }
             else if (r.Kind == RegionKind.Trace && r.Points.Count >= 4)
             {
                 var poly = new Polygon { Stroke = brush, StrokeThickness = 2, Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(40, 212, 175, 55)) };
                 var pts = new PointCollection();
                 for (var i = 0; i + 1 < r.Points.Count; i += 2)
-                    pts.Add(new Windows.Foundation.Point(r.Points[i] * sx, r.Points[i + 1] * sy));
+                {
+                    var (px, py) = Map(r.Points[i], r.Points[i + 1]);
+                    pts.Add(new Windows.Foundation.Point(px, py));
+                }
                 poly.Points = pts;
                 Overlay.Children.Add(poly);
             }
             else
             {
-                Overlay.Children.Add(new Rectangle
-                {
-                    Width = Math.Max(8, r.Width * sx), Height = Math.Max(8, r.Height * sy),
-                    Stroke = brush, StrokeThickness = 2
-                });
-                Canvas.SetLeft(Overlay.Children[^1], r.X * sx);
-                Canvas.SetTop(Overlay.Children[^1], r.Y * sy);
+                var box = CanvasSpace.SceneRectToPointer(r.X, r.Y, r.Width, r.Height, aw, ah, _scene.CanvasWidth, _scene.CanvasHeight, sw, sh);
+                Overlay.Children.Add(new Rectangle { Width = Math.Max(4, box.W), Height = Math.Max(4, box.H), Stroke = brush, StrokeThickness = 2 });
+                Canvas.SetLeft(Overlay.Children[^1], box.X);
+                Canvas.SetTop(Overlay.Children[^1], box.Y);
             }
         }
     }
     private void OnStartAudio(object s, RoutedEventArgs e)
     {
-        string? id = null;
-        if (DeviceBox.SelectedItem is ComboBoxItem item) id = item.Tag as string;
         _audio.Logged += line => StartupLog.Write(line);
-        _audio.StartLoopback(id);
+        var mode = (CaptureModeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        if (mode == "Microphone") _audio.StartMicrophone();
+        else if (mode == "Application")
+        {
+            if (AppBox.SelectedItem is ComboBoxItem app && app.Tag is AudioAppSession sess)
+                _audio.StartApplication(sess.Pid, sess.EndpointId);
+            else
+            {
+                AudioStatus.Text = "Choose an application first.";
+                return;
+            }
+        }
+        else
+        {
+            string? id = (DeviceBox.SelectedItem as ComboBoxItem)?.Tag as string;
+            _audio.StartLoopback(id);
+        }
         AudioStatus.Text = _audio.Status;
-
     }
     private void OnDeviceChanged(object s, SelectionChangedEventArgs e) { }
+    private void OnCaptureModeChanged(object s, SelectionChangedEventArgs e)
+    {
+        if (AppBox is null || DeviceBox is null) return;
+        var mode = (CaptureModeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
+        AppBox.Visibility = mode == "Application" ? Visibility.Visible : Visibility.Collapsed;
+        DeviceBox.Visibility = mode == "DesktopOutput" ? Visibility.Visible : Visibility.Collapsed;
+        if (mode == "Application") OnRefreshApps(s, e);
+    }
+    private void OnRefreshApps(object s, RoutedEventArgs e)
+    {
+        AppBox.Items.Clear();
+        foreach (var sess in AudioSessions.List())
+            AppBox.Items.Add(new ComboBoxItem { Content = sess.Display + (sess.Active ? " (active)" : ""), Tag = sess });
+        if (AppBox.Items.Count > 0) AppBox.SelectedIndex = 0;
+        else AppBox.Items.Add(new ComboBoxItem { Content = "No audio sessions found" });
+    }
     private async void OnSaveProject(object s, RoutedEventArgs e)
     {
         var picker = new FileSavePicker();

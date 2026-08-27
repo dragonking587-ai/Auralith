@@ -31,4 +31,24 @@ public class FitAndOverlayTests
         Assert.True(h < 1080);
         Assert.True(y > 0);
     }
+
+    [Fact]
+    public void Pointer_scene_roundtrip_center()
+    {
+        var (sx, sy) = CanvasSpace.PointerToScene(400, 300, 800, 600, 1920, 1080, 1920, 1080);
+        var (px, py) = CanvasSpace.SceneToPointer(sx, sy, 800, 600, 1920, 1080, 1920, 1080);
+        Assert.InRange(px, 399, 401);
+        Assert.InRange(py, 299, 301);
+    }
+
+    [Fact]
+    public void Pointer_accounts_for_letterbox()
+    {
+        // 800x600 control, 1920x1080 source → width-limited, vertical letterbox
+        var v = CanvasSpace.UniformContent(800, 600, 1920, 1080);
+        Assert.True(v.Y > 0);
+        var (sx, sy) = CanvasSpace.PointerToScene(400, v.Y, 800, 600, 1920, 1080, 1920, 1080);
+        Assert.InRange(sx, 950, 970);
+        Assert.InRange(sy, -1, 2);
+    }
 }
