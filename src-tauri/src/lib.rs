@@ -31,6 +31,7 @@ fn list_loopback_devices() -> Result<Vec<audio::LoopbackDevice>, String> {
 }
 
 #[tauri::command]
+/// LEGACY: second WebView Broadcast Output. Prefer broadcast_open (native HWND).
 fn open_output(app: AppHandle, session: String, width: u32, height: u32) -> Result<(), String> {
     let port = local_port();
     // Use /index.html?view=broadcast so relative ./assets resolve from document root.
