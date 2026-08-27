@@ -33,35 +33,49 @@ try
                 return 3;
             }
         }
-        catch (ArgumentException) { /* already exited */ }
+        catch (ArgumentException) { }
     }
 
-    var staging = Path.Combine(Path.GetTempPath(), "Auralith-staging-" + Guid.NewGuid().ToString("N"));
-    Directory.CreateDirectory(staging);
-    ZipFile.ExtractToDirectory(package, staging);
-    var newExe = Directory.GetFiles(staging, "Auralith.exe", SearchOption.AllDirectories).FirstOrDefault();
-    if (newExe is null)
+    if (package.EndsWith(".exe", StringComparison.OrdinalIgnoreCase))
     {
-        UpdateClient.Log("staging missing Auralith.exe");
-        return 4;
+        var setup = Process.Start(new ProcessStartInfo(package)
+        {
+            UseShellExecute = false,
+            ArgumentList = { "/VERYSILENT", "/NORESTART", "/SUPPRESSMSGBOXES", "/CURRENTUSER", "/DIR=" + target }
+        });
+        setup?.WaitForExit(10 * 60 * 1000);
+        UpdateClient.Log("setup exit " + setup?.ExitCode);
+        if (setup is { ExitCode: not 0 }) return 5;
     }
-    var newRoot = Path.GetDirectoryName(newExe)!;
-    foreach (var file in Directory.GetFiles(newRoot, "*", SearchOption.AllDirectories))
+    else
     {
-        var rel = Path.GetRelativePath(newRoot, file);
-        if (rel.Equals("Auralith.Updater.exe", StringComparison.OrdinalIgnoreCase)) continue;
-        var dest = Path.Combine(target, rel);
-        Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
-        File.Copy(file, dest, overwrite: true);
+        var staging = Path.Combine(Path.GetTempPath(), "Auralith-staging-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(staging);
+        ZipFile.ExtractToDirectory(package, staging);
+        var newExe = Directory.GetFiles(staging, "Auralith.exe", SearchOption.AllDirectories).FirstOrDefault();
+        if (newExe is null)
+        {
+            UpdateClient.Log("staging missing Auralith.exe");
+            return 4;
+        }
+        var newRoot = Path.GetDirectoryName(newExe)!;
+        foreach (var file in Directory.GetFiles(newRoot, "*", SearchOption.AllDirectories))
+        {
+            var rel = Path.GetRelativePath(newRoot, file);
+            if (rel.Equals("Auralith.Updater.exe", StringComparison.OrdinalIgnoreCase)) continue;
+            var dest = Path.Combine(target, rel);
+            Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
+            File.Copy(file, dest, overwrite: true);
+        }
+        try { Directory.Delete(staging, true); } catch { }
     }
+
     var launchPath = string.IsNullOrWhiteSpace(launch) ? Path.Combine(target, "Auralith.exe") : launch;
     Process.Start(new ProcessStartInfo(launchPath) { UseShellExecute = true, WorkingDirectory = target });
-    try { Directory.Delete(staging, true); } catch { }
     try
     {
-        var updates = UpdateClient.UpdatesDir;
-        if (Directory.Exists(updates))
-            foreach (var f in Directory.GetFiles(updates))
+        if (Directory.Exists(UpdateClient.UpdatesDir))
+            foreach (var f in Directory.GetFiles(UpdateClient.UpdatesDir))
                 try { File.Delete(f); } catch { }
     }
     catch { }

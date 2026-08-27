@@ -92,6 +92,7 @@ public sealed partial class MainWindow : Window
                 throw new InvalidOperationException("Decoded image was empty.");
             _scene.BackdropPath = file.Path;
             _gpu.SetBackdrop(data, (int)bitmap.PixelWidth, (int)bitmap.PixelHeight);
+            ShowDecodedPreview(data, (int)bitmap.PixelWidth, (int)bitmap.PixelHeight);
             Hud.Text = $"Loaded {file.Name}  {bitmap.PixelWidth}×{bitmap.PixelHeight}";
             StartupLog.Write($"backdrop {file.Name} {bitmap.PixelWidth}x{bitmap.PixelHeight} bytes={data.Length}");
         }
@@ -293,6 +294,20 @@ public sealed partial class MainWindow : Window
             if (!string.IsNullOrEmpty(_available.ReleaseUrl))
                 UpdateStatus.Text += "  Open GitHub Release from the browser if needed: " + _available.ReleaseUrl;
         }
+    }
+
+
+    private void ShowDecodedPreview(byte[] bgra, int w, int h)
+    {
+        try
+        {
+            var bmp = new WriteableBitmap(w, h);
+            WritePixels(bmp.PixelBuffer, bgra);
+            bmp.Invalidate();
+            Preview.Source = bmp;
+            _bmp = null; // next GPU frame can replace once compositor is ready
+        }
+        catch (Exception ex) { StartupLog.Error(ex); }
     }
 
 }

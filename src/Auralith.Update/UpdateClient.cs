@@ -6,13 +6,24 @@ namespace Auralith.Update;
 
 public sealed class UpdateClient
 {
-    public const string Owner = "dragonking587-ai";
-    public const string Repo = "Auralith";
-    public const string ApiReleases = "https://api.github.com/repos/dragonking587-ai/Auralith/releases";
+    public const string Channel = "alpha";
+    public const string PublicOwner = "dragonking587-ai";
+    public const string PublicRepo = "Auralith-Releases";
+    public const string ManifestUrl =
+        "https://raw.githubusercontent.com/dragonking587-ai/Auralith-Releases/main/latest.json";
+
     public static readonly string UpdatesDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Updates");
     public static readonly string LogsDir = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
+
+    private static readonly string[] AllowedHosts =
+    {
+        "raw.githubusercontent.com",
+        "github.com",
+        "objects.githubusercontent.com",
+        "release-assets.githubusercontent.com"
+    };
 
     private readonly HttpClient _http;
 
@@ -21,7 +32,6 @@ public sealed class UpdateClient
         _http = http ?? new HttpClient { Timeout = TimeSpan.FromMinutes(10) };
         if (!_http.DefaultRequestHeaders.UserAgent.Any())
             _http.DefaultRequestHeaders.UserAgent.Add(new ProductInfoHeaderValue("Auralith", "2.0"));
-        _http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
     }
 
     public static void Log(string line)
@@ -37,97 +47,82 @@ public sealed class UpdateClient
 
     public async Task<UpdateManifest?> FindLatestPreviewAsync(string currentVersion, CancellationToken ct)
     {
-        Log($"check current={currentVersion} source=api.github.com/{Owner}/{Repo}/releases");
-        using var resp = await _http.GetAsync(ApiReleases + "?per_page=20", ct);
+        Log($"[Updater] Current version: {currentVersion}");
+        Log($"[Updater] Update channel: {Channel}");
+        Log($"[Updater] Repository owner: {PublicOwner}");
+        Log($"[Updater] Repository: {PublicRepo}");
+        Log($"[Updater] API endpoint: {ManifestUrl}");
+
+        HttpResponseMessage resp;
+        try
+        {
+            resp = await _http.GetAsync(ManifestUrl, ct);
+        }
+        catch (TaskCanceledException)
+        {
+            throw new InvalidOperationException("Unable to reach update service (timeout).");
+        }
+        catch (HttpRequestException)
+        {
+            throw new InvalidOperationException("Unable to reach update service.");
+        }
+
+        Log($"[Updater] HTTP status: {(int)resp.StatusCode} {resp.StatusCode}");
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+            throw new InvalidOperationException("No update information available.");
+        if ((int)resp.StatusCode == 429)
+            throw new InvalidOperationException("Update service temporarily unavailable (rate limited).");
         if (!resp.IsSuccessStatusCode)
+            throw new InvalidOperationException($"Update service temporarily unavailable (HTTP {(int)resp.StatusCode}).");
+
+        var json = await resp.Content.ReadAsStringAsync(ct);
+        UpdateManifest man;
+        try
         {
-            Log($"api status {(int)resp.StatusCode}");
-            throw new InvalidOperationException($"GitHub Releases API returned {(int)resp.StatusCode}");
+            man = JsonSerializer.Deserialize<UpdateManifest>(json) ?? throw new InvalidOperationException("empty");
         }
-        await using var stream = await resp.Content.ReadAsStreamAsync(ct);
-        using var doc = await JsonDocument.ParseAsync(stream, cancellationToken: ct);
+        catch
+        {
+            throw new InvalidOperationException("No update information available (malformed manifest).");
+        }
+
+        if (string.IsNullOrWhiteSpace(man.AssetUrl) && !string.IsNullOrWhiteSpace(man.InstallerUrl))
+            man.AssetUrl = man.InstallerUrl;
+        if (string.IsNullOrWhiteSpace(man.AssetName) && !string.IsNullOrWhiteSpace(man.AssetUrl))
+            man.AssetName = Path.GetFileName(new Uri(man.AssetUrl).AbsolutePath);
+        if (string.IsNullOrWhiteSpace(man.Version) || string.IsNullOrWhiteSpace(man.AssetUrl))
+            throw new InvalidOperationException("No update information available.");
+        if (!IsAllowedUrl(man.AssetUrl) || !man.AssetUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Update service returned an untrusted installer URL.");
+        if (!man.AssetName.EndsWith("-x64-Setup.exe", StringComparison.OrdinalIgnoreCase)
+            && !man.AssetUrl.EndsWith("-x64-Setup.exe", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException("Update service did not provide a Setup.exe installer.");
+
         var current = SemVer.Parse(currentVersion);
-        UpdateManifest? best = null;
-        SemVer bestVer = default;
-        foreach (var rel in doc.RootElement.EnumerateArray())
-        {
-            if (rel.TryGetProperty("draft", out var d) && d.GetBoolean()) continue;
-            var tag = rel.GetProperty("tag_name").GetString() ?? "";
-            var verStr = NormalizeTag(tag);
-            SemVer ver;
-            try { ver = SemVer.Parse(verStr); } catch { continue; }
-            if (!ver.IsNewerThan(current)) continue;
-            if (best is not null && ver.CompareTo(bestVer) <= 0) continue;
-            string? assetUrl = null, assetName = null;
-            foreach (var asset in rel.GetProperty("assets").EnumerateArray())
-            {
-                var name = asset.GetProperty("name").GetString() ?? "";
-                if (name.Contains("Source", StringComparison.OrdinalIgnoreCase)) continue;
-                var isSetup = name.EndsWith("-x64-Setup.exe", StringComparison.OrdinalIgnoreCase)
-                    || name.EndsWith("Setup.exe", StringComparison.OrdinalIgnoreCase);
-                var isZip = name.EndsWith("-win-x64.zip", StringComparison.OrdinalIgnoreCase)
-                    || name.EndsWith("-win-x64-portable.zip", StringComparison.OrdinalIgnoreCase);
-                if (!isSetup && !isZip) continue;
-                if (isSetup || assetUrl is null)
-                {
-                    assetName = name;
-                    assetUrl = asset.GetProperty("browser_download_url").GetString();
-                    if (isSetup) break;
-                }
-            }
-            if (string.IsNullOrEmpty(assetUrl) || string.IsNullOrEmpty(assetName)) continue;
-            var sha = "";
-            foreach (var asset in rel.GetProperty("assets").EnumerateArray())
-            {
-                var name = asset.GetProperty("name").GetString() ?? "";
-                if (name.Equals(assetName + ".sha256", StringComparison.OrdinalIgnoreCase)
-                    || name.Equals("update.json", StringComparison.OrdinalIgnoreCase))
-                {
-                    var url = asset.GetProperty("browser_download_url").GetString();
-                    if (url is null) continue;
-                    try
-                    {
-                        var text = await _http.GetStringAsync(url, ct);
-                        if (name.EndsWith(".sha256", StringComparison.OrdinalIgnoreCase))
-                            sha = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)[0].Trim();
-                        else
-                        {
-                            var man = JsonSerializer.Deserialize<UpdateManifest>(text);
-                            if (man is { Sha256.Length: > 0 }) sha = man.Sha256;
-                        }
-                    }
-                    catch (Exception ex) { Log("metadata read failed " + ex.Message); }
-                }
-            }
-            bestVer = ver;
-            best = new UpdateManifest
-            {
-                Version = verStr,
-                Channel = "preview",
-                ReleaseUrl = rel.GetProperty("html_url").GetString() ?? "",
-                AssetUrl = assetUrl,
-                AssetName = assetName,
-                Sha256 = sha,
-                PublishedAt = rel.TryGetProperty("published_at", out var p) ? p.GetString() ?? "" : "",
-                ReleaseNotes = rel.TryGetProperty("body", out var b) ? b.GetString() ?? "" : ""
-            };
-        }
-        return best;
+        var remote = SemVer.Parse(man.Version);
+        Log($"[Updater] Manifest version: {man.Version} newer={remote.IsNewerThan(current)}");
+        if (!remote.IsNewerThan(current)) return null;
+        if (string.IsNullOrWhiteSpace(man.Channel)) man.Channel = Channel;
+        return man;
     }
 
-    public static string NormalizeTag(string tag)
+    public static bool IsAllowedUrl(string url)
     {
-        tag = tag.Trim();
-        const string prefix = "Auralith-Native-";
-        if (tag.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            tag = tag[prefix.Length..];
-        if (tag.StartsWith("Core-Test-", StringComparison.OrdinalIgnoreCase))
-            return "0.0.0"; // old test tags are not SemVer app versions
-        return tag.TrimStart('v', 'V');
+        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri)) return false;
+        if (!uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)) return false;
+        if (!AllowedHosts.Contains(uri.Host, StringComparer.OrdinalIgnoreCase)) return false;
+        if (uri.Host.Equals("github.com", StringComparison.OrdinalIgnoreCase)
+            && !uri.AbsolutePath.StartsWith("/dragonking587-ai/Auralith-Releases/", StringComparison.OrdinalIgnoreCase))
+            return false;
+        if (uri.Host.Equals("raw.githubusercontent.com", StringComparison.OrdinalIgnoreCase)
+            && !uri.AbsolutePath.StartsWith("/dragonking587-ai/Auralith-Releases/", StringComparison.OrdinalIgnoreCase))
+            return false;
+        return true;
     }
 
     public async Task DownloadAsync(string url, string dest, IProgress<(long done, long total)> progress, CancellationToken ct)
     {
+        if (!IsAllowedUrl(url)) throw new InvalidOperationException("Blocked untrusted download URL.");
         Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
         using var resp = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         resp.EnsureSuccessStatusCode();
@@ -145,13 +140,13 @@ public sealed class UpdateClient
             progress.Report((done, total));
         }
         if (done <= 0) throw new InvalidOperationException("Downloaded file was empty.");
+        Log($"[Updater] downloaded {done} bytes from {new Uri(url).Host}");
     }
 
     public static string Sha256File(string path)
     {
         using var fs = File.OpenRead(path);
-        var hash = SHA256.HashData(fs);
-        return Convert.ToHexString(hash);
+        return Convert.ToHexString(SHA256.HashData(fs));
     }
 
     public static void VerifySha256(string path, string expected)
@@ -160,6 +155,7 @@ public sealed class UpdateClient
             throw new InvalidOperationException("Release metadata did not include a SHA-256 checksum.");
         var actual = Sha256File(path);
         if (!actual.Equals(expected.Trim(), StringComparison.OrdinalIgnoreCase))
-            throw new InvalidOperationException($"Update verification failed. expected={expected} actual={actual}");
+            throw new InvalidOperationException("Update verification failed.");
+        Log("[Updater] SHA-256 verified");
     }
 }
