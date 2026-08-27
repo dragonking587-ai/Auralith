@@ -485,8 +485,10 @@ function LookPane({ selected }: { selected: ReturnType<typeof useAuralith.getSta
 function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.getState>["scene"] }) {
   const [phase, setPhase] = useState("CLOSED");
   const [err, setErr] = useState<string | null>(null);
+  const [stage, setStage] = useState<string | null>(null);
   const [info, setInfo] = useState("");
   const [busy, setBusy] = useState(false);
+  const stickyErr = useRef(false);
 
   useEffect(() => {
     if (!isDesktopApp()) return;
@@ -503,20 +505,38 @@ function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.get
           adapter?: string;
           feature_level?: string;
           last_error?: string | null;
+          hwnd?: number;
         };
         if (stop) return;
-        setPhase((st.state || "CLOSED").toUpperCase());
+        const next = (st.state || "CLOSED").toUpperCase();
+        // Do not clobber a local STARTING/ERROR with CLOSED if we just clicked
+        // and the backend has not acknowledged yet — unless last_error exists.
+        if (!(stickyErr.current && next === "CLOSED" && !st.last_error)) {
+          setPhase(next);
+        }
         const bits = [
           st.width && st.height ? `${st.width}×${st.height}` : "",
           st.target_fps ? `target ${st.target_fps} FPS` : "",
           st.actual_fps != null ? `actual ${st.actual_fps} FPS` : "",
           st.adapter || "",
           st.feature_level ? `FL ${st.feature_level}` : "",
+          st.hwnd ? `HWND ${st.hwnd}` : "",
         ].filter(Boolean);
         setInfo(bits.join(" · "));
-        if (st.last_error) setErr(st.last_error);
-      } catch {
-        /* ignore */
+        if (st.last_error) {
+          setErr(st.last_error);
+          setStage(st.last_error);
+        } else if (next === "RUNNING" || next === "CLOSED") {
+          stickyErr.current = false;
+          if (next === "RUNNING") setErr(null);
+        }
+      } catch (e) {
+        if (stop) return;
+        const msg = e instanceof Error ? e.message : String(e);
+        setErr(msg);
+        setStage("Status poll / ACL");
+        setPhase("ERROR");
+        stickyErr.current = true;
       }
     };
     void poll();
@@ -528,20 +548,33 @@ function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.get
   }, []);
 
   const open = async () => {
+    console.info("[NativeGpuTest UI] Open button clicked");
     setBusy(true);
     setErr(null);
-    console.info("[NativeGpuTest UI] Open requested");
+    setStage("UI invoke");
+    setPhase("STARTING");
+    stickyErr.current = true;
+    const width = Number(scene.output?.width) || 1920;
+    const height = Number(scene.output?.height) || 1080;
+    const fps = Number(scene.output?.fps) || 30;
     try {
       const { invoke } = await import("@tauri-apps/api/core");
-      console.info("[NativeGpuTest UI] invoking gpu_test_open");
-      await invoke("gpu_test_open", {
-        width: scene.output.width,
-        height: scene.output.height,
-        fps: scene.output.fps,
-      });
+      console.info("[NativeGpuTest UI] invoking gpu_test_open", { width, height, fps });
+      const st = (await invoke("gpu_test_open", { width, height, fps })) as {
+        state?: string;
+        last_error?: string | null;
+      };
+      console.info("[NativeGpuTest UI] gpu_test_open returned", st);
+      setPhase((st?.state || "RUNNING").toUpperCase());
+      if (st?.last_error) setErr(st.last_error);
+      stickyErr.current = false;
     } catch (e) {
-      setErr(e instanceof Error ? e.message : String(e));
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("[NativeGpuTest UI] invoke failed", msg);
+      setErr(msg);
+      setStage("Tauri invoke gpu_test_open");
       setPhase("ERROR");
+      stickyErr.current = true;
     } finally {
       setBusy(false);
     }
@@ -551,8 +584,10 @@ function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.get
     try {
       const { invoke } = await import("@tauri-apps/api/core");
       await invoke("gpu_test_close");
-    } catch {
-      /* ignore */
+      setPhase("CLOSED");
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+      setPhase("ERROR");
     }
   };
 
@@ -568,10 +603,12 @@ function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.get
         Status: <span className="text-fg">{phase}</span>
         {info ? <span> · {info}</span> : null}
       </div>
-      {err ? (
-        <p className="mt-1 text-[11px] text-red-400" role="alert">
-          {err}
-        </p>
+      {phase === "ERROR" || err ? (
+        <div className="mt-2 rounded-[8px] border border-red-500/40 bg-red-500/10 px-2 py-2 text-[11px] text-red-300" role="alert">
+          <div className="font-medium">Native GPU Test Output failed</div>
+          {stage ? <div>Stage: {stage}</div> : null}
+          <div>Reason: {err || "Unknown error"}</div>
+        </div>
       ) : null}
       <button
         type="button"
@@ -579,15 +616,18 @@ function NativeGpuTestCard({ scene }: { scene: ReturnType<typeof useAuralith.get
         onClick={() => void open()}
         className="mt-3 min-h-11 w-full rounded-[10px] bg-accent px-3 text-sm font-medium text-accent-fg disabled:opacity-60"
       >
-        Open Native GPU Test Output
+        {busy || phase === "STARTING" ? "Starting…" : "Open Native GPU Test Output"}
       </button>
-      {phase === "RUNNING" || phase === "STARTING" ? (
+      {phase === "RUNNING" || phase === "STARTING" || phase === "ERROR" ? (
         <button
           type="button"
-          onClick={() => void close()}
+          onClick={() => {
+            if (phase === "ERROR") void open();
+            else void close();
+          }}
           className="mt-2 min-h-9 w-full rounded-[10px] border border-border px-3 text-xs text-muted"
         >
-          Close Native GPU Test
+          {phase === "ERROR" ? "Retry" : "Close Native GPU Test"}
         </button>
       ) : null}
     </div>

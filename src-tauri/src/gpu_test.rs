@@ -77,8 +77,10 @@ fn state_name(p: u8) -> &'static str {
 
 pub fn status() -> GpuTestStatus {
     let s = shared();
+    let state = state_name(PHASE.load(Ordering::SeqCst));
+    eprintln!("[NativeGpuTest Status] returning {state}");
     GpuTestStatus {
-        state: state_name(PHASE.load(Ordering::SeqCst)).into(),
+        state: state.into(),
         width: LOG_W.load(Ordering::SeqCst),
         height: LOG_H.load(Ordering::SeqCst),
         target_fps: TARGET_FPS.load(Ordering::SeqCst),
@@ -147,6 +149,8 @@ pub fn open(width: u32, height: u32, fps: u32) -> Result<GpuTestStatus, String> 
     }
 
     eprintln!("[NativeGpuTest] Open requested {}x{} @{}", w, h, fps);
+    eprintln!("[NativeGpuTest] Current state: {}", state_name(phase));
+    eprintln!("[NativeGpuTest] Transition {} -> STARTING", state_name(phase));
     PHASE.store(ST_STARTING, Ordering::SeqCst);
     LOG_W.store(w, Ordering::SeqCst);
     LOG_H.store(h, Ordering::SeqCst);
@@ -197,7 +201,16 @@ pub fn open(width: u32, height: u32, fps: u32) -> Result<GpuTestStatus, String> 
                 .and_then(|g| g.clone())
                 .unwrap_or_else(|| "Native GPU Test Output failed to start".into()));
         }
+        if s.hwnd.load(Ordering::SeqCst) == 0 {
+            let msg = "Stage: HWND Creation — native window did not appear within timeout".to_string();
+            *s.last_error.lock().unwrap_or_else(|e| e.into_inner()) = Some(msg.clone());
+            PHASE.store(ST_ERROR, Ordering::SeqCst);
+            s.stop.store(true, Ordering::SeqCst);
+            eprintln!("[NativeGpuTest] {msg}");
+            return Err(msg);
+        }
         PHASE.store(ST_RUNNING, Ordering::SeqCst);
+        eprintln!("[NativeGpuTest] Transition STARTING -> RUNNING hwnd={}", s.hwnd.load(Ordering::SeqCst));
         Ok(status())
     }
 }

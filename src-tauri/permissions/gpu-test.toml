@@ -1,0 +1,14 @@
+[[permission]]
+identifier = "allow-open"
+description = "Open Native GPU Test Output"
+commands.allow = ["gpu_test_open"]
+
+[[permission]]
+identifier = "allow-close"
+description = "Close Native GPU Test Output"
+commands.allow = ["gpu_test_close"]
+
+[[permission]]
+identifier = "allow-status"
+description = "Read Native GPU Test Output status"
+commands.allow = ["gpu_test_status"]

@@ -37,6 +37,9 @@
     "updater:allow-install",
     "core:window:allow-set-title",
     "core:window:allow-unminimize",
-    "core:window:allow-set-skip-taskbar"
+    "core:window:allow-set-skip-taskbar",
+    "gpu-test:allow-open",
+    "gpu-test:allow-close",
+    "gpu-test:allow-status"
   ]
 }
