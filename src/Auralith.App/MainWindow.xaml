@@ -65,18 +65,17 @@
                     <Button Content="Duplicate" Click="OnDuplicate"/>
                     <CheckBox x:Name="MarkerCheck" Content="Show editor marker" IsChecked="True" Checked="OnMarkerToggle" Unchecked="OnMarkerToggle"/>
                     <TextBlock Text="EFFECTS" Foreground="#D4AF37"/>
-                    <ComboBox x:Name="AddEffectBox" Width="240">
-                        <ComboBoxItem Content="Pulse" Tag="Pulse"/>
-                        <ComboBoxItem Content="Flicker" Tag="Flicker"/>
-                        <ComboBoxItem Content="Light Surge" Tag="LightSurge"/>
-                        <ComboBoxItem Content="Strobe" Tag="Strobe"/>
-                        <ComboBoxItem Content="Glow" Tag="Glow"/>
-                        <ComboBoxItem Content="Breathing Glow" Tag="BreathingGlow"/>
-                        <ComboBoxItem Content="Hue Shift" Tag="HueShift"/>
-                        <ComboBoxItem Content="Room Dim" Tag="RoomDim"/>
-                    </ComboBox>
+                    <ComboBox x:Name="AddEffectBox" Width="240"/>
                     <Button Content="+ Add Effect" Click="OnAddEffect"/>
-                    <StackPanel x:Name="EffectList" Spacing="4"/>
+                    <Button Content="Effect Library Status" Click="OnEffectStatus"/>
+                    <StackPanel x:Name="EffectList" Spacing="6"/>
+                    <TextBlock Text="SELECTED EFFECT" Foreground="#D4AF37"/>
+                    <StackPanel x:Name="EffectInspector" Spacing="4"/>
+                    <TextBlock Text="MASTER" Foreground="#D4AF37"/>
+                    <TextBlock x:Name="MasterLabels" Foreground="#9AA3B2" FontSize="11"/>
+                    <Slider x:Name="MasterInt" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
+                    <Slider x:Name="MasterBri" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
+                    <Slider x:Name="MasterSens" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
                     <TextBlock Text="AUDIO" Foreground="#D4AF37"/>
                     <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
                     <Button Content="Start Desktop Audio" Click="OnStartAudio"/>

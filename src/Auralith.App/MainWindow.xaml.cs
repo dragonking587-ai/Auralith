@@ -63,6 +63,11 @@ public sealed partial class MainWindow : Window
             foreach (var (id, name) in _audio.ListRenderDevices())
                 DeviceBox.Items.Add(new ComboBoxItem { Content = name, Tag = id });
             if (DeviceBox.Items.Count > 0) DeviceBox.SelectedIndex = 0;
+            AddEffectBox.Items.Clear();
+            foreach (var kind in EffectCatalog.All)
+                AddEffectBox.Items.Add(new ComboBoxItem { Content = kind.ToString(), Tag = kind.ToString() });
+            if (AddEffectBox.Items.Count > 0) AddEffectBox.SelectedIndex = 0;
+
         };
         _timer.Tick += (_, _) => Pump();
         _timer.Start();
@@ -519,9 +524,17 @@ public sealed partial class MainWindow : Window
         _selected.Effects.Add(kind);
         RefreshSel();
     }
+    private EffectInstance? _editFx;
+
     private void RefreshSel()
     {
-        if (_selected is null) { SelInfo.Text = "None selected"; EffectList.Children.Clear(); return; }
+        if (_selected is null)
+        {
+            SelInfo.Text = "None selected";
+            EffectList.Children.Clear();
+            EffectInspector.Children.Clear();
+            return;
+        }
         SelInfo.Text = $"{_selected.Kind}  {_selected.Name}\nmarker={_selected.ShowEditorMarker} locked={_selected.Locked}\neffects={_selected.Effects.Items.Count}";
         MarkerCheck.IsChecked = _selected.ShowEditorMarker;
         EffectList.Children.Clear();
@@ -531,11 +544,134 @@ public sealed partial class MainWindow : Window
             var cb = new CheckBox { Content = fx.Kind.ToString(), IsChecked = fx.Enabled, Tag = fx };
             cb.Checked += (_, _) => fx.Enabled = true;
             cb.Unchecked += (_, _) => fx.Enabled = false;
-            row.Children.Add(cb);
+            var pick = new Button { Content = "Edit", Tag = fx };
+            pick.Click += (_, _) => { _editFx = fx; BuildInspector(); };
+            var up = new Button { Content = "Up", Tag = fx };
+            up.Click += (_, _) => MoveFx(fx, -1);
+            var dn = new Button { Content = "Dn", Tag = fx };
+            dn.Click += (_, _) => MoveFx(fx, 1);
+            var del = new Button { Content = "X", Tag = fx };
+            del.Click += (_, _) => { PushUndo(); _selected.Effects.Remove(fx.Id); if (_editFx==fx) _editFx=null; RefreshSel(); };
+            row.Children.Add(cb); row.Children.Add(pick); row.Children.Add(up); row.Children.Add(dn); row.Children.Add(del);
             EffectList.Children.Add(row);
         }
+        _editFx ??= _selected.Effects.Items.LastOrDefault();
+        BuildInspector();
         RedrawOverlay();
     }
+
+    private void MoveFx(EffectInstance fx, int dir)
+    {
+        var i = _selected!.Effects.Items.IndexOf(fx);
+        PushUndo();
+        _selected.Effects.Move(i, i + dir);
+        RefreshSel();
+    }
+
+    private void BuildInspector()
+    {
+        EffectInspector.Children.Clear();
+        if (_editFx is null) return;
+        var fx = _editFx;
+        var title = new TextBlock { Text = fx.Kind.ToString(), Foreground = new SolidColorBrush(Microsoft.UI.Colors.Gold) };
+        EffectInspector.Children.Add(title);
+        var controls = EffectCatalog.Controls(fx.Kind);
+        if (controls.Contains("Audio"))
+        {
+            var box = new ComboBox { Width = 220 };
+            foreach (var a in Enum.GetValues<AudioSource>())
+                box.Items.Add(new ComboBoxItem { Content = a.ToString(), Tag = a, IsSelected = fx.Audio == a });
+            box.SelectionChanged += (_, _) =>
+            {
+                if (box.SelectedItem is ComboBoxItem it && it.Tag is AudioSource src) fx.Audio = src;
+            };
+            EffectInspector.Children.Add(box);
+        }
+        void SliderRow(string label, float min, float max, float cur, Action<float> set, string tip)
+        {
+            var lab = new TextBlock { Text = $"{label}  {cur:0.##}", Foreground = new SolidColorBrush(Microsoft.UI.Colors.White), FontSize = 11 };
+            ToolTipService.SetToolTip(lab, tip);
+            var sl = new Slider { Minimum = min, Maximum = max, Value = cur, Width = 220, StepFrequency = (max-min)/100 };
+            sl.ValueChanged += (_, e) => { set((float)e.NewValue); lab.Text = $"{label}  {e.NewValue:0.##}"; };
+            EffectInspector.Children.Add(lab);
+            EffectInspector.Children.Add(sl);
+        }
+        if (controls.Contains("Intensity")) SliderRow("Intensity %", 0, 200, fx.Intensity*100, v => fx.Intensity=v/100f, "Overall effect strength");
+        if (controls.Contains("Brightness")) SliderRow("Brightness %", 0, 200, fx.Brightness*100, v => fx.Brightness=v/100f, "Light output multiplier");
+        if (controls.Contains("Opacity")) SliderRow("Opacity %", 0, 100, fx.Opacity*100, v => fx.Opacity=v/100f, "Layer opacity");
+        if (controls.Contains("Sensitivity")) SliderRow("Sensitivity", 0, 2, fx.Sensitivity, v => fx.Sensitivity=v, "Audio gain into the effect");
+        if (controls.Contains("Threshold")) SliderRow("Threshold", 0, 1, fx.Threshold, v => fx.Threshold=v, "Audio must exceed this before the effect rises");
+        if (controls.Contains("Attack")) SliderRow("Attack s", 0, 1, fx.Attack, v => fx.Attack=v, "Rise time");
+        if (controls.Contains("Release")) SliderRow("Release s", 0, 2, fx.Release, v => fx.Release=v, "Fall time");
+        if (controls.Contains("Speed")) SliderRow("Speed x", 0.1f, 4, fx.Speed, v => fx.Speed=v, "Animation speed");
+        if (controls.Contains("ScaleAmount")) SliderRow("Scale", 0, 2, fx.ScaleAmount, v => fx.ScaleAmount=v, "Size / expansion amount");
+        if (controls.Contains("Spread")) SliderRow("Spread", 0, 2, fx.Spread, v => fx.Spread=v, "How far the effect reaches");
+        if (controls.Contains("Falloff")) SliderRow("Falloff", 0, 2, fx.Falloff, v => fx.Falloff=v, "Edge fade");
+        if (controls.Contains("Softness")) SliderRow("Softness", 0, 2, fx.Softness, v => fx.Softness=v, "Edge softness");
+        if (controls.Contains("AudioInfluence")) SliderRow("Audio Influence %", 0, 100, fx.AudioInfluence*100, v => fx.AudioInfluence=v/100f, "0% manual, 100% fully audio-driven");
+        if (controls.Contains("Radius")) SliderRow("Radius px", 4, 400, fx.Radius, v => fx.Radius=v, "Effect radius");
+        if (controls.Contains("Thickness")) SliderRow("Thickness", 1, 40, fx.Thickness, v => fx.Thickness=v, "Ring or stroke thickness");
+        if (controls.Contains("Frequency")) SliderRow("Frequency Hz", 0.5f, 8, fx.Frequency, v => fx.Frequency=v, "Safety-capped strobe/flash rate");
+        if (controls.Contains("DutyCycle")) SliderRow("Duty Cycle", 0.05f, 0.9f, fx.DutyCycle, v => fx.DutyCycle=v, "On-time fraction");
+        if (controls.Contains("Count")) SliderRow("Count", 1, 40, fx.Count, v => fx.Count=v, "Rays, echoes, or particles");
+        if (controls.Contains("Lifetime")) SliderRow("Lifetime s", 0.1f, 3, fx.Lifetime, v => fx.Lifetime=v, "Particle lifetime");
+        if (controls.Contains("Angle")) SliderRow("Angle deg", 0, 360, fx.Angle, v => fx.Angle=v, "Direction");
+        if (controls.Contains("Distortion")) SliderRow("Distortion", 0, 2, fx.Distortion, v => fx.Distortion=v, "Warp amount");
+        if (controls.Contains("Turbulence")) SliderRow("Turbulence", 0, 2, fx.Turbulence, v => fx.Turbulence=v, "Noise / chaos");
+        if (controls.Contains("MinOut")) SliderRow("Min Output", 0, 1, fx.MinOut, v => fx.MinOut=v, "Lower brightness clamp");
+        if (controls.Contains("MaxOut")) SliderRow("Max Output", 0, 2, fx.MaxOut, v => fx.MaxOut=v, "Upper brightness clamp");
+        if (controls.Contains("HoldTime")) SliderRow("Hold s", 0, 2, fx.HoldTime, v => fx.HoldTime=v, "Hold duration");
+        if (controls.Contains("FadeTime")) SliderRow("Fade s", 0, 3, fx.FadeTime, v => fx.FadeTime=v, "Fade duration");
+        if (controls.Contains("Density")) SliderRow("Density", 0, 2, fx.Density, v => fx.Density=v, "Particle or drop density");
+        if (controls.Contains("WidthAmt")) SliderRow("Width", 0.05f, 2, fx.WidthAmt, v => fx.WidthAmt=v, "Width / thickness scale");
+        if (controls.Contains("HeightAmt")) SliderRow("Height", 0.05f, 2, fx.HeightAmt, v => fx.HeightAmt=v, "Height / length scale");
+        if (controls.Contains("Randomness")) SliderRow("Randomness", 0, 1, fx.Randomness, v => fx.Randomness=v, "Organic variation");
+        var reset = new Button { Content = "Reset Effect" };
+        reset.Click += (_, _) =>
+        {
+            var kind = fx.Kind; var id = fx.Id;
+            var fresh = new EffectInstance { Kind = kind, Id = id };
+            var i = _selected!.Effects.Items.FindIndex(e => e.Id == id);
+            if (i >= 0) _selected.Effects.Items[i] = fresh;
+            _editFx = fresh; BuildInspector();
+        };
+        var rnd = new Button { Content = "Randomize" };
+        rnd.Click += (_, _) =>
+        {
+            fx.Speed = 0.4f + HashF(fx.Seed+1)*2f;
+            fx.Spread = HashF(fx.Seed+2);
+            fx.Randomness = HashF(fx.Seed+3);
+            fx.PrimaryColor = 0xFF000000 | (uint)(HashF(fx.Seed+4)*0xFFFFFF);
+            BuildInspector();
+        };
+        EffectInspector.Children.Add(reset);
+        EffectInspector.Children.Add(rnd);
+    }
+
+    private static float HashF(int s) { unchecked { var x = (uint)(s * 747796405); return (x & 0xFFFF) / 65535f; } }
+
+    private void OnMasterChanged(object sender, Microsoft.UI.Xaml.Controls.Primitives.RangeBaseValueChangedEventArgs e)
+    {
+        _scene.MasterIntensity = (float)(MasterInt?.Value ?? 100) / 100f;
+        _scene.MasterBrightness = (float)(MasterBri?.Value ?? 100) / 100f;
+        _scene.MasterSensitivity = (float)(MasterSens?.Value ?? 100) / 100f;
+        if (MasterLabels is not null)
+            MasterLabels.Text = $"Intensity {_scene.MasterIntensity:0.00}  Bright {_scene.MasterBrightness:0.00}  Sens {_scene.MasterSensitivity:0.00}";
+    }
+
+    private async void OnEffectStatus(object sender, RoutedEventArgs e)
+    {
+        var lines = string.Join("\n", EffectValidator.Report().Select(r => $"{r.Kind}: {r.Status}"));
+        var dlg = new ContentDialog
+        {
+            Title = "Effect Library Status",
+            Content = new ScrollViewer { Content = new TextBlock { Text = lines, FontFamily = new FontFamily("Consolas"), FontSize = 12 }, Height = 420 },
+            CloseButtonText = "Close",
+            XamlRoot = Root.XamlRoot
+        };
+        await dlg.ShowAsync();
+    }
+
     private void RedrawOverlay()
     {
         Overlay.Children.Clear();

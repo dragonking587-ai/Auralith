@@ -93,9 +93,5 @@ public sealed class AudioBands
 
 public static class EffectStatus
 {
-    public static readonly HashSet<EffectKind> Implemented =
-    [
-        EffectKind.Pulse, EffectKind.Flicker, EffectKind.LightSurge, EffectKind.Strobe,
-        EffectKind.Glow, EffectKind.BreathingGlow, EffectKind.HueShift, EffectKind.RoomDim
-    ];
+    public static readonly HashSet<EffectKind> Implemented = [..Enum.GetValues<EffectKind>()];
 }

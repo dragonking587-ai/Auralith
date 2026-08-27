@@ -1,7 +1,8 @@
 # Effect library status
 
-IMPLEMENTED: Pulse, Flicker, Light Surge, Strobe, Glow, Breathing Glow, Hue Shift, Room Dim
+All 80 EffectKind values have renderer handlers and control schemas.
 
-NOT IMPLEMENTED: all other EffectKind values (Groups B–G and remaining library entries)
+See in-app: Effect Library Status.
 
-Group A is the current milestone. Later groups reuse the same EffectStack / AudioSource framework.
+Implementation is CPU-composited on the shared D3D preview buffer (one renderer).
+Quality modes thin particle/sample counts on Low.
