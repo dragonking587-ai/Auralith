@@ -33,7 +33,7 @@ RestartApplications=no
 SetupMutex=AuralithSetupMutex
 AppMutex=AuralithAppMutex
 MinVersion=10.0.17763
-VersionInfoVersion=2.0.0.14
+VersionInfoVersion=2.0.0.15
 VersionInfoProductName=Auralith
 SetupIconFile=assets\auralith.ico
 

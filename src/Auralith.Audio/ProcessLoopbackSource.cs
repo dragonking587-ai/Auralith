@@ -18,6 +18,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     private Thread? _thread;
     private volatile bool _run;
     private WaveFormat? _format;
+    private nint _eventHandle;
     private readonly int _pid;
     private readonly bool _includeTree;
     public string Name { get; }
@@ -83,22 +84,57 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             Log($"ProcessLoopback Stage: ActivateAudioInterfaceAsync PID:{_pid} Mode:{(_includeTree ? "IncludeProcessTree" : "ExcludeProcessTree")} Win:{WindowsVersion()} Interface:{VirtualDevice}");
             client = ActivateClient(_pid, _includeTree);
             Log("ProcessLoopback IAudioClient obtained: YES");
-            var hr = IAudioClient_GetMixFormat(client, out fmtPtr);
-            if (hr < 0) throw Com("GetMixFormat", hr);
-            var raw = Marshal.PtrToStructure<WaveFormatEx>(fmtPtr);
-            _format = ToWaveFormat(raw);
-            Log($"ProcessLoopback mix format {_format.SampleRate}Hz {_format.Channels}ch {_format.BitsPerSample}-bit {_format.Encoding}");
-            hr = IAudioClient_Initialize(client, 0, 0, 0, 0, fmtPtr, IntPtr.Zero);
+            // Process-loopback clients return E_NOTIMPL (0x80004001) from GetMixFormat.
+            // Use the Microsoft ApplicationLoopback capture format instead.
+            _format = new WaveFormat(44100, 16, 2);
+            var wf = new WaveFormatEx
+            {
+                wFormatTag = 1,
+                nChannels = 2,
+                nSamplesPerSec = 44100,
+                wBitsPerSample = 16,
+                nBlockAlign = 4,
+                nAvgBytesPerSec = 176400,
+                cbSize = 0
+            };
+            fmtPtr = Marshal.AllocHGlobal(Marshal.SizeOf<WaveFormatEx>());
+            Marshal.StructureToPtr(wf, fmtPtr, false);
+            Log("ProcessLoopback Stage: CaptureFormat PCM16 stereo 44100 (GetMixFormat skipped)");
+            const int Loopback = 0x00020000;
+            const int EventCb = 0x00040000;
+            const int AutoPcm = unchecked((int)0x80000000);
+            const int SrcQual = 0x08000000;
+            var flags = Loopback | EventCb | AutoPcm | SrcQual;
+            var hr = IAudioClient_Initialize(client, 0, flags, 0, 0, fmtPtr, IntPtr.Zero);
+            if (hr < 0)
+            {
+                Log($"ProcessLoopback Initialize with event/auto flags failed {Hex(hr)}; retry 1s buffer");
+                hr = IAudioClient_Initialize(client, 0, Loopback | AutoPcm, 10_000_000, 0, fmtPtr, IntPtr.Zero);
+            }
             if (hr < 0) throw Com("IAudioClient.Initialize", hr);
-            Log("ProcessLoopback IAudioClient.Initialize HRESULT: 0x00000000");
+            Log($"ProcessLoopback Stage: Initialize SUCCESS {Hex(hr)}");
+            hr = IAudioClient_GetBufferSize(client, out var bufFrames);
+            if (hr < 0) throw Com("GetBufferSize", hr);
+            Log($"ProcessLoopback Stage: GetBufferSize SUCCESS frames={bufFrames}");
             var iid = IidCaptureClient;
             hr = IAudioClient_GetService(client, ref iid, out capture);
             if (hr < 0) throw Com("GetService IAudioCaptureClient", hr);
-            Log("ProcessLoopback IAudioCaptureClient obtained: YES");
+            Log("ProcessLoopback Stage: GetCaptureClient SUCCESS");
+            var evt = CreateEventW(IntPtr.Zero, false, false, null);
+            if (evt == 0) throw Com("CreateEvent", Marshal.GetHRForLastWin32Error());
+            hr = IAudioClient_SetEventHandle(client, evt);
+            if (hr < 0)
+            {
+                Log($"ProcessLoopback SetEventHandle {Hex(hr)} — continuing with poll");
+                CloseHandle(evt);
+                evt = 0;
+            }
+            else Log("ProcessLoopback Stage: SetEventHandle SUCCESS");
             hr = IAudioClient_Start(client);
             if (hr < 0) throw Com("IAudioClient.Start", hr);
-            Log("ProcessLoopback Capture Start HRESULT: 0x00000000");
+            Log("ProcessLoopback Stage: Start SUCCESS");
             ready.Set();
+            _eventHandle = evt;
 
             var packet = new byte[192000];
             var first = false;
@@ -106,7 +142,12 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             {
                 hr = IAudioCaptureClient_GetNextPacketSize(capture, out var frames);
                 if (hr < 0) throw Com("GetNextPacketSize", hr);
-                if (frames == 0) { Thread.Sleep(4); continue; }
+                if (frames == 0)
+                {
+                    if (_eventHandle != 0) WaitForSingleObject(_eventHandle, 50);
+                    else Thread.Sleep(4);
+                    continue;
+                }
                 hr = IAudioCaptureClient_GetBuffer(capture, out var data, out var got, out var flags, out _, out _);
                 if (hr < 0) throw Com("GetBuffer", hr);
                 var bytes = (int)got * _format.BlockAlign;
@@ -136,7 +177,8 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         }
         finally
         {
-            if (fmtPtr != 0) Marshal.FreeCoTaskMem(fmtPtr);
+            if (_eventHandle != 0) { CloseHandle(_eventHandle); _eventHandle = 0; }
+            if (fmtPtr != 0) Marshal.FreeHGlobal(fmtPtr);
             if (capture != 0) Marshal.Release(capture);
             if (client != 0) Marshal.Release(client);
         }
@@ -296,6 +338,16 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         => Call<MixDel>(c, 8)(c, out fmt);
     [UnmanagedFunctionPointer(CallingConvention.StdCall)]
     private delegate int MixDel(nint s, out nint fmt);
+
+    private static int IAudioClient_GetBufferSize(nint c, out uint frames)
+        => Call<BufSizeDel>(c, 4)(c, out frames);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int BufSizeDel(nint s, out uint frames);
+
+    private static int IAudioClient_SetEventHandle(nint c, nint evt)
+        => Call<EvtDel>(c, 13)(c, evt);
+    [UnmanagedFunctionPointer(CallingConvention.StdCall)]
+    private delegate int EvtDel(nint s, nint evt);
 
     private static int IAudioClient_GetService(nint c, ref Guid iid, out nint svc)
         => Call<SvcDel>(c, 14)(c, ref iid, out svc);
