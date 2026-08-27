@@ -9,6 +9,5 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="2.8.2" />
     <ProjectReference Include="..\..\src\Auralith.Core\Auralith.Core.csproj" />
     <ProjectReference Include="..\..\src\Auralith.Update\Auralith.Update.csproj" />
-      <ProjectReference Include="..\..\src\Auralith.Audio\Auralith.Audio.csproj" />
-  </ItemGroup>
+    </ItemGroup>
 </Project>
