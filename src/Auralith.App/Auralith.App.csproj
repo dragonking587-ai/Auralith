@@ -21,13 +21,5 @@
     <ProjectReference Include="..\Auralith.Core\Auralith.Core.csproj" />
     <ProjectReference Include="..\Auralith.Output\Auralith.Output.csproj" />
     <Manifest Include="$(ApplicationManifest)" />
-    <ApplicationDefinition Include="App.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-    </ApplicationDefinition>
-    <Page Include="MainWindow.xaml">
-      <Generator>MSBuild:Compile</Generator>
-      <XamlRuntime>$(DefaultXamlRuntime)</XamlRuntime>
-    </Page>
-  </ItemGroup>
+    </ItemGroup>
 </Project>
