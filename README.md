@@ -1,9 +1,6 @@
 # Auralith
 
-Native Windows visual-audio application.
+Native Windows visual-audio application (C# / .NET 8 / WinUI 3 / D3D11).
 
-- C# / .NET 8
-- WinUI 3 / Windows App SDK
-- Direct3D 11
-
-Phase 1 is a GPU core diagnostic preview inside the app. There is no OBS output, updater, or editor yet.
+Phase 2: load a backdrop, choose Fit/Fill, and enter Clean Capture (ESC to exit).
+The full effect library is specified but implemented group-by-group after the editor exists.

@@ -1,8 +1,8 @@
-# Auralith phases
+# Phases
 
-1. Native GPU core + in-app preview (current)
-2. Static backdrop
-3. Editor foundation
-4. WASAPI audio
-5. Effects
-6. Output architecture (Spout / broadcast window / browser / MF camera — evaluate then)
+1. GPU core + in-app preview — done
+2. Backdrop + Fit/Fill + Clean Capture — current
+3. Trace / Stamp / Emitter + overlay visibility
+4. WASAPI + bands + beat/transient
+5. Effect framework + Group A
+6+. Remaining effect groups from the complete library spec

@@ -2,19 +2,33 @@
     x:Class="Auralith.App.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
-    <Grid Background="#050509">
+    <Grid x:Name="Root" Background="#050509">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" x:Name="TopRow"/>
             <RowDefinition Height="*"/>
-            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto" x:Name="BottomRow"/>
         </Grid.RowDefinitions>
-        <StackPanel Margin="20,16,20,8">
-            <TextBlock Text="AURALITH" FontSize="26" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="160"/>
-            <TextBlock Text="NATIVE GPU CORE TEST" Foreground="#9AA3B2" FontSize="13"/>
+        <StackPanel x:Name="TopBar" Margin="16,12,16,8" Spacing="8">
+            <TextBlock Text="AURALITH" FontSize="22" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="140"/>
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Content="Load Image" Click="OnLoadImage"/>
+                <Button Content="Remove Image" Click="OnClearImage"/>
+                <ComboBox x:Name="FitBox" Width="120" SelectionChanged="OnFitChanged">
+                    <ComboBoxItem Content="Fit" IsSelected="True"/>
+                    <ComboBoxItem Content="Fill"/>
+                    <ComboBoxItem Content="Stretch"/>
+                    <ComboBoxItem Content="Center"/>
+                </ComboBox>
+                <Button Content="Edit" Click="OnEdit"/>
+                <Button Content="Preview" Click="OnPreview"/>
+                <Button Content="Clean Capture" Click="OnClean"/>
+                <Button Content="Fullscreen Capture" Click="OnFullscreen"/>
+            </StackPanel>
         </StackPanel>
-        <Border Grid.Row="1" Margin="20,0" BorderBrush="#D4AF37" BorderThickness="2" Background="#08080C">
+        <Border x:Name="CanvasBorder" Grid.Row="1" Margin="16,0" BorderBrush="#D4AF37" BorderThickness="2" Background="#08080C">
             <Image x:Name="Preview" Stretch="Uniform"/>
         </Border>
-        <TextBlock x:Name="Hud" Grid.Row="2" Margin="20,10,20,16" Foreground="#E8E6E3" FontSize="13"/>
+        <TextBlock x:Name="Hud" Grid.Row="2" Margin="16,8,16,12" Foreground="#E8E6E3" FontSize="12"
+                   Text="Phase 2 — backdrop + Clean Capture. ESC exits Clean Capture."/>
     </Grid>
 </Window>
