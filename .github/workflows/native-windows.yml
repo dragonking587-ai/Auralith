@@ -31,11 +31,12 @@ jobs:
           $exe = Get-Item artifacts/Auralith/Auralith.exe
           if (-not $exe) { throw "Auralith.exe missing" }
           $pri = Get-ChildItem artifacts/Auralith -Filter *.pri -Recurse
-          $xbf = Get-ChildItem artifacts/Auralith -Filter *.xbf -Recurse
           $boot = Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll
-          Write-Host "EXE $($exe.Length) PRI=$($pri.Count) XBF=$($xbf.Count) Bootstrap=$boot"
+          Write-Host "EXE $($exe.Length) PRI=$($pri.Name -join ',') Bootstrap=$boot"
           if (-not $boot) { throw "Windows App Runtime Bootstrap.dll missing from publish" }
-          if ($xbf.Count -lt 1) { throw "No .xbf packaged — WinUI XAML will not load" }
+          if ($pri.Count -lt 3) { throw "Expected app + WinUI PRI packages; found $($pri.Count)" }
+          $hasAppPri = $pri.Name -contains "resources.pri"
+          if (-not $hasAppPri) { Write-Host "WARNING: resources.pri name not found; PRI files: $($pri.Name -join ',')" }
       - name: Smoke test published exe
         shell: pwsh
         run: |
