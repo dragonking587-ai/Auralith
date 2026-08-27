@@ -44,3 +44,16 @@ Publish **latest.json only after** NSIS + `.sig` exist.
 Packaged version = `src-tauri/tauri.conf.json` `version` = `DESKTOP_VERSION` in `src/lib/auralith/platform.ts`.
 
 V2 prerelease channel: `2.0.0-alpha.N` (no `1.0.0-desktop-test.*` strings).
+
+## Key pair (V2 alpha.2 repair)
+
+The previous Actions secret was not a parseable Tauri/minisign **private** key
+(`Missing comment in secret key` during artifact signing).
+
+A new Tauri 2 `signer generate` key pair was created.
+
+- Public key lives in `src-tauri/tauri.conf.json` → `plugins.updater.pubkey`
+- Private key lives only in GitHub Actions secret `TAURI_SIGNING_PRIVATE_KEY`
+- Password secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` is empty (unattended CI)
+
+Private key material is not in this repository.

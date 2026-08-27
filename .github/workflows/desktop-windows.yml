@@ -93,6 +93,36 @@ jobs:
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
           echo "Derived release: $NAME ($TAG)"
 
+      - name: Validate updater signing secrets (no values logged)
+        shell: bash
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: |
+          set -euo pipefail
+          if [ -z "${TAURI_SIGNING_PRIVATE_KEY:-}" ]; then
+            echo "INSTALLER CREATED later may still fail: TAURI_SIGNING_PRIVATE_KEY secret is empty"
+            exit 1
+          fi
+          python3 - <<'PY'
+          import os, base64
+          k = os.environ.get("TAURI_SIGNING_PRIVATE_KEY", "").strip().strip('"').strip("'")
+          print("signing_key_char_length", len(k))
+          print("password_secret_set", bool(os.environ.get("TAURI_SIGNING_PRIVATE_KEY_PASSWORD")))
+          try:
+              raw = base64.b64decode(k, validate=False)
+          except Exception as e:
+              raise SystemExit(f"TAURI_SIGNING_PRIVATE_KEY is not valid base64: {e}")
+          header = raw.split(b"\n", 1)[0]
+          if not raw.startswith(b"untrusted comment:"):
+              raise SystemExit("decoded key missing minisign 'untrusted comment' header")
+          if b"public key" in header and b"secret" not in header:
+              raise SystemExit("secret appears to be a PUBLIC key, not a private key")
+          if b"secret key" not in header and b"encrypted secret" not in header:
+              print("WARNING: decoded header does not mention secret key")
+          print("updater private key header: OK")
+          PY
+
       - name: Build Windows NSIS installer (Tauri)
         uses: tauri-apps/tauri-action@v0
         env:
