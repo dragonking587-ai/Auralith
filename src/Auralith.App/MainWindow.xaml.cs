@@ -623,9 +623,9 @@ public sealed partial class MainWindow : Window
             if (!File.Exists(ico))
                 ico = System.IO.Path.Combine(AppContext.BaseDirectory, "auralith.ico");
             if (!File.Exists(ico)) return;
-            var hwnd = WindowNative.GetWindowHandle(this);
-            var id = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(hwnd);
-            AppWindow.GetFromWindowId(id).SetIcon(ico);
+            Microsoft.UI.Windowing.AppWindow.GetFromWindowId(
+                Microsoft.UI.Win32Interop.GetWindowIdFromWindow(WindowNative.GetWindowHandle(this))
+            ).SetIcon(ico);
         }
         catch (Exception ex) { StartupLog.Write("icon " + ex.Message); }
     }
