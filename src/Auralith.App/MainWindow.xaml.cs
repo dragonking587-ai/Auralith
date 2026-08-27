@@ -50,6 +50,7 @@ public sealed partial class MainWindow : Window
         _smoke = smoke;
         InitializeComponent();
         Title = "Auralith";
+        ApplyWindowIcon();
         VersionText.Text = "v" + AppVersion;
         if (_checkOnStartup && !_smoke) _ = CheckUpdatesAsync(silent: true);
         Root.Loaded += (_, _) =>
@@ -612,5 +613,20 @@ public sealed partial class MainWindow : Window
         _scene.Fit = loaded.Fit;
         _scene.ShowEditorOverlays = loaded.ShowEditorOverlays;
         RefreshSel();
+    }
+
+    private void ApplyWindowIcon()
+    {
+        try
+        {
+            var ico = System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "auralith.ico");
+            if (!File.Exists(ico))
+                ico = System.IO.Path.Combine(AppContext.BaseDirectory, "auralith.ico");
+            if (!File.Exists(ico)) return;
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var id = Win32Interop.GetWindowIdFromWindow(hwnd);
+            AppWindow.GetFromWindowId(id).SetIcon(ico);
+        }
+        catch (Exception ex) { StartupLog.Write("icon " + ex.Message); }
     }
 }

@@ -33,21 +33,22 @@ RestartApplications=no
 SetupMutex=AuralithSetupMutex
 AppMutex=AuralithAppMutex
 MinVersion=10.0.17763
-VersionInfoVersion=2.0.0.7
+VersionInfoVersion=2.0.0.8
 VersionInfoProductName=Auralith
+SetupIconFile=assets\auralith.ico
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
 
 [Tasks]
-Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"; Flags: unchecked
+Name: "desktopicon"; Description: "Create a &desktop shortcut"; GroupDescription: "Additional shortcuts:"
 
 [Files]
 Source: "{#PublishDir}\\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{autoprograms}\Auralith"; Filename: "{app}\{#MyAppExeName}"
-Name: "{autodesktop}\Auralith"; Filename: "{app}\{#MyAppExeName}"; Tasks: desktopicon
+Name: "{autoprograms}\Auralith"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Comment: "Audio-reactive visual effects editor"; IconFilename: "{app}\Assets\auralith.ico"
+Name: "{autodesktop}\Auralith"; Filename: "{app}\{#MyAppExeName}"; WorkingDir: "{app}"; Comment: "Audio-reactive visual effects editor"; IconFilename: "{app}\Assets\auralith.ico"; Tasks: desktopicon
 
 [Run]
 Filename: "{app}\{#MyAppExeName}"; Description: "Launch Auralith"; Flags: nowait postinstall skipifsilent
