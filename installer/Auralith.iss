@@ -35,7 +35,6 @@ AppMutex=AuralithAppMutex
 MinVersion=10.0.17763
 VersionInfoVersion=2.0.0.4
 VersionInfoProductName=Auralith
-VersionInfoProductVersion={#MyAppVersion}
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
