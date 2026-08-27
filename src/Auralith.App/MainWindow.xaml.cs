@@ -16,26 +16,43 @@ namespace Auralith.App;
 public sealed partial class MainWindow : Window
 {
     private readonly GpuCore _gpu = new();
+    private readonly bool _smoke;
     private readonly Scene _scene = new();
     private readonly DispatcherTimer _timer = new() { Interval = TimeSpan.FromMilliseconds(33) };
     private WriteableBitmap? _bmp;
     private byte[] _copy = new byte[1920 * 1080 * 4];
     private bool _appFullscreen;
 
-    public MainWindow()
+    public MainWindow(bool smoke = false)
     {
+        _smoke = smoke;
         InitializeComponent();
         Title = "Auralith";
-        _gpu.Start();
         Root.Loaded += (_, _) =>
         {
             Root.IsTabStop = true;
             Root.KeyDown += OnKeyDown;
             Root.Focus(Microsoft.UI.Xaml.FocusState.Programmatic);
+            StartGpuSafely();
         };
         _timer.Tick += (_, _) => Pump();
         _timer.Start();
         Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); };
+    }
+
+    private void StartGpuSafely()
+    {
+        try
+        {
+            StartupLog.Write("D3D initialization starting");
+            _gpu.Start();
+            StartupLog.Write("D3D initialization requested");
+        }
+        catch (Exception ex)
+        {
+            StartupLog.Error(ex);
+            Hud.Text = "GPU initialization failed.\n" + ex.Message;
+        }
     }
 
     private async void OnLoadImage(object sender, RoutedEventArgs e)

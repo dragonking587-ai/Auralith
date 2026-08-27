@@ -103,6 +103,13 @@ public sealed class GpuCore : IDisposable
                 new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_1 },
                 out _device, out _, out _context);
             if (hr.Failure || _device is null || _context is null)
+            {
+                hr = D3D11.D3D11CreateDevice(
+                    null, DriverType.Warp, DeviceCreationFlags.BgraSupport,
+                    new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_1 },
+                    out _device, out _, out _context);
+            }
+            if (hr.Failure || _device is null || _context is null)
                 throw new InvalidOperationException($"D3D11CreateDevice 0x{hr.Code:X8}");
             using (var dxgi = _device.QueryInterface<IDXGIDevice>())
             using (var adapter = dxgi.GetAdapter())

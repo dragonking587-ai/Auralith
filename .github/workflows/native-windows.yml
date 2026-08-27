@@ -25,15 +25,28 @@ jobs:
         run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
       - name: Publish self-contained x64
         run: dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
-      - name: Verify exe
+      - name: Verify publish payload
         shell: pwsh
         run: |
           $exe = Get-Item artifacts/Auralith/Auralith.exe
           if (-not $exe) { throw "Auralith.exe missing" }
-          Write-Host "EXE $($exe.FullName) $($exe.Length)"
+          $pri = Get-ChildItem artifacts/Auralith -Filter *.pri -Recurse
+          $xbf = Get-ChildItem artifacts/Auralith -Filter *.xbf -Recurse
+          $boot = Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll
+          Write-Host "EXE $($exe.Length) PRI=$($pri.Count) XBF=$($xbf.Count) Bootstrap=$boot"
+          if (-not $boot) { throw "Windows App Runtime Bootstrap.dll missing from publish" }
+          if ($xbf.Count -lt 1) { throw "No .xbf packaged — WinUI XAML will not load" }
+      - name: Smoke test published exe
+        shell: pwsh
+        run: |
+          $p = Start-Process -FilePath "artifacts/Auralith/Auralith.exe" -ArgumentList "--smoke-test" -PassThru -WorkingDirectory "artifacts/Auralith"
+          $ok = $p.WaitForExit(45000)
+          if (-not $ok) { Stop-Process -Id $p.Id -Force; throw "Smoke test timed out" }
+          Write-Host "smoke exit $($p.ExitCode)"
+          if ($p.ExitCode -ne 0) { throw "Smoke test failed exit $($p.ExitCode)" }
       - name: Zip
         shell: pwsh
-        run: Compress-Archive -Path artifacts/Auralith/* -DestinationPath artifacts/Auralith-Native-Core-Test-02-win-x64.zip -Force
+        run: Compress-Archive -Path artifacts/Auralith/* -DestinationPath artifacts/Auralith-Native-Core-Test-03-win-x64.zip -Force
       - uses: actions/upload-artifact@v4
         with:
           name: Auralith-Native-Core
