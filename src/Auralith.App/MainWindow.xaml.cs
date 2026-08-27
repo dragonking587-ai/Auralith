@@ -741,7 +741,7 @@ public sealed partial class MainWindow : Window
         else if (mode == "Application")
         {
             if (AppBox.SelectedItem is ComboBoxItem app && app.Tag is AudioAppSession sess)
-                _audio.StartApplication(sess.Pid, sess.EndpointId);
+                _audio.StartApplication(sess.Pid, sess.EndpointId, IncludeTreeCheck.IsChecked == true);
             else
             {
                 AudioStatus.Text = "Choose an application first.";

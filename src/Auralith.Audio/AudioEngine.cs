@@ -14,7 +14,7 @@ public sealed class AudioEngine : IDisposable
     public const int FftSize = 2048;
 
     private WasapiLoopbackCapture? _loop;
-    private ProcessLoopbackCapture? _appCap;
+    private ProcessLoopbackSource? _procSrc;
     private WasapiCapture? _mic;
     private readonly object _gate = new();
     private readonly float[] _fft = new float[FftSize];
@@ -135,7 +135,7 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
-    public void StartApplication(int pid, string? endpointId)
+    public void StartApplication(int pid, string? endpointId, bool includeTree = true)
     {
         Stop();
         Status = "Desktop Audio: STARTING";
@@ -143,28 +143,27 @@ public sealed class AudioEngine : IDisposable
         {
             Log($"[AppAudio] Selected application PID: {pid}");
             Log($"[AppAudio] Endpoint: {endpointId}");
-            var cap = new ProcessLoopbackCapture();
+            if (!ProcessLoopbackSource.IsSupported())
+                throw new InvalidOperationException("Application Audio requires Windows 10 2004+ process loopback. Desktop Output Device remains available.");
+            var cap = new ProcessLoopbackSource(pid, "PID " + pid, includeTree);
             cap.DataAvailable += OnDataFromWave;
-            cap.RecordingStopped += (_, args) =>
+            cap.Failed += (_, msg) =>
             {
-                if (args.Exception is not null)
-                {
-                    Status = "Desktop Audio: ERROR " + args.Exception.Message;
-                    Log("[AppAudio] " + args.Exception);
-                }
-                else Status = "SOURCE LOST";
+                Status = msg.Contains("no longer") || msg.Contains("lost", StringComparison.OrdinalIgnoreCase)
+                    ? "SOURCE LOST"
+                    : "Desktop Audio: ERROR " + msg;
+                Log("[AppAudio] " + msg);
             };
-            cap.Start(pid, endpointId);
-            _appCap = cap;
-            _loop = null;
-            if (cap.WaveFormat is { } fmt)
+            cap.Start();
+            _procSrc = cap;
+            if (cap.Format is { } fmt)
             {
                 _sampleRate = fmt.SampleRate;
                 _channels = Math.Max(1, fmt.Channels);
                 _format = $"{fmt.Encoding} {fmt.BitsPerSample}-bit {fmt.Channels}ch {fmt.SampleRate}Hz";
             }
-            Status = "Desktop Audio: CAPTURING  app pid " + pid + "  " + cap.Mode;
-            Log("[AppAudio] Capture started " + cap.Status);
+            Status = "Desktop Audio: CAPTURING  process " + pid;
+            Log("[AppAudio] Capture started process-loopback pid=" + pid + " tree=" + includeTree);
             DeviceName = "App PID " + pid;
         }
         catch (Exception ex)
@@ -201,7 +200,7 @@ public sealed class AudioEngine : IDisposable
     private void OnDataFromWave(object? sender, WaveInEventArgs e)
     {
         if (e.BytesRecorded <= 0) return;
-        WaveFormat? fmt = _loop?.WaveFormat ?? _appCap?.WaveFormat ?? _mic?.WaveFormat;
+        WaveFormat? fmt = _loop?.WaveFormat ?? _procSrc?.Format ?? _mic?.WaveFormat;
         if (fmt is null) return;
         OnPacket(e.Buffer, e.BytesRecorded, fmt);
     }
@@ -209,10 +208,10 @@ public sealed class AudioEngine : IDisposable
     public void Stop()
     {
         try { _loop?.StopRecording(); } catch { }
-        try { _appCap?.Stop(); } catch { }
+        try { _procSrc?.Stop(); } catch { }
         try { _mic?.StopRecording(); } catch { }
-        _loop?.Dispose(); _appCap?.Dispose(); _mic?.Dispose();
-        _loop = null; _appCap = null; _mic = null;
+        _loop?.Dispose(); _procSrc?.Dispose(); _mic?.Dispose();
+        _loop = null; _procSrc = null; _mic = null;
         if (!Status.StartsWith("Desktop Audio: ERROR"))
             Status = "Desktop Audio: STOPPED";
     }
@@ -472,6 +471,16 @@ public sealed class AudioEngine : IDisposable
         }
     }
 
-    private void Log(string s) => Logged?.Invoke(s);
+    private void Log(string s)
+    {
+        Logged?.Invoke(s);
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "audio.log"), DateTime.Now.ToString("o") + " " + s + Environment.NewLine);
+        }
+        catch { }
+    }
     public void Dispose() => Stop();
 }

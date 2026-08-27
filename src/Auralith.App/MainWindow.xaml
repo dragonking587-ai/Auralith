@@ -84,6 +84,7 @@
                     </ComboBox>
                     <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
                     <ComboBox x:Name="AppBox" Width="240" Visibility="Collapsed"/>
+                    <CheckBox x:Name="IncludeTreeCheck" Content="Include child processes" IsChecked="True"/>
                     <Button Content="Refresh Apps" Click="OnRefreshApps"/>
                     <Button Content="Start Audio" Click="OnStartAudio"/>
                     <TextBlock x:Name="CoordHud" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>
