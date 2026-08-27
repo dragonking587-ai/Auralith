@@ -1,4 +1,5 @@
 using Auralith.Core;
+using Xunit;
 
 namespace Auralith.Core.Tests;
 
