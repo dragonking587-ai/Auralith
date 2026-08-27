@@ -432,12 +432,22 @@ public sealed partial class MainWindow : Window
         if (_selected is null) return;
         _selected.ShowEditorMarker = MarkerCheck.IsChecked == true;
     }
+    private (float sw, float sh) PreviewSourceSize()
+        => (_scene.CanvasWidth, _scene.CanvasHeight);
+
     private Windows.Foundation.Point ToCanvas(PointerRoutedEventArgs e)
     {
         var pt = e.GetCurrentPoint(Preview).Position;
-        var aw = Preview.ActualWidth; var ah = Preview.ActualHeight;
+        var aw = (float)Preview.ActualWidth; var ah = (float)Preview.ActualHeight;
         if (aw < 1 || ah < 1) return new Windows.Foundation.Point(0,0);
-        return new Windows.Foundation.Point(pt.X / aw * _scene.CanvasWidth, pt.Y / ah * _scene.CanvasHeight);
+        var (sw, sh) = PreviewSourceSize();
+        var (x, y) = CanvasSpace.PointerToScene((float)pt.X, (float)pt.Y, aw, ah, _scene.CanvasWidth, _scene.CanvasHeight, sw, sh);
+        if (CoordHud is not null)
+        {
+            var v = CanvasSpace.UniformContent(aw, ah, sw, sh);
+            CoordHud.Text = $"Canvas: {pt.X:0},{pt.Y:0}  Scene: {x:0},{y:0}\nViewport: {v.X:0},{v.Y:0} {v.W:0}x{v.H:0}  Scene {_scene.CanvasWidth}x{_scene.CanvasHeight}  Fit {_scene.Fit}";
+        }
+        return new Windows.Foundation.Point(x, y);
     }
     private void OnOverlayPressed(object s, PointerRoutedEventArgs e)
     {
