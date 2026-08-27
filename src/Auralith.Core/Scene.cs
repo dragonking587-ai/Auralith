@@ -88,7 +88,7 @@ public static class FitMath
 
 public sealed class AudioBands
 {
-    public float Bass, Low, Mid, High, Full, Beat, Transient;
+    public float Raw, Bass, Low, Mid, High, Full, Beat, Transient;
 }
 
 public static class EffectStatus

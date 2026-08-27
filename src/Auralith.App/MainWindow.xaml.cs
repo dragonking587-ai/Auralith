@@ -252,8 +252,15 @@ public sealed partial class MainWindow : Window
         var bands = _audio.Snapshot();
         _gpu.SetSceneGraph(_scene, _scene.Regions, bands);
         if (Meters is not null)
-            Meters.Text = $"BASS {bands.Bass:0.00}  LOW {bands.Low:0.00}  MID {bands.Mid:0.00}  HIGH {bands.High:0.00}\nBEAT {bands.Beat:0.00}  TRN {bands.Transient:0.00}";
+            Meters.Text =
+                $"RAW  {Bar(bands.Raw)}  {bands.Raw:0.00}\n" +
+                $"BASS {Bar(bands.Bass)}  {bands.Bass:0.00}\n" +
+                $"LOW  {Bar(bands.Low)}  {bands.Low:0.00}\n" +
+                $"MID  {Bar(bands.Mid)}  {bands.Mid:0.00}\n" +
+                $"HIGH {Bar(bands.High)}  {bands.High:0.00}\n" +
+                $"BEAT {Bar(bands.Beat)}  {bands.Beat:0.00}  TRN {Bar(bands.Transient)}  {bands.Transient:0.00}";
         if (AudioStatus is not null) AudioStatus.Text = _audio.Status;
+        if (AudioDiag is not null) AudioDiag.Text = _audio.Diagnostics;
         if (_scene.ShowOverlays) RedrawOverlay();
         else Overlay.Children.Clear();
         if (_holdDecodedPreview)
@@ -720,8 +727,10 @@ public sealed partial class MainWindow : Window
     {
         string? id = null;
         if (DeviceBox.SelectedItem is ComboBoxItem item) id = item.Tag as string;
+        _audio.Logged += line => StartupLog.Write(line);
         _audio.StartLoopback(id);
         AudioStatus.Text = _audio.Status;
+
     }
     private void OnDeviceChanged(object s, SelectionChangedEventArgs e) { }
     private async void OnSaveProject(object s, RoutedEventArgs e)
@@ -764,5 +773,11 @@ public sealed partial class MainWindow : Window
             ).SetIcon(ico);
         }
         catch (Exception ex) { StartupLog.Write("icon " + ex.Message); }
+    }
+
+    private static string Bar(float v)
+    {
+        var n = (int)Math.Clamp(v * 14, 0, 14);
+        return new string('█', n) + new string('░', 14 - n);
     }
 }

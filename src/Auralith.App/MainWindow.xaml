@@ -80,7 +80,8 @@
                     <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
                     <Button Content="Start Desktop Audio" Click="OnStartAudio"/>
                     <TextBlock x:Name="AudioStatus" Foreground="#9AA3B2" TextWrapping="Wrap"/>
-                    <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3"/>
+                    <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3" TextWrapping="Wrap"/>
+                    <TextBlock x:Name="AudioDiag" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
