@@ -18,34 +18,52 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore Auralith.sln
       - name: Build
-        run: dotnet build Auralith.sln -c Release
+        run: dotnet build Auralith.sln -c Release --no-restore -p:Platform=x64
+      - name: Dump XamlCompiler output on failure
+        if: failure()
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Filter output.json src/Auralith.App/obj -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "==== $($_.FullName) ===="; Get-Content $_.FullName -Raw }
+          Get-ChildItem -Recurse -Filter *.xamlcompiler* src/Auralith.App -ErrorAction SilentlyContinue |
+            ForEach-Object { Write-Host "==== $($_.FullName) ===="; Get-Content $_.FullName -Raw }
       - name: Test
         run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release --no-build
       - name: Publish self-contained x64
         run: |
-          dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -o artifacts/Auralith
+          dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
       - name: Verify exe
         shell: pwsh
         run: |
-          $exe = Get-ChildItem artifacts/Auralith/*.exe | Select-Object -First 1
-          if (-not $exe) { throw "No Auralith exe produced" }
-          Write-Host "EXE $($exe.FullName) $($exe.Length)"
+          $exe = Get-Item "artifacts/Auralith/Auralith.exe" -ErrorAction SilentlyContinue
+          if (-not $exe) { $exe = Get-Item "artifacts/Auralith/Auralith.App.exe" -ErrorAction SilentlyContinue }
+          if (-not $exe) { Get-ChildItem artifacts/Auralith | Format-Table Name,Length; throw "P1 gate failed: Auralith.exe missing from publish output" }
+          Write-Host "EXE $($exe.FullName) ($([math]::Round($exe.Length/1MB,2)) MB)"
+          if ($exe.Length -lt 1024) { throw "Published exe is implausibly small" }
       - name: Zip package
         shell: pwsh
-        run: Compress-Archive -Path artifacts/Auralith/* -DestinationPath artifacts/Auralith-Native-Test-01-win-x64.zip -Force
+        run: |
+          $name = if ($env:GITHUB_REF_NAME) { "Auralith-$($env:GITHUB_REF_NAME)-win-x64.zip" } else { "Auralith-Native-win-x64.zip" }
+          if ($name -notlike "Auralith-Native-Test-*") { $name = "Auralith-Native-Test-02-win-x64.zip" }
+          if ($env:GITHUB_REF_NAME -like "Auralith-Native-Test-*") { $name = "$($env:GITHUB_REF_NAME)-win-x64.zip" }
+          Compress-Archive -Path artifacts/Auralith/* -DestinationPath "artifacts/$name" -Force
+          echo "ZIP_NAME=$name" >> $env:GITHUB_ENV
+          Write-Host "Wrote artifacts/$name"
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Native-Test-01
-          path: artifacts/Auralith-Native-Test-01-win-x64.zip
+          name: Auralith-Native-Windows
+          path: artifacts/*.zip
           if-no-files-found: error
       - name: Create prerelease if tagged
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/Auralith-Native-Test-')
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          name: Auralith Native Test 01
-          files: artifacts/Auralith-Native-Test-01-win-x64.zip
+          name: ${{ github.ref_name }}
+          files: artifacts/*.zip
           body: |
             Native Windows Phase 1 diagnostic build.
             Branch: rebuild/auralith-native

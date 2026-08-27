@@ -4,7 +4,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
     <Grid Background="#050509" Padding="28">
         <StackPanel MaxWidth="640" Spacing="12">
-            <TextBlock Text="AURALITH" FontSize="28" FontWeight="SemiBold" Foreground="#D4AF37" LetterSpacing="6"/>
+            <TextBlock Text="AURALITH" FontSize="28" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="120"/>
             <TextBlock Text="Native Windows · Phase 1" Foreground="#9AA3B2" FontSize="14"/>
             <TextBlock TextWrapping="Wrap" Foreground="#E8E6E3" FontSize="14"
                        Text="Native GPU Test Output is a standalone Direct3D 11 window. It does not use Tauri, WebView, or the old editor."/>
