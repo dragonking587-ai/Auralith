@@ -1,0 +1,24 @@
+name: Auralith Tauri Preview
+on:
+  push:
+    branches: [tauri/auralith-reborn, tauri/auralith-reborn-v2]
+    paths:
+      - "apps/auralith-tauri/**"
+      - ".github/workflows/tauri-preview.yml"
+  workflow_dispatch:
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/auralith-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: dtolnay/rust-toolchain@stable
+      - run: npm install
+      - run: npm run build
+      - name: Note
+        run: echo "Tauri NSIS packaging requires local `npm run tauri build` until signing keys exist."

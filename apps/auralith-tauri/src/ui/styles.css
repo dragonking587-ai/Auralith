@@ -1,0 +1,17 @@
+html,body,#root { margin:0; height:100%; background:#050509; color:#E8E6E3; font:13px/1.4 "Segoe UI",sans-serif; }
+.app { display:grid; grid-template-rows:auto 1fr; height:100%; }
+.top, .side { background:#0b0c12; border-color:#2a2d3a; }
+.top { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid #2a2d3a; flex-wrap:wrap; }
+.brand { color:#D4AF37; letter-spacing:.18em; font-weight:700; margin-right:8px; }
+button, select, input { background:#161821; color:#E8E6E3; border:1px solid #3a3e4e; padding:6px 10px; }
+button.gold { background:#D4AF37; color:#111; font-weight:700; border:0; }
+.stage { display:grid; grid-template-columns:1fr 280px; min-height:0; }
+.stage.clean { grid-template-columns:1fr 0px; }
+.canvas-wrap { position:relative; min-height:0; background:#050509; }
+canvas#gl { width:100%; height:100%; display:block; }
+.overlay { position:absolute; inset:0; pointer-events:none; }
+.overlay svg { width:100%; height:100%; }
+.side { border-left:1px solid #2a2d3a; padding:10px; overflow:auto; }
+.side h3 { color:#D4AF37; font-size:11px; letter-spacing:.12em; margin:12px 0 6px; }
+.meters { font-family: Consolas, monospace; white-space:pre; }
+.hidden { display:none !important; }
