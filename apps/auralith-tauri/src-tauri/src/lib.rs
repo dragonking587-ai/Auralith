@@ -53,15 +53,7 @@ mod capture {
             return;
         };
         let hwnd = match win.hwnd() {
-            Ok(h) => {
-                let raw = h as *mut c_void;
-                if raw.is_null() {
-                    // Tauri 2 HWND newtype
-                    h.0 as *mut c_void
-                } else {
-                    raw
-                }
-            }
+            Ok(h) => h.0 as *mut c_void,
             Err(e) => {
                 eprintln!("[Capture] hwnd error: {e}");
                 return;
