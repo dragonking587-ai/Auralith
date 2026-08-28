@@ -35,11 +35,11 @@ jobs:
           if (-not $exe) { $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle -Filter *.exe | Select-Object -First 1 }
           if (-not $exe) { throw "NSIS installer not found" }
           New-Item -ItemType Directory -Force dist-install | Out-Null
-          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.2-x64-Setup.exe"
+          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.3-x64-Setup.exe"
           Copy-Item $exe.FullName $dest
           Get-FileHash $dest -Algorithm SHA256 | Out-File dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Reborn-Preview-2.0.0-alpha.2
+          name: Auralith-Reborn-Preview-2.0.0-alpha.3
           path: apps/auralith-tauri/dist-install/*
