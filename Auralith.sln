@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auralith.App", "src\Auralit
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auralith.Core.Tests", "tests\Auralith.Core.Tests\Auralith.Core.Tests.csproj", "{77777777-7777-7777-7777-777777777777}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auralith.Audio.Tests", "tests\Auralith.Audio.Tests\Auralith.Audio.Tests.csproj", "{88888888-8888-8888-8888-888888888888}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auralith.Update", "src\Auralith.Update\Auralith.Update.csproj", "{88888888-8888-8888-8888-888888888888}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Auralith.Updater", "src\Auralith.Updater\Auralith.Updater.csproj", "{99999999-9999-9999-9999-999999999999}"

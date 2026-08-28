@@ -38,7 +38,6 @@ public sealed partial class MainWindow : Window
     private bool _checkOnStartup = true;
     private bool _holdDecodedPreview;
     private readonly AudioEngine _audio = new();
-    private WebAudioHost? _webAudio;
     private string _tool = "select";
     private Region? _selected;
     private Region? _draft;
@@ -68,13 +67,12 @@ public sealed partial class MainWindow : Window
             foreach (var kind in EffectCatalog.All)
                 AddEffectBox.Items.Add(new ComboBoxItem { Content = kind.ToString(), Tag = kind.ToString() });
             if (AddEffectBox.Items.Count > 0) AddEffectBox.SelectedIndex = 0;
-            _ = InitWebAudioAsync();
 
 
         };
         _timer.Tick += (_, _) => Pump();
         _timer.Start();
-        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); _audio.Dispose(); _ = _webAudio?.StopAsync(); };
+        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); _audio.Dispose(); };
     }
 
     private void StartGpuSafely()
@@ -263,11 +261,7 @@ public sealed partial class MainWindow : Window
                 $"MID  {Bar(bands.Mid)}  {bands.Mid:0.00}\n" +
                 $"HIGH {Bar(bands.High)}  {bands.High:0.00}\n" +
                 $"BEAT {Bar(bands.Beat)}  {bands.Beat:0.00}  TRN {Bar(bands.Transient)}  {bands.Transient:0.00}";
-        var webSel = (EngineBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web";
-        if (AudioStatus is not null)
-            AudioStatus.Text = webSel && _webAudio is not null
-                ? ("WEB AUDIO: " + _webAudio.Status + "  " + _webAudio.Detail)
-                : _audio.Status;
+        if (AudioStatus is not null) AudioStatus.Text = _audio.Status;
 
         if (AudioDiag is not null) AudioDiag.Text = _audio.Diagnostics;
         if (LoopbackDiag is not null)
@@ -759,95 +753,19 @@ public sealed partial class MainWindow : Window
             }
         }
     }
-    private async Task InitWebAudioAsync()
-    {
-        try
-        {
-            _webAudio = new WebAudioHost(_audio);
-            _webAudio.Changed += () =>
-            {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    if (WebAudioStatus is not null)
-                        WebAudioStatus.Text = "WEB AUDIO  " + _webAudio.Status + "  " + _webAudio.Detail;
-                });
-            };
-            if (WebAudioView is not null)
-                await _webAudio.AttachAsync(WebAudioView);
-        }
-        catch (Exception ex)
-        {
-            if (WebAudioStatus is not null)
-                WebAudioStatus.Text = "WEB AUDIO ERROR  " + ex.Message;
-        }
-    }
-    private void LogWebViewLayout()
-    {
-        if (WebAudioView is null) return;
-        var msg = $"[WebView] {WebAudioView.ActualWidth:0}x{WebAudioView.ActualHeight:0} vis={WebAudioView.Visibility} opacity={WebAudioView.Opacity} hit={WebAudioView.IsHitTestVisible}";
-        try
-        {
-            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
-            Directory.CreateDirectory(dir);
-            File.AppendAllText(System.IO.Path.Combine(dir, "web-audio.log"), DateTime.Now.ToString("o") + " " + msg + Environment.NewLine);
-        }
-        catch { }
-        if (WebAudioStatus is not null && _webAudio is not null)
-            WebAudioStatus.Text = "WEB AUDIO  " + _webAudio.Status + "  " + msg;
-    }
-    private async void OnWebChoose(object s, RoutedEventArgs e)
-    {
-        if (_webAudio is null) { if (WebAudioStatus is not null) WebAudioStatus.Text = "WEB AUDIO ERROR  host not ready"; return; }
-        if (WebAudioPanel is not null) WebAudioPanel.Visibility = Visibility.Visible;
-        if (WebAudioView is not null)
-        {
-            WebAudioView.Visibility = Visibility.Visible;
-            WebAudioView.Opacity = 1;
-            WebAudioView.IsHitTestVisible = true;
-            WebAudioView.Width = 420;
-            WebAudioView.Height = 180;
-            LogWebViewLayout();
-            WebAudioView.Focus(FocusState.Programmatic);
-        }
-        await _webAudio.RevealPanelAsync();
-
-    }
-    private async void OnWebStop(object s, RoutedEventArgs e)
-    {
-        if (_webAudio is not null) await _webAudio.StopAsync();
-    }
-    private void OnEngineChanged(object s, SelectionChangedEventArgs e)
-    {
-        var web = (EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web";
-        void Set(FrameworkElement? el, bool show) { if (el is not null) el.Visibility = show ? Visibility.Visible : Visibility.Collapsed; }
-        Set(WebSourceButton, web);
-        Set(WebStopButton, web);
-        Set(WebAudioPanel, web);
-        Set(WebAudioView, web);
-        Set(WebAudioStatus, web);
-        Set(CaptureModeBox, !web);
-        Set(DeviceBox, !web);
-        Set(AppBox, !web);
-        Set(IncludeTreeCheck, !web);
-        Set(RefreshAppsButton, !web);
-        Set(StartAudioButton, !web);
-        if (!web) _ = _webAudio?.StopAsync();
-        else LogWebViewLayout();
-    }
     private void OnStartAudio(object s, RoutedEventArgs e)
     {
-        if ((EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web")
-        {
-            OnWebChoose(s, e);
-            return;
-        }
         _audio.Logged += line => StartupLog.Write(line);
         var mode = (CaptureModeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
-        if (mode == "Microphone") _audio.StartMicrophone();
+        if (mode == "Microphone")
+        {
+            var mic = DeviceBox.SelectedItem as ComboBoxItem;
+            _audio.StartMicrophone(mic?.Tag?.ToString(), mic?.Content?.ToString() ?? "Microphone");
+        }
         else if (mode == "Application")
         {
             if (AppBox.SelectedItem is ComboBoxItem app && app.Tag is AudioAppSession sess)
-                _audio.StartApplication(sess.Pid, sess.EndpointId, IncludeTreeCheck.IsChecked == true);
+                _audio.StartApplication(sess.Pid, sess.Display, IncludeTreeCheck.IsChecked == true);
             else
             {
                 AudioStatus.Text = "Choose an application first.";
@@ -856,8 +774,8 @@ public sealed partial class MainWindow : Window
         }
         else
         {
-            string? id = (DeviceBox.SelectedItem as ComboBoxItem)?.Tag as string;
-            _audio.StartLoopback(id);
+            var dev = DeviceBox.SelectedItem as ComboBoxItem;
+            _audio.StartDesktop(dev?.Tag?.ToString(), dev?.Content?.ToString() ?? "Default Output Device");
         }
         AudioStatus.Text = _audio.Status;
     }
@@ -867,8 +785,11 @@ public sealed partial class MainWindow : Window
         if (AppBox is null || DeviceBox is null) return;
         var mode = (CaptureModeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
         AppBox.Visibility = mode == "Application" ? Visibility.Visible : Visibility.Collapsed;
-        DeviceBox.Visibility = mode == "DesktopOutput" ? Visibility.Visible : Visibility.Collapsed;
+        DeviceBox.Visibility = mode != "Application" ? Visibility.Visible : Visibility.Collapsed;
+        IncludeTreeCheck.Visibility = mode == "Application" ? Visibility.Visible : Visibility.Collapsed;
+        RefreshAppsButton.Visibility = mode == "Application" ? Visibility.Visible : Visibility.Collapsed;
         if (mode == "Application") OnRefreshApps(s, e);
+        else FillDevices(mode == "Microphone");
     }
     private void OnRefreshApps(object s, RoutedEventArgs e)
     {
@@ -877,6 +798,15 @@ public sealed partial class MainWindow : Window
             AppBox.Items.Add(new ComboBoxItem { Content = sess.Display + (sess.Active ? " (active)" : ""), Tag = sess });
         if (AppBox.Items.Count > 0) AppBox.SelectedIndex = 0;
         else AppBox.Items.Add(new ComboBoxItem { Content = "No audio sessions found" });
+    }
+    private void FillDevices(bool capture)
+    {
+        if (DeviceBox is null) return;
+        DeviceBox.Items.Clear();
+        var list = capture ? _audio.ListCaptureDevices() : _audio.ListRenderDevices();
+        foreach (var (id, name) in list)
+            DeviceBox.Items.Add(new ComboBoxItem { Content = name, Tag = id });
+        if (DeviceBox.Items.Count > 0) DeviceBox.SelectedIndex = 0;
     }
     private async void OnSaveProject(object s, RoutedEventArgs e)
     {

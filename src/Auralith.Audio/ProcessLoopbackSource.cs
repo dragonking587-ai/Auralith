@@ -22,6 +22,11 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     private readonly int _pid;
     private readonly bool _includeTree;
     public string Name { get; }
+    public string SourceName => Name;
+    public AudioCaptureState State { get; private set; } = AudioCaptureState.Stopped;
+    public int SampleRate => _format?.SampleRate ?? 44100;
+    public int Channels => _format?.Channels ?? 2;
+    public string FormatDescription => _format is null ? "PCM16 2ch 44100 (process loopback)" : _format.ToString();
     public WaveFormat? Format => _format;
     public string LastStage { get; private set; } = "idle";
     public string LastHresult { get; private set; } = "";
@@ -29,9 +34,14 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     public bool CaptureClientOk { get; private set; }
     public bool FirstPacket { get; private set; }
     public long Packets { get; private set; }
+    public long Frames { get; private set; }
+    public float RawPeak { get; private set; }
+    public float RawRms { get; private set; }
+    public string? ErrorStage { get; private set; }
+    public string? ErrorMessage { get; private set; }
+    public event Action<AudioSampleBlock>? SamplesAvailable;
+    public event Action<string>? Failed;
 
-    public event EventHandler<WaveInEventArgs>? DataAvailable;
-    public event EventHandler<string>? Failed;
 
     public ProcessLoopbackSource(int pid, string name, bool includeTree = true)
     {
@@ -48,6 +58,9 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
 
     public void Start()
     {
+        State = AudioCaptureState.Starting;
+        FirstPacket = false; Packets = Frames = 0;
+
         if (!IsSupported())
             throw new InvalidOperationException("Per-application audio requires Windows 10 build 20348 or later. Desktop Output Device remains available.");
         Stop();
@@ -61,7 +74,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             {
                 startEx = ex;
                 ready.Set();
-                Failed?.Invoke(this, FormatError("CaptureLoop", ex));
+                Failed?.Invoke(FormatError("CaptureLoop", ex));
             }
         })
         { IsBackground = true, Name = "Auralith-ProcessLoopback" };
@@ -72,11 +85,13 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         if (startEx is not null) throw startEx;
         if (_format is null)
             throw new InvalidOperationException(FormatError("Activate", "IAudioClient obtained: NO", unchecked((int)0x80004005)));
+        State = AudioCaptureState.WaitingForPackets;
     }
 
     public void Stop()
     {
         _run = false;
+        if (State != AudioCaptureState.Error) State = AudioCaptureState.Stopped;
         if (_thread is { IsAlive: true }) _thread.Join(1500);
         _thread = null;
     }
@@ -176,7 +191,13 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
                         Log($"ProcessLoopback First packet received: YES bytes={bytes} frames={got} peak~={peak:0.000}");
                     }
                     Packets++;
-                    DataAvailable?.Invoke(this, new WaveInEventArgs(packet, bytes));
+                    var pcm = new PcmFormat(PcmEncoding.Pcm, 44100, 2, 16);
+                    var samples = PcmConverter.ToMonoFloat32(packet.AsSpan(0, bytes), pcm);
+                    Frames += samples.Length;
+                    PcmConverter.PeakRms(samples, out var pk, out var rms);
+                    RawPeak = pk; RawRms = rms;
+                    State = pk < 1e-5f && rms < 1e-5f ? AudioCaptureState.NoSignal : AudioCaptureState.Capturing;
+                    SamplesAvailable?.Invoke(new AudioSampleBlock(samples, 44100, DateTime.UtcNow.Ticks));
                 }
                 IAudioCaptureClient_ReleaseBuffer(capture, got);
             }
@@ -186,7 +207,8 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         {
             startEx = ex;
             ready.Set();
-            Failed?.Invoke(this, ex.Message);
+            State = AudioCaptureState.Error; ErrorStage = LastStage; ErrorMessage = ex.Message;
+            Failed?.Invoke(ex.Message);
         }
         finally
         {

@@ -22,7 +22,9 @@ jobs:
       - name: Build
         run: dotnet build Auralith.sln -c Release --no-restore -p:Platform=x64
       - name: Test
-        run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
+        run: |
+          dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
+          dotnet test tests/Auralith.Audio.Tests/Auralith.Audio.Tests.csproj -c Release -p:Platform=x64
       - name: Publish app
         run: dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
       - name: Publish updater helper

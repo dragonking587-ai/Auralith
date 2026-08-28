@@ -3,10 +3,10 @@ using NAudio.Wave;
 
 namespace Auralith.Audio;
 
-public sealed class DesktopLoopbackSource : IAudioCaptureSource
+public sealed class MicrophoneCaptureSource : IAudioCaptureSource
 {
     private readonly string? _deviceId;
-    private WasapiLoopbackCapture? _cap;
+    private WasapiCapture? _cap;
     private PcmFormat _pcm;
     public string SourceName { get; }
     public AudioCaptureState State { get; private set; } = AudioCaptureState.Stopped;
@@ -23,7 +23,7 @@ public sealed class DesktopLoopbackSource : IAudioCaptureSource
     public event Action<AudioSampleBlock>? SamplesAvailable;
     public event Action<string>? Failed;
 
-    public DesktopLoopbackSource(string? deviceId, string name)
+    public MicrophoneCaptureSource(string? deviceId, string name)
     {
         _deviceId = deviceId;
         SourceName = name;
@@ -38,9 +38,9 @@ public sealed class DesktopLoopbackSource : IAudioCaptureSource
         {
             var en = new MMDeviceEnumerator();
             MMDevice dev = string.IsNullOrEmpty(_deviceId) || _deviceId == "default"
-                ? en.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)
+                ? en.GetDefaultAudioEndpoint(DataFlow.Capture, Role.Multimedia)
                 : en.GetDevice(_deviceId);
-            _cap = new WasapiLoopbackCapture(dev);
+            _cap = new WasapiCapture(dev);
             var wf = _cap.WaveFormat;
             var enc = wf.Encoding == WaveFormatEncoding.IeeeFloat ? PcmEncoding.IeeeFloat : PcmEncoding.Pcm;
             if (wf is WaveFormatExtensible ext)
@@ -56,7 +56,6 @@ public sealed class DesktopLoopbackSource : IAudioCaptureSource
                 if (e.Exception is not null)
                 {
                     State = AudioCaptureState.Error;
-                    ErrorStage = "RecordingStopped";
                     ErrorMessage = e.Exception.Message;
                     Failed?.Invoke(e.Exception.Message);
                 }
@@ -81,7 +80,7 @@ public sealed class DesktopLoopbackSource : IAudioCaptureSource
         Packets++;
         var samples = PcmConverter.ToMonoFloat32(e.Buffer.AsSpan(0, e.BytesRecorded), _pcm);
         if (samples.Length == 0) return;
-        if (!FirstPacket) FirstPacket = true;
+        FirstPacket = true;
         Frames += samples.Length;
         PcmConverter.PeakRms(samples, out var peak, out var rms);
         RawPeak = peak; RawRms = rms;
