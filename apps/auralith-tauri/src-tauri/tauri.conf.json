@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Auralith Tauri Preview",
-  "version": "0.1.0",
-  "identifier": "com.auralith.tauri.preview",
+  "productName": "Auralith Reborn Preview",
+  "version": "2.0.0",
+  "identifier": "com.auralith.reborn.preview",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -12,14 +12,13 @@
   "app": {
     "windows": [
       {
-        "title": "AURALITH",
-        "width": 1400,
+        "label": "main",
+        "title": "AURALITH REBORN",
+        "width": 1440,
         "height": 900
       }
     ],
-    "security": {
-      "csp": null
-    }
+    "security": { "csp": null }
   },
   "bundle": {
     "active": true,
@@ -27,14 +26,8 @@
     "icon": ["icons/icon.png"],
     "windows": {
       "nsis": {
-        "displayLanguageSelector": false
+        "installMode": "currentUser"
       }
-    }
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": ["https://github.com/dragonking587-ai/Auralith-Releases/releases/latest/download/tauri-preview-latest.json"],
-      "pubkey": ""
     }
   }
 }

@@ -1,14 +1,17 @@
-name: Auralith Tauri Preview
+name: Auralith Reborn Preview
 on:
   push:
-    branches: [tauri/auralith-reborn, tauri/auralith-reborn-v2]
+    branches: [tauri/auralith-reborn]
     paths:
       - "apps/auralith-tauri/**"
       - ".github/workflows/tauri-preview.yml"
   workflow_dispatch:
 jobs:
   windows:
+    if: github.ref == 'refs/heads/tauri/auralith-reborn'
     runs-on: windows-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: apps/auralith-tauri
@@ -16,9 +19,27 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "20"
       - uses: dtolnay/rust-toolchain@stable
-      - run: npm install
-      - run: npm run build
-      - name: Note
-        run: echo "Tauri NSIS packaging requires local `npm run tauri build` until signing keys exist."
+      - name: Install frontend
+        run: npm ci || npm install
+      - name: Build frontend
+        run: npm run build
+      - name: Tauri NSIS
+        run: npx tauri build --bundles nsis
+      - name: Collect installer
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse src-tauri/target | Where-Object { $_.Name -like "*setup.exe" -or $_.Name -like "*nsis*" } | Select-Object FullName,Length
+          $exe = Get-ChildItem -Recurse src-tauri/target -Filter *.exe | Where-Object { $_.Name -match "setup|nsis" } | Select-Object -First 1
+          if (-not $exe) { $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle -Filter *.exe | Select-Object -First 1 }
+          if (-not $exe) { throw "NSIS installer not found" }
+          New-Item -ItemType Directory -Force dist-install | Out-Null
+          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.1-x64-Setup.exe"
+          Copy-Item $exe.FullName $dest
+          Get-FileHash $dest -Algorithm SHA256 | Out-File dist-install/SHA256SUMS.txt
+          Get-Item $dest | Format-List
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auralith-Reborn-Preview-2.0.0-alpha.1
+          path: apps/auralith-tauri/dist-install/*
