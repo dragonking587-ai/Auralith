@@ -1,11 +1,10 @@
 {
-  "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Auralith Tauri Preview",
+  "description": "Auralith Reborn Preview",
   "windows": ["main"],
   "permissions": [
     "core:default",
     "dialog:default",
-    "fs:allow-read-user-dir"
+    "fs:default"
   ]
 }
