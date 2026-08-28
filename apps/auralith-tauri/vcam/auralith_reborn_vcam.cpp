@@ -209,7 +209,7 @@ HRESULT EnumMT::Next(ULONG c, AM_MEDIA_TYPE **out, ULONG *got) {
   return n == c ? S_OK : S_FALSE;
 }
 
-class EnumPins : public IEnumPins {
+class PinList : public IEnumPins {
 public:
   LONG refs = 1;
   CamPin *pin;
@@ -230,7 +230,7 @@ public:
   }
   HRESULT STDMETHODCALLTYPE Skip(ULONG) { i = 1; return S_OK; }
   HRESULT STDMETHODCALLTYPE Reset() { i = 0; return S_OK; }
-  HRESULT STDMETHODCALLTYPE Clone(IEnumPins **e) { *e = new EnumPins(pin); return S_OK; }
+  HRESULT STDMETHODCALLTYPE Clone(IEnumPins **e) { *e = new PinList(pin); return S_OK; }
 };
 
 CamPin::CamPin(CamFilter *f) : filter(f) {
@@ -433,7 +433,7 @@ HRESULT CamFilter::QueryInterface(REFIID riid, void **ppv) {
   AddRef();
   return S_OK;
 }
-HRESULT CamFilter::EnumPins(IEnumPins **e) { *e = new EnumPins(pin); return S_OK; }
+HRESULT CamFilter::EnumPins(IEnumPins **e) { *e = new PinList(pin); return S_OK; }
 HRESULT CamFilter::QueryFilterInfo(FILTER_INFO *i) {
   ZeroMemory(i, sizeof(*i));
   wcscpy(i->achName, name);
