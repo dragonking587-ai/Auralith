@@ -26,6 +26,7 @@
   "bundle": {
     "active": true,
     "targets": ["nsis"],
+    "resources": ["resources/*"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
     "windows": {
       "nsis": {

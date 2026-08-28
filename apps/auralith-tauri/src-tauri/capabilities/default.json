@@ -5,6 +5,11 @@
   "permissions": [
     "core:default",
     "dialog:default",
-    "fs:default"
+    "fs:default",
+    "allow-vcam-status",
+    "allow-vcam-install",
+    "allow-vcam-start",
+    "allow-vcam-stop",
+    "allow-vcam-push-frame"
   ]
 }

@@ -99,6 +99,8 @@ export class GlRenderer {
   private tex: WebGLTexture | null = null;
   private hasBackdrop = false;
   fps = 0;
+  lastW = 0;
+  lastH = 0;
   private frames = 0;
   private lastFps = performance.now();
   constructor(private canvas: HTMLCanvasElement) {
@@ -212,6 +214,7 @@ export class GlRenderer {
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
     }
+    this.lastW = w; this.lastH = h;
     this.frames++;
     const now = performance.now();
     if (now - this.lastFps > 500) { this.fps = this.frames * 1000 / (now - this.lastFps); this.frames = 0; this.lastFps = now; }
@@ -221,3 +224,14 @@ function hex(h: string): [number, number, number] {
   const n = (h || "#f4d27a").replace("#", "");
   return [parseInt(n.slice(0,2)||"f4",16)/255, parseInt(n.slice(2,4)||"d2",16)/255, parseInt(n.slice(4,6)||"7a",16)/255];
 }
+
+  readCleanRgba(): { width: number; height: number; pixels: Uint8Array } | null {
+    const gl = this.gl;
+    const w = this.lastW || this.canvas.width;
+    const h = this.lastH || this.canvas.height;
+    if (w < 2 || h < 2) return null;
+    const pixels = new Uint8Array(w * h * 4);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    return { width: w, height: h, pixels };
+  }

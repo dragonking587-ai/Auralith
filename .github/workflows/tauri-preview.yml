@@ -25,6 +25,19 @@ jobs:
         run: npm install
       - name: Build frontend
         run: npm run build
+      - name: Build virtual camera DLL
+        working-directory: apps/auralith-tauri/vcam
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio2\Enterprise\VC\Auxiliary\Buildcvars64.bat"
+          cl /nologo /LD /EHsc /O2 /DUNICODE /D_UNICODE auralith_reborn_vcam.cpp /link /DEF:auralith_reborn_vcam.def strmiids.lib ole32.lib oleaut32.lib uuid.lib kernel32.lib user32.lib advapi32.lib
+          dir
+      - name: Stage vcam DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
+          Get-ChildItem src-tauri/resources
       - name: Tauri NSIS
         run: npx tauri build --bundles nsis
       - name: Collect installer
@@ -35,11 +48,11 @@ jobs:
           if (-not $exe) { $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle -Filter *.exe | Select-Object -First 1 }
           if (-not $exe) { throw "NSIS installer not found" }
           New-Item -ItemType Directory -Force dist-install | Out-Null
-          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.3-x64-Setup.exe"
+          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.4-x64-Setup.exe"
           Copy-Item $exe.FullName $dest
           Get-FileHash $dest -Algorithm SHA256 | Out-File dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Reborn-Preview-2.0.0-alpha.3
+          name: Auralith-Reborn-Preview-2.0.0-alpha.4
           path: apps/auralith-tauri/dist-install/*

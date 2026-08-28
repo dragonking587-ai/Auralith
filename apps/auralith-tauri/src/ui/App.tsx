@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { invoke } from "@tauri-apps/api/core";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
@@ -16,6 +17,8 @@ export function App() {
   const [sel, setSel] = useState<string | null>(null);
   const [status, setStatus] = useState("Audio STOPPED");
   const [err, setErr] = useState("");
+  const [vcam, setVcam] = useState("NOT INSTALLED");
+  const vcamLive = useRef(false);
   const [history, setHistory] = useState<Project[]>([]);
   const [redo, setRedo] = useState<Project[]>([]);
   const imgRef = useRef<HTMLImageElement | null>(null);
@@ -34,6 +37,28 @@ export function App() {
     };
     id = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(id);
+  }, []);
+
+  useEffect(() => {
+    let stop = false;
+    const tick = async () => {
+      if (stop) return;
+      if (vcamLive.current && glRef.current) {
+        try {
+          const frame = glRef.current.readCleanRgba();
+          if (frame) {
+            await fetch(`http://127.0.0.1:17331/frame?w=${frame.width}&h=${frame.height}`, {
+              method: "POST",
+              body: frame.pixels,
+            });
+          }
+        } catch { /* keep UI alive */ }
+      }
+      setTimeout(tick, 66);
+    };
+    tick();
+    invoke("vcam_status").then((s: any) => setVcam(s.state)).catch(() => {});
+    return () => { stop = true; };
   }, []);
 
   useEffect(() => {
@@ -182,6 +207,13 @@ export function App() {
           )}
         </div>
         <aside className={`side ${clean ? "hidden" : ""}`}>
+          <h3>VIRTUAL CAMERA</h3>
+          <div className="meters">Device: Auralith Reborn Camera
+Status: {vcam}
+1920×1080 YUY2 / BGRA bridge</div>
+          <button onClick={async ()=>{ try { setVcam(await invoke("vcam_install") as string); } catch(e){ setErr(String(e)); } }}>Install Virtual Camera</button>
+          <button onClick={async ()=>{ try { await invoke("vcam_start"); vcamLive.current=true; setVcam("LIVE"); } catch(e){ setErr(String(e)); } }}>Start Virtual Camera</button>
+          <button onClick={async ()=>{ try { vcamLive.current=false; await invoke("vcam_stop"); setVcam("STOPPED"); } catch(e){ setErr(String(e)); } }}>Stop Virtual Camera</button>
           <h3>AUDIO</h3>
           <div className="meters">{status}{"\n"}{err}</div>
           <h3>EFFECT STACK</h3>
