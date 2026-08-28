@@ -26,6 +26,7 @@ public sealed class AudioEngine : IDisposable
     public bool FirstPacket => _source?.FirstPacket ?? false;
     public long PacketCount => _source?.Packets ?? 0;
     public long FrameCount => _source?.Frames ?? 0;
+    public long SilentPackets => 0;
     public double LastPacketAgeSec => -1;
     public float RawPeak { get; private set; }
     public float RawRms { get; private set; }
