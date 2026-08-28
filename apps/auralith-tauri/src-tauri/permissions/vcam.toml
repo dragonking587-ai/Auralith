@@ -1,0 +1,24 @@
+[[permission]]
+identifier = "allow-vcam-status"
+description = "Query virtual camera status"
+commands.allow = ["vcam_status"]
+
+[[permission]]
+identifier = "allow-vcam-install"
+description = "Register the virtual camera DLL"
+commands.allow = ["vcam_install"]
+
+[[permission]]
+identifier = "allow-vcam-start"
+description = "Start virtual camera publisher"
+commands.allow = ["vcam_start"]
+
+[[permission]]
+identifier = "allow-vcam-stop"
+description = "Stop virtual camera publisher"
+commands.allow = ["vcam_stop"]
+
+[[permission]]
+identifier = "allow-vcam-push-frame"
+description = "Push a clean frame into shared memory"
+commands.allow = ["vcam_push_frame"]
