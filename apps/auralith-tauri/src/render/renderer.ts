@@ -87,12 +87,18 @@ export function bandOf(snap: AudioSnapshot, map: string) {
     case "Beat": return snap.beat; case "Transient": return snap.transient; default: return 1;
   }
 }
+const BVS = `attribute vec2 a; attribute vec2 u; varying vec2 v; void main(){ v=u; gl_Position=vec4(a,0.0,1.0); }`;
+const BFS = `precision highp float; varying vec2 v; uniform sampler2D tex; void main(){ gl_FragColor = texture2D(tex, v); }`;
+
 export class GlRenderer {
   private gl: WebGL2RenderingContext;
   private prog: WebGLProgram;
+  private bgProg: WebGLProgram;
   private buf: WebGLBuffer;
+  private bgBuf: WebGLBuffer;
+  private tex: WebGLTexture | null = null;
+  private hasBackdrop = false;
   fps = 0;
-  setBackdrop(_img: HTMLImageElement | null) { /* backdrop drawn as scene color for preview */ }
   private frames = 0;
   private lastFps = performance.now();
   constructor(private canvas: HTMLCanvasElement) {
@@ -105,9 +111,64 @@ export class GlRenderer {
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || "link");
     this.prog = p;
+    const bp = gl.createProgram()!;
+    gl.attachShader(bp, compile(gl, gl.VERTEX_SHADER, BVS));
+    gl.attachShader(bp, compile(gl, gl.FRAGMENT_SHADER, BFS));
+    gl.linkProgram(bp);
+    if (!gl.getProgramParameter(bp, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(bp) || "bg link");
+    this.bgProg = bp;
     this.buf = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    this.bgBuf = gl.createBuffer()!;
+  }
+  setBackdrop(img: HTMLImageElement | null) {
+    const gl = this.gl;
+    if (!img) {
+      this.hasBackdrop = false;
+      console.log("[ImageLoad] STATE_UPDATED backdrop=none");
+      return;
+    }
+    if (!this.tex) this.tex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    this.hasBackdrop = true;
+    console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
+    console.log("[ImageLoad] STATE_UPDATED backdrop=texture");
+  }
+  private drawBackdrop(w: number, h: number, vp: { x: number; y: number; w: number; h: number }) {
+    if (!this.hasBackdrop || !this.tex) return;
+    const gl = this.gl;
+    const yGL = h - vp.y - vp.h;
+    const x0 = (vp.x / w) * 2 - 1;
+    const x1 = ((vp.x + vp.w) / w) * 2 - 1;
+    const y0 = (yGL / h) * 2 - 1;
+    const y1 = ((yGL + vp.h) / h) * 2 - 1;
+    const data = new Float32Array([
+      x0, y0, 0, 0,
+      x1, y0, 1, 0,
+      x0, y1, 0, 1,
+      x1, y1, 1, 1,
+    ]);
+    gl.useProgram(this.bgProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bgBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    const a = gl.getAttribLocation(this.bgProg, "a");
+    const u = gl.getAttribLocation(this.bgProg, "u");
+    gl.enableVertexAttribArray(a);
+    gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(u);
+    gl.vertexAttribPointer(u, 2, gl.FLOAT, false, 16, 8);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.tex);
+    gl.uniform1i(gl.getUniformLocation(this.bgProg, "tex"), 0);
+    gl.disable(gl.BLEND);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
   draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number) {
     const gl = this.gl;
@@ -118,9 +179,11 @@ export class GlRenderer {
     gl.clearColor(0.02, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     const vp = sceneViewport(w, h, project.width, project.height, project.fit);
     gl.enable(gl.SCISSOR_TEST);
-    gl.scissor(Math.max(0,Math.floor(vp.x)), Math.max(0,Math.floor(vp.y)), Math.max(1,Math.floor(vp.w)), Math.max(1,Math.floor(vp.h)));
+    const yGL = Math.max(0, Math.floor(h - vp.y - vp.h));
+    gl.scissor(Math.max(0,Math.floor(vp.x)), yGL, Math.max(1,Math.floor(vp.w)), Math.max(1,Math.floor(vp.h)));
     gl.clearColor(0.05, 0.05, 0.07, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.SCISSOR_TEST);
+    this.drawBackdrop(w, h, vp);
     gl.useProgram(this.prog);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
     const loc = gl.getAttribLocation(this.prog, "a");

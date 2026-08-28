@@ -82,11 +82,48 @@ export function App() {
     setSel(region.id);
   };
 
-  const loadImage = async (file: File) => {
-    const url = URL.createObjectURL(file);
-    const img = new Image();
-    img.onload = () => { imgRef.current = img; glRef.current?.setBackdrop(img); setProject((p) => ({ ...p, backdropDataUrl: url })); };
-    img.src = url;
+  const loadGen = useRef(0);
+  const loadImage = async (file: File | undefined | null) => {
+    if (!file) {
+      console.log("[ImageLoad] PICKER_SELECTED cancel/null — keeping current image");
+      return;
+    }
+    const gen = ++loadGen.current;
+    const ext = (file.name.split(".").pop() || "").toLowerCase();
+    console.log("[ImageLoad] PICKER_SELECTED", file.name, "ext="+ext, "type="+file.type, "size="+file.size);
+    try {
+      const buf = await file.arrayBuffer();
+      if (gen !== loadGen.current) return;
+      console.log("[ImageLoad] FILE_OPEN_OK bytes="+buf.byteLength);
+      const blob = new Blob([buf], { type: file.type || "application/octet-stream" });
+      const url = URL.createObjectURL(blob);
+      const img = new Image();
+      img.onload = () => {
+        if (gen !== loadGen.current) { URL.revokeObjectURL(url); return; }
+        console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
+        try {
+          imgRef.current = img;
+          glRef.current?.setBackdrop(img);
+          setProject((p) => {
+            if (p.backdropDataUrl) URL.revokeObjectURL(p.backdropDataUrl);
+            return { ...p, backdropDataUrl: url };
+          });
+          console.log("[ImageLoad] STATE_UPDATED RENDER_INVALIDATED IMAGE_VISIBLE");
+        } catch (e) {
+          console.error("[ImageLoad] STATE_UPDATE_FAILED", e);
+          setErr(String(e));
+        }
+      };
+      img.onerror = () => {
+        URL.revokeObjectURL(url);
+        console.error("[ImageLoad] DECODE_FAILED", file.name);
+        setErr("Could not decode image: " + file.name);
+      };
+      img.src = url;
+    } catch (e) {
+      console.error("[ImageLoad] FILE_OPEN_FAILED", e);
+      setErr(String(e));
+    }
   };
 
   const selected = project.regions.find((r) => r.id === sel);
@@ -97,7 +134,7 @@ export function App() {
       <div className={`top ${clean ? "hidden" : ""}`}>
         <span className="brand">AURALITH</span>
         <button onClick={() => document.getElementById("file")?.click()}>Load Image</button>
-        <input id="file" type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={(e) => e.target.files && loadImage(e.target.files[0]!)} />
+        <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
         <select value={project.fit} onChange={(e) => setProject({ ...project, fit: e.target.value as Project["fit"] })}>
           <option>Fit</option><option>Fill</option><option>Stretch</option><option>Center</option>
         </select>
