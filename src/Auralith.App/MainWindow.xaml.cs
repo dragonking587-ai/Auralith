@@ -799,7 +799,7 @@ public sealed partial class MainWindow : Window
     {
         if ((EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web")
         {
-            _ = OnWebChoose(s, e);
+            OnWebChoose(s, e);
             return;
         }
         _audio.Logged += line => StartupLog.Write(line);

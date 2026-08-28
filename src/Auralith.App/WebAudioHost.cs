@@ -33,11 +33,6 @@ public sealed class WebAudioHost
                 e.Handled = true;
                 e.State = CoreWebView2PermissionState.Allow;
             };
-            try
-            {
-                web.CoreWebView2.ScreenCaptureStarting += (_, e) => { e.Cancel = false; };
-            }
-            catch { }
             web.CoreWebView2.WebMessageReceived += OnMessage;
             web.CoreWebView2.Navigate(Origin + "index.html");
             Status = "READY";
