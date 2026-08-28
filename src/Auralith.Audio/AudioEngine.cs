@@ -72,7 +72,10 @@ public sealed class AudioEngine : IDisposable
 
     public void StartApplication(int pid, string name, bool includeTree = true)
     {
-        Attach(new ProcessLoopbackSource(pid, name, includeTree), "Application Audio");
+        var target = includeTree ? ProcessTree.RootOfSameName(pid) : pid;
+        Log("[AppAudio] session PID " + pid + " target PID " + target + "\n" + ProcessTree.DescribeFamily(pid));
+        var src = new ProcessLoopbackSource(target, name + " pid " + target, includeTree) { UseEventCallback = false };
+        Attach(src, "Application Audio");
     }
 
     public void StartMicrophone(string? deviceId, string name)

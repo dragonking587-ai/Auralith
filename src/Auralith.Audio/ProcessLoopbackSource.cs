@@ -34,6 +34,17 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
     public bool CaptureClientOk { get; private set; }
     public bool FirstPacket { get; private set; }
     public long Packets { get; private set; }
+    public bool ThreadRunning { get; private set; }
+    public string ReadMode { get; private set; } = "PollingDiagnostic";
+    public int TargetPid => _pid;
+    public int RootPid { get; private set; }
+    public long EventSignals { get; private set; }
+    public long NextPacketCalls { get; private set; }
+    public long SilentPackets { get; private set; }
+    public long NextPacketErrors { get; private set; }
+    public string NextPacketHr { get; private set; } = "";
+    public bool UseEventCallback { get; set; }
+
     public long Frames { get; private set; }
     public float RawPeak { get; private set; }
     public float RawRms { get; private set; }
@@ -48,6 +59,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         _pid = pid;
         _includeTree = includeTree;
         Name = name;
+        RootPid = ProcessTree.RootOfSameName(pid);
     }
 
     public static bool IsSupported()
@@ -103,6 +115,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
         nint client = 0, capture = 0, fmtPtr = 0;
         try
         {
+            ThreadRunning = true;
             LastStage = "ActivateAudioInterfaceAsync";
             Log($"ProcessLoopback Stage: ActivateAudioInterfaceAsync PID:{_pid} Mode:{(_includeTree ? "IncludeProcessTree" : "ExcludeProcessTree")} Win:{WindowsVersion()} Interface:{VirtualDevice}");
             client = ActivateClient(_pid, _includeTree);
@@ -128,12 +141,32 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             const int EventCb = 0x00040000;
             const int AutoPcm = unchecked((int)0x80000000);
             const int SrcQual = 0x08000000;
-            var streamFlags = Loopback | EventCb | AutoPcm | SrcQual;
-            var hr = IAudioClient_Initialize(client, 0, streamFlags, 0, 0, fmtPtr, IntPtr.Zero);
-            if (hr < 0)
+            // PollingDiagnostic is the packet-proof path. EventDriven remains available.
+            int hr;
+            if (UseEventCallback)
             {
-                Log($"ProcessLoopback Initialize with event/auto flags failed {Hex(hr)}; retry 1s buffer");
+                ReadMode = "EventDriven";
+                var streamFlags = Loopback | EventCb | AutoPcm | SrcQual;
+                hr = IAudioClient_Initialize(client, 0, streamFlags, 0, 0, fmtPtr, IntPtr.Zero);
+                if (hr < 0)
+                {
+                    Log($"ProcessLoopback Initialize event flags failed {Hex(hr)}; retry polling 1s buffer");
+                    UseEventCallback = false;
+                    hr = IAudioClient_Initialize(client, 0, Loopback | AutoPcm, 10_000_000, 0, fmtPtr, IntPtr.Zero);
+                    ReadMode = "PollingDiagnostic";
+                }
+            }
+            else
+            {
+                ReadMode = "PollingDiagnostic";
                 hr = IAudioClient_Initialize(client, 0, Loopback | AutoPcm, 10_000_000, 0, fmtPtr, IntPtr.Zero);
+                if (hr < 0)
+                {
+                    Log($"ProcessLoopback polling Initialize failed {Hex(hr)}; retry event");
+                    hr = IAudioClient_Initialize(client, 0, Loopback | EventCb | AutoPcm | SrcQual, 0, 0, fmtPtr, IntPtr.Zero);
+                    if (hr >= 0) UseEventCallback = true;
+                    ReadMode = UseEventCallback ? "EventDriven" : "PollingDiagnostic";
+                }
             }
             if (hr < 0) throw Com("IAudioClient.Initialize", hr);
             LastStage = "Initialize"; LastHresult = Hex(hr);
@@ -146,16 +179,20 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             if (hr < 0) throw Com("GetService IAudioCaptureClient", hr);
             CaptureClientOk = true; LastStage = "GetCaptureClient"; LastHresult = "0x00000000";
             Log("ProcessLoopback Stage: GetCaptureClient SUCCESS");
-            var evt = CreateEventW(IntPtr.Zero, false, false, null);
-            if (evt == 0) throw Com("CreateEvent", Marshal.GetHRForLastWin32Error());
-            hr = IAudioClient_SetEventHandle(client, evt);
-            if (hr < 0)
+            nint evt = 0;
+            if (UseEventCallback)
             {
-                Log($"ProcessLoopback SetEventHandle {Hex(hr)} — continuing with poll");
-                CloseHandle(evt);
-                evt = 0;
+                evt = CreateEventW(IntPtr.Zero, false, false, null);
+                if (evt == 0) throw Com("CreateEvent", Marshal.GetHRForLastWin32Error());
+                hr = IAudioClient_SetEventHandle(client, evt);
+                if (hr < 0)
+                {
+                    Log($"ProcessLoopback SetEventHandle {Hex(hr)} — continuing with poll");
+                    CloseHandle(evt); evt = 0; UseEventCallback = false; ReadMode = "PollingDiagnostic";
+                }
+                else Log("ProcessLoopback Stage: SetEventHandle SUCCESS");
             }
-            else Log("ProcessLoopback Stage: SetEventHandle SUCCESS");
+            else Log("ProcessLoopback Stage: SetEventHandle SKIPPED (PollingDiagnostic)");
             hr = IAudioClient_Start(client);
             if (hr < 0) throw Com("IAudioClient.Start", hr);
             LastStage = "Start"; LastHresult = "0x00000000";
@@ -168,38 +205,57 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             while (_run)
             {
                 hr = IAudioCaptureClient_GetNextPacketSize(capture, out var frames);
-                if (hr < 0) throw Com("GetNextPacketSize", hr);
-                if (frames == 0)
+                NextPacketCalls++;
+                NextPacketHr = Hex(hr);
+                if (hr < 0)
                 {
-                    if (_eventHandle != 0) WaitForSingleObject(_eventHandle, 50);
-                    else Thread.Sleep(4);
+                    NextPacketErrors++;
+                    if (NextPacketErrors < 8) Log($"GetNextPacketSize {Hex(hr)}");
+                    if (UseEventCallback && _eventHandle != 0) WaitForSingleObject(_eventHandle, 50);
+                    else Thread.Sleep(5);
                     continue;
                 }
-                hr = IAudioCaptureClient_GetBuffer(capture, out var data, out var got, out var flags, out _, out _);
-                if (hr < 0) throw Com("GetBuffer", hr);
-                var bytes = (int)got * _format.BlockAlign;
-                if (bytes > 0 && (flags & 0x2) == 0)
+                if (frames == 0)
                 {
-                    if (bytes > packet.Length) packet = new byte[bytes];
-                    Marshal.Copy(data, packet, 0, bytes);
-                    if (!first)
+                    if (UseEventCallback && _eventHandle != 0)
                     {
-                        first = true; FirstPacket = true; LastStage = "FirstPacket"; Packets++;
-                        float peak = 0;
-                        for (var i = 0; i + 3 < Math.Min(bytes, 256); i += 4)
-                            peak = Math.Max(peak, Math.Abs(BitConverter.ToSingle(packet, i)));
-                        Log($"ProcessLoopback First packet received: YES bytes={bytes} frames={got} peak~={peak:0.000}");
+                        var w = WaitForSingleObject(_eventHandle, 50);
+                        if (w == 0) EventSignals++;
                     }
-                    Packets++;
-                    var pcm = new PcmFormat(PcmEncoding.Pcm, 44100, 2, 16);
-                    var samples = PcmConverter.ToMonoFloat32(packet.AsSpan(0, bytes), pcm);
-                    Frames += samples.Length;
-                    PcmConverter.PeakRms(samples, out var pk, out var rms);
-                    RawPeak = pk; RawRms = rms;
-                    State = pk < 1e-5f && rms < 1e-5f ? AudioCaptureState.NoSignal : AudioCaptureState.Capturing;
-                    SamplesAvailable?.Invoke(new AudioSampleBlock(samples, 44100, DateTime.UtcNow.Ticks));
+                    else Thread.Sleep(5);
+                    continue;
                 }
-                IAudioCaptureClient_ReleaseBuffer(capture, got);
+                while (frames > 0 && _run)
+                {
+                    hr = IAudioCaptureClient_GetBuffer(capture, out var data, out var got, out var flags, out _, out _);
+                    if (hr < 0) throw Com("GetBuffer", hr);
+                    var silent = (flags & 0x2) != 0;
+                    if (silent) SilentPackets++;
+                    var bytes = (int)got * _format.BlockAlign;
+                    if (bytes > 0 && !silent)
+                    {
+                        if (bytes > packet.Length) packet = new byte[bytes];
+                        Marshal.Copy(data, packet, 0, bytes);
+                        if (!first)
+                        {
+                            first = true; FirstPacket = true; LastStage = "FirstPacket";
+                            Log($"ProcessLoopback First packet YES mode={ReadMode} bytes={bytes} frames={got}");
+                        }
+                        Packets++;
+                        var pcm = new PcmFormat(PcmEncoding.Pcm, 44100, 2, 16);
+                        var samples = PcmConverter.ToMonoFloat32(packet.AsSpan(0, bytes), pcm);
+                        Frames += samples.Length;
+                        PcmConverter.PeakRms(samples, out var pk, out var rms);
+                        RawPeak = pk; RawRms = rms;
+                        State = pk < 1e-5f && rms < 1e-5f ? AudioCaptureState.NoSignal : AudioCaptureState.Capturing;
+                        SamplesAvailable?.Invoke(new AudioSampleBlock(samples, 44100, DateTime.UtcNow.Ticks));
+                    }
+                    IAudioCaptureClient_ReleaseBuffer(capture, got);
+                    hr = IAudioCaptureClient_GetNextPacketSize(capture, out frames);
+                    NextPacketCalls++;
+                    NextPacketHr = Hex(hr);
+                    if (hr < 0) break;
+                }
             }
             IAudioClient_Stop(client);
         }
@@ -216,6 +272,7 @@ public sealed class ProcessLoopbackSource : IAudioCaptureSource
             if (fmtPtr != 0) Marshal.FreeHGlobal(fmtPtr);
             if (capture != 0) Marshal.Release(capture);
             if (client != 0) Marshal.Release(client);
+            ThreadRunning = false;
         }
     }
 

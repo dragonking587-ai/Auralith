@@ -269,18 +269,20 @@ public sealed partial class MainWindow : Window
             var b = _audio.Snapshot();
             var src = _audio.ProcessSource;
             var age = _audio.LastPacketAgeSec;
+            var ps = _audio.ProcessSource;
             LoopbackDiag.Text =
-                $"Mode: {_audio.CaptureModeLabel}\nSource: {_audio.DeviceName}\n" +
+                $"APPLICATION AUDIO\nSource: {_audio.DeviceName}\n" +
+                $"Target PID: {(ps?.TargetPid.ToString() ?? "?")}  Root PID: {(ps?.RootPid.ToString() ?? "?")}\n" +
+                $"Tree include: {(ps is null ? "" : "see start log")}\n" +
+                $"Read mode: {ps?.ReadMode}\n" +
                 $"State: {_audio.Status}\n" +
+                $"Capture thread: {(ps?.ThreadRunning == true ? "RUNNING" : "NO")}\n" +
+                $"NextPacket/s calls: {ps?.NextPacketCalls} hr={ps?.NextPacketHr}\n" +
+                $"Event signals: {ps?.EventSignals}\n" +
                 $"First Packet: {(_audio.FirstPacket ? "YES" : "NO")}\n" +
-                $"Total Packets: {_audio.PacketCount}  Silent: {_audio.SilentPackets}\n" +
-                $"Last Packet Age: {(age < 0 ? "n/a" : age.ToString("0.00") + "s")}\n" +
-                $"RAW Peak: {_audio.RawPeak:0.000}  RAW RMS: {_audio.RawRms:0.000}\n" +
-                $"BASS {b.Bass:0.00} LOW {b.Low:0.00} MID {b.Mid:0.00} HIGH {b.High:0.00}\n" +
-                (src is null
-                    ? "PROCESS LOOPBACK: IDLE"
-                    : $"PROCESS LOOPBACK: {src.LastStage} HRESULT {src.LastHresult} FirstPacket {(src.FirstPacket ? "YES" : "NO")} Packets {src.Packets}");
-        }
+                $"Packets: {_audio.PacketCount}  Silent: {ps?.SilentPackets}\n" +
+                $"RAW Peak: {_audio.RawPeak:0.000}  RMS: {_audio.RawRms:0.000}\n" +
+                $"BASS {b.Bass:0.00} LOW {b.Low:0.00} MID {b.Mid:0.00} HIGH {b.High:0.00}";
 
         if (_scene.ShowOverlays) RedrawOverlay();
         else Overlay.Children.Clear();
