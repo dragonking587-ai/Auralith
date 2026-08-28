@@ -283,6 +283,7 @@ public sealed partial class MainWindow : Window
                 $"Packets: {_audio.PacketCount}  Silent: {ps?.SilentPackets}\n" +
                 $"RAW Peak: {_audio.RawPeak:0.000}  RMS: {_audio.RawRms:0.000}\n" +
                 $"BASS {b.Bass:0.00} LOW {b.Low:0.00} MID {b.Mid:0.00} HIGH {b.High:0.00}";
+        }
 
         if (_scene.ShowOverlays) RedrawOverlay();
         else Overlay.Children.Clear();
