@@ -219,11 +219,6 @@ export class GlRenderer {
     const now = performance.now();
     if (now - this.lastFps > 500) { this.fps = this.frames * 1000 / (now - this.lastFps); this.frames = 0; this.lastFps = now; }
   }
-}
-function hex(h: string): [number, number, number] {
-  const n = (h || "#f4d27a").replace("#", "");
-  return [parseInt(n.slice(0,2)||"f4",16)/255, parseInt(n.slice(2,4)||"d2",16)/255, parseInt(n.slice(4,6)||"7a",16)/255];
-}
 
   readCleanRgba(): { width: number; height: number; pixels: Uint8Array } | null {
     const gl = this.gl;
@@ -235,3 +230,9 @@ function hex(h: string): [number, number, number] {
     gl.readPixels(0, 0, w, h, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
     return { width: w, height: h, pixels };
   }
+}
+
+function hex(h: string): [number, number, number] {
+  const n = (h || "#f4d27a").replace("#", "");
+  return [parseInt(n.slice(0,2)||"f4",16)/255, parseInt(n.slice(2,4)||"d2",16)/255, parseInt(n.slice(4,6)||"7a",16)/255];
+}
