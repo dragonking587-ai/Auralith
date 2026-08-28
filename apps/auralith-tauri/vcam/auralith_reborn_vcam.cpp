@@ -214,8 +214,8 @@ public:
   LONG refs = 1;
   CamPin *pin;
   int i = 0;
-  EnumPins(CamPin *p) : pin(p) { pin->AddRef(); }
-  ~EnumPins() { pin->Release(); }
+  PinList(CamPin *p) : pin(p) { pin->AddRef(); }
+  ~PinList() { pin->Release(); }
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppv) {
     if (riid == IID_IUnknown || riid == IID_IEnumPins) { *ppv = this; AddRef(); return S_OK; }
     *ppv = nullptr; return E_NOINTERFACE;
