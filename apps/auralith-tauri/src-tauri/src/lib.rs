@@ -36,12 +36,12 @@ mod capture {
     pub fn install<R: Runtime>(app: &tauri::App<R>) {
         let Some(win) = app.get_webview_window("main") else { return; };
         let Ok(h) = win.hwnd() else { return; };
-        let hwnd = h.0 as *mut c_void;
-        patch(hwnd);
+        let hwnd_bits = h.0 as usize;
+        patch(hwnd_bits as *mut c_void);
         std::thread::spawn(move || {
             for ms in [300_u64, 1200] {
                 std::thread::sleep(Duration::from_millis(ms));
-                patch(hwnd);
+                patch(hwnd_bits as *mut c_void);
             }
         });
     }
