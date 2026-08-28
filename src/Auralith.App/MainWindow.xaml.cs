@@ -787,9 +787,9 @@ public sealed partial class MainWindow : Window
         var msg = $"[WebView] {WebAudioView.ActualWidth:0}x{WebAudioView.ActualHeight:0} vis={WebAudioView.Visibility} opacity={WebAudioView.Opacity} hit={WebAudioView.IsHitTestVisible}";
         try
         {
-            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
+            var dir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
             Directory.CreateDirectory(dir);
-            File.AppendAllText(Path.Combine(dir, "web-audio.log"), DateTime.Now.ToString("o") + " " + msg + Environment.NewLine);
+            File.AppendAllText(System.IO.Path.Combine(dir, "web-audio.log"), DateTime.Now.ToString("o") + " " + msg + Environment.NewLine);
         }
         catch { }
         if (WebAudioStatus is not null && _webAudio is not null)
