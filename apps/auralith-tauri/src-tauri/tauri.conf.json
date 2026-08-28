@@ -15,7 +15,10 @@
         "label": "main",
         "title": "AURALITH REBORN",
         "width": 1440,
-        "height": 900
+        "height": 900,
+        "transparent": false,
+        "shadow": false,
+        "decorations": true
       }
     ],
     "security": { "csp": null }
