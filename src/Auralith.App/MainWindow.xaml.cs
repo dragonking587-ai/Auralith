@@ -38,6 +38,7 @@ public sealed partial class MainWindow : Window
     private bool _checkOnStartup = true;
     private bool _holdDecodedPreview;
     private readonly AudioEngine _audio = new();
+    private WebAudioHost? _webAudio;
     private string _tool = "select";
     private Region? _selected;
     private Region? _draft;
@@ -67,11 +68,13 @@ public sealed partial class MainWindow : Window
             foreach (var kind in EffectCatalog.All)
                 AddEffectBox.Items.Add(new ComboBoxItem { Content = kind.ToString(), Tag = kind.ToString() });
             if (AddEffectBox.Items.Count > 0) AddEffectBox.SelectedIndex = 0;
+            _ = InitWebAudioAsync();
+
 
         };
         _timer.Tick += (_, _) => Pump();
         _timer.Start();
-        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); _audio.Dispose(); };
+        Closed += (_, _) => { _timer.Stop(); _gpu.Dispose(); _audio.Dispose(); _ = _webAudio?.StopAsync(); };
     }
 
     private void StartGpuSafely()
@@ -751,8 +754,54 @@ public sealed partial class MainWindow : Window
             }
         }
     }
+    private async Task InitWebAudioAsync()
+    {
+        try
+        {
+            _webAudio = new WebAudioHost(_audio);
+            _webAudio.Changed += () =>
+            {
+                DispatcherQueue.TryEnqueue(() =>
+                {
+                    if (WebAudioStatus is not null)
+                        WebAudioStatus.Text = "WEB AUDIO  " + _webAudio.Status + "  " + _webAudio.Detail;
+                });
+            };
+            if (WebAudioView is not null)
+                await _webAudio.AttachAsync(WebAudioView);
+        }
+        catch (Exception ex)
+        {
+            if (WebAudioStatus is not null)
+                WebAudioStatus.Text = "WEB AUDIO ERROR  " + ex.Message;
+        }
+    }
+    private async void OnWebChoose(object s, RoutedEventArgs e)
+    {
+        if (_webAudio is null) { if (WebAudioStatus is not null) WebAudioStatus.Text = "WEB AUDIO ERROR  host not ready"; return; }
+        await _webAudio.ChooseSourceAsync();
+    }
+    private async void OnWebStop(object s, RoutedEventArgs e)
+    {
+        if (_webAudio is not null) await _webAudio.StopAsync();
+    }
+    private void OnEngineChanged(object s, SelectionChangedEventArgs e)
+    {
+        var web = (EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web";
+        if (WebSourceButton is not null) WebSourceButton.Visibility = web ? Visibility.Visible : Visibility.Collapsed;
+        if (WebStopButton is not null) WebStopButton.Visibility = web ? Visibility.Visible : Visibility.Collapsed;
+        if (CaptureModeBox is not null) CaptureModeBox.Visibility = web ? Visibility.Collapsed : Visibility.Visible;
+        if (DeviceBox is not null) DeviceBox.Visibility = web ? Visibility.Collapsed : Visibility.Visible;
+        if (AppBox is not null && !web) { }
+        if (!web) _ = _webAudio?.StopAsync();
+    }
     private void OnStartAudio(object s, RoutedEventArgs e)
     {
+        if ((EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web")
+        {
+            _ = OnWebChoose(s, e);
+            return;
+        }
         _audio.Logged += line => StartupLog.Write(line);
         var mode = (CaptureModeBox.SelectedItem as ComboBoxItem)?.Tag?.ToString();
         if (mode == "Microphone") _audio.StartMicrophone();

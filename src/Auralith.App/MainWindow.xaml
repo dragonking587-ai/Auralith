@@ -77,6 +77,14 @@
                     <Slider x:Name="MasterBri" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
                     <Slider x:Name="MasterSens" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
                     <TextBlock Text="AUDIO" Foreground="#D4AF37"/>
+                    <ComboBox x:Name="EngineBox" Width="240" SelectionChanged="OnEngineChanged">
+                        <ComboBoxItem Content="Web Audio" Tag="Web" IsSelected="True"/>
+                        <ComboBoxItem Content="Native Windows" Tag="Native"/>
+                    </ComboBox>
+                    <Button x:Name="WebSourceButton" Content="Choose Audio Source" Click="OnWebChoose"/>
+                    <Button x:Name="WebStopButton" Content="Stop Web Audio" Click="OnWebStop"/>
+                    <TextBlock x:Name="WebAudioStatus" Foreground="#C9B896" TextWrapping="Wrap" Text="Web Audio: initializing"/>
+                    <WebView2 x:Name="WebAudioView" Height="4" Width="4"/>
                     <ComboBox x:Name="CaptureModeBox" Width="240" SelectionChanged="OnCaptureModeChanged">
                         <ComboBoxItem Content="Desktop Output Device" Tag="DesktopOutput" IsSelected="True"/>
                         <ComboBoxItem Content="Application Audio" Tag="Application"/>

@@ -39,6 +39,33 @@ public sealed class AudioEngine : IDisposable
     public string DeviceId { get; private set; } = "";
     public string Diagnostics { get; private set; } = "";
     public ProcessLoopbackSource? ProcessSource => _procSrc;
+    public void ApplyExternal(AudioBands snap)
+    {
+        lock (_gate)
+        {
+            _bands.Raw = snap.Raw;
+            _bands.Bass = snap.Bass;
+            _bands.Low = snap.Low;
+            _bands.Mid = snap.Mid;
+            _bands.High = snap.High;
+            _bands.Full = snap.Full;
+            _bands.Beat = snap.Beat;
+            _bands.Transient = snap.Transient;
+            _rawPeak = snap.Raw;
+            _rawRms = snap.Raw;
+        }
+        _packets++;
+        _lastPacket = DateTime.UtcNow;
+        _mode = "Web Audio";
+        DeviceName = "Web Audio";
+        Status = snap.Raw < 1e-4f ? "Audio Capture: NO SIGNAL  Web Audio" : "Audio Capture: CAPTURING  Web Audio";
+    }
+    public void ClearExternal()
+    {
+        lock (_gate) { _bands = new AudioBands(); _rawPeak = _rawRms = 0; }
+        if (_mode == "Web Audio") Status = "Audio Capture: STOPPED";
+    }
+
     public string CaptureModeLabel => _mode;
     public bool FirstPacket => _packets > 0;
     public long PacketCount => _packets;
