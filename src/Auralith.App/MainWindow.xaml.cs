@@ -781,6 +781,20 @@ public sealed partial class MainWindow : Window
                 WebAudioStatus.Text = "WEB AUDIO ERROR  " + ex.Message;
         }
     }
+    private void LogWebViewLayout()
+    {
+        if (WebAudioView is null) return;
+        var msg = $"[WebView] {WebAudioView.ActualWidth:0}x{WebAudioView.ActualHeight:0} vis={WebAudioView.Visibility} opacity={WebAudioView.Opacity} hit={WebAudioView.IsHitTestVisible}";
+        try
+        {
+            var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Auralith", "Logs");
+            Directory.CreateDirectory(dir);
+            File.AppendAllText(Path.Combine(dir, "web-audio.log"), DateTime.Now.ToString("o") + " " + msg + Environment.NewLine);
+        }
+        catch { }
+        if (WebAudioStatus is not null && _webAudio is not null)
+            WebAudioStatus.Text = "WEB AUDIO  " + _webAudio.Status + "  " + msg;
+    }
     private async void OnWebChoose(object s, RoutedEventArgs e)
     {
         if (_webAudio is null) { if (WebAudioStatus is not null) WebAudioStatus.Text = "WEB AUDIO ERROR  host not ready"; return; }
