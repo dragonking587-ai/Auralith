@@ -3,9 +3,20 @@
 <head>
   <meta charset="utf-8"/>
   <title>Auralith Web Audio</title>
+  <style>
+    html,body { margin:0; padding:12px; background:#11131a; color:#E8E6E3; font:13px Segoe UI,sans-serif; }
+    h1 { margin:0 0 8px; font-size:14px; color:#D4AF37; letter-spacing:.08em; }
+    p { margin:0 0 12px; color:#C9B896; }
+    button {
+      background:#D4AF37; color:#111; border:0; padding:10px 16px; font-weight:700;
+      cursor:pointer; width:100%;
+    }
+  </style>
 </head>
-<body style="background:#050509;color:#c9b896;font:12px Consolas,monospace">
-  <div id="s">Web Audio host ready</div>
+<body>
+  <h1>WEB AUDIO SOURCE</h1>
+  <p>Choose the window, screen or browser surface whose audio should drive Auralith.</p>
+  <button id="chooseAudioSource" type="button">CHOOSE AUDIO SOURCE</button>
   <script src="audio.js"></script>
 </body>
 </html>

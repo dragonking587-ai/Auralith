@@ -36,9 +36,22 @@ function stepEnv(cur, target, dt, atk, rel) {
   return cur + (target - cur) * coeff;
 }
 
-async function startCapture() {
+document.addEventListener("DOMContentLoaded", () => {
+  const btn = document.getElementById("chooseAudioSource");
+  if (btn) btn.addEventListener("click", onHtmlChoose);
+  post({ type: "status", stage: "READY FOR SOURCE", htmlReady: true });
+});
+
+async function onHtmlChoose(ev) {
+  const trusted = !!(ev && ev.isTrusted);
+  const active = !!(navigator.userActivation && navigator.userActivation.isActive);
+  post({ type: "click", trusted, userActivation: active });
+  await startCapture(trusted, active);
+}
+
+async function startCapture(trusted, active) {
   stopCapture(false);
-  post({ type: "status", stage: "REQUESTING SOURCE" });
+  post({ type: "status", stage: "REQUESTING PICKER", trusted: !!trusted, userActivation: !!active, getDisplayMediaCalled: true });
   try {
     stream = await navigator.mediaDevices.getDisplayMedia({
       video: true,

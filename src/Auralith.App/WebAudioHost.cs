@@ -48,19 +48,13 @@ public sealed class WebAudioHost
         Changed?.Invoke();
     }
 
-    public async Task ChooseSourceAsync()
+    public Task RevealPanelAsync()
     {
-        if (_web?.CoreWebView2 is null)
-        {
-            Status = "ERROR";
-            Detail = "getDisplayMedia is unavailable. WebView2 not ready.";
-            Changed?.Invoke();
-            return;
-        }
         _audio.Stop();
-        Status = "REQUESTING SOURCE";
+        Status = "READY FOR SOURCE";
+        Detail = "Click CHOOSE AUDIO SOURCE inside the Web Audio panel.";
         Changed?.Invoke();
-        await _web.CoreWebView2.ExecuteScriptAsync("startCapture()");
+        return Task.CompletedTask;
     }
 
     public async Task StopAsync()
@@ -97,6 +91,13 @@ public sealed class WebAudioHost
             {
                 Status = root.GetProperty("stage").GetString() ?? Status;
                 if (Status == "SOURCE ENDED" || Status == "STOPPED") _audio.ClearExternal();
+            }
+            else if (type == "click")
+            {
+                var trusted = root.TryGetProperty("trusted", out var tr) && tr.GetBoolean();
+                var act = root.TryGetProperty("userActivation", out var ua) && ua.GetBoolean();
+                Detail = $"Trusted Click: {(trusted ? "YES" : "NO")}  User Activation: {(act ? "YES" : "NO")}";
+                Log(Detail);
             }
             else if (type == "started")
             {

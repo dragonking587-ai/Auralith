@@ -263,7 +263,12 @@ public sealed partial class MainWindow : Window
                 $"MID  {Bar(bands.Mid)}  {bands.Mid:0.00}\n" +
                 $"HIGH {Bar(bands.High)}  {bands.High:0.00}\n" +
                 $"BEAT {Bar(bands.Beat)}  {bands.Beat:0.00}  TRN {Bar(bands.Transient)}  {bands.Transient:0.00}";
-        if (AudioStatus is not null) AudioStatus.Text = _audio.Status;
+        var webSel = (EngineBox?.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web";
+        if (AudioStatus is not null)
+            AudioStatus.Text = webSel && _webAudio is not null
+                ? ("WEB AUDIO: " + _webAudio.Status + "  " + _webAudio.Detail)
+                : _audio.Status;
+
         if (AudioDiag is not null) AudioDiag.Text = _audio.Diagnostics;
         if (LoopbackDiag is not null)
         {
@@ -779,7 +784,19 @@ public sealed partial class MainWindow : Window
     private async void OnWebChoose(object s, RoutedEventArgs e)
     {
         if (_webAudio is null) { if (WebAudioStatus is not null) WebAudioStatus.Text = "WEB AUDIO ERROR  host not ready"; return; }
-        await _webAudio.ChooseSourceAsync();
+        if (WebAudioPanel is not null) WebAudioPanel.Visibility = Visibility.Visible;
+        if (WebAudioView is not null)
+        {
+            WebAudioView.Visibility = Visibility.Visible;
+            WebAudioView.Opacity = 1;
+            WebAudioView.IsHitTestVisible = true;
+            WebAudioView.Width = 420;
+            WebAudioView.Height = 180;
+            LogWebViewLayout();
+            WebAudioView.Focus(FocusState.Programmatic);
+        }
+        await _webAudio.RevealPanelAsync();
+
     }
     private async void OnWebStop(object s, RoutedEventArgs e)
     {
@@ -788,12 +805,20 @@ public sealed partial class MainWindow : Window
     private void OnEngineChanged(object s, SelectionChangedEventArgs e)
     {
         var web = (EngineBox.SelectedItem as ComboBoxItem)?.Tag?.ToString() == "Web";
-        if (WebSourceButton is not null) WebSourceButton.Visibility = web ? Visibility.Visible : Visibility.Collapsed;
-        if (WebStopButton is not null) WebStopButton.Visibility = web ? Visibility.Visible : Visibility.Collapsed;
-        if (CaptureModeBox is not null) CaptureModeBox.Visibility = web ? Visibility.Collapsed : Visibility.Visible;
-        if (DeviceBox is not null) DeviceBox.Visibility = web ? Visibility.Collapsed : Visibility.Visible;
-        if (AppBox is not null && !web) { }
+        void Set(FrameworkElement? el, bool show) { if (el is not null) el.Visibility = show ? Visibility.Visible : Visibility.Collapsed; }
+        Set(WebSourceButton, web);
+        Set(WebStopButton, web);
+        Set(WebAudioPanel, web);
+        Set(WebAudioView, web);
+        Set(WebAudioStatus, web);
+        Set(CaptureModeBox, !web);
+        Set(DeviceBox, !web);
+        Set(AppBox, !web);
+        Set(IncludeTreeCheck, !web);
+        Set(RefreshAppsButton, !web);
+        Set(StartAudioButton, !web);
         if (!web) _ = _webAudio?.StopAsync();
+        else LogWebViewLayout();
     }
     private void OnStartAudio(object s, RoutedEventArgs e)
     {

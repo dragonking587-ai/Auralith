@@ -84,7 +84,10 @@
                     <Button x:Name="WebSourceButton" Content="Choose Audio Source" Click="OnWebChoose"/>
                     <Button x:Name="WebStopButton" Content="Stop Web Audio" Click="OnWebStop"/>
                     <TextBlock x:Name="WebAudioStatus" Foreground="#C9B896" TextWrapping="Wrap" Text="Web Audio: initializing"/>
-                    <WebView2 x:Name="WebAudioView" Height="4" Width="4"/>
+                    <Border x:Name="WebAudioPanel" BorderBrush="#D4AF37" BorderThickness="1" Padding="4">
+                        <WebView2 x:Name="WebAudioView" Width="420" Height="180" MinWidth="420" MinHeight="180"
+                                  Visibility="Visible" Opacity="1" IsHitTestVisible="True"/>
+                    </Border>
                     <ComboBox x:Name="CaptureModeBox" Width="240" SelectionChanged="OnCaptureModeChanged">
                         <ComboBoxItem Content="Desktop Output Device" Tag="DesktopOutput" IsSelected="True"/>
                         <ComboBoxItem Content="Application Audio" Tag="Application"/>
@@ -93,8 +96,8 @@
                     <ComboBox x:Name="DeviceBox" Width="240" SelectionChanged="OnDeviceChanged"/>
                     <ComboBox x:Name="AppBox" Width="240" Visibility="Collapsed"/>
                     <CheckBox x:Name="IncludeTreeCheck" Content="Include child processes" IsChecked="True"/>
-                    <Button Content="Refresh Apps" Click="OnRefreshApps"/>
-                    <Button Content="Start Audio" Click="OnStartAudio"/>
+                    <Button x:Name="RefreshAppsButton" Content="Refresh Apps" Click="OnRefreshApps"/>
+                    <Button x:Name="StartAudioButton" Content="Start Audio" Click="OnStartAudio"/>
                     <TextBlock x:Name="CoordHud" FontFamily="Consolas" FontSize="11" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                     <TextBlock x:Name="AudioStatus" Foreground="#9AA3B2" TextWrapping="Wrap"/>
                     <TextBlock x:Name="Meters" FontFamily="Consolas" Foreground="#E8E6E3" TextWrapping="Wrap"/>
