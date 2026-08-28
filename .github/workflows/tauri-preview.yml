@@ -22,7 +22,7 @@ jobs:
           node-version: "20"
       - uses: dtolnay/rust-toolchain@stable
       - name: Install frontend
-        run: npm ci || npm install
+        run: npm install
       - name: Build frontend
         run: npm run build
       - name: Tauri NSIS

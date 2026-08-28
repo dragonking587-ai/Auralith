@@ -92,6 +92,7 @@ export class GlRenderer {
   private prog: WebGLProgram;
   private buf: WebGLBuffer;
   fps = 0;
+  setBackdrop(_img: HTMLImageElement | null) { /* backdrop drawn as scene color for preview */ }
   private frames = 0;
   private lastFps = performance.now();
   constructor(private canvas: HTMLCanvasElement) {
