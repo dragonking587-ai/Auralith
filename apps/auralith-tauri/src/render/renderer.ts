@@ -148,7 +148,7 @@ void main(){
   }
   gl_FragColor = vec4(col, clamp(a*uInt,0.0,1.0));
 }
-
+`;
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string) {
   const s = gl.createShader(type)!;
