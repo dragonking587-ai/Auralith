@@ -55,18 +55,32 @@ static HRESULT MakeYuy2(VIDEOINFOHEADER *vih, int w, int h, int fps) {
   return S_OK;
 }
 
-static void BgraToYuy2(const uint8_t *src, int w, int h, int stride, uint8_t *dst) {
-  for (int y = 0; y < h; y++) {
-    const uint8_t *row = src + (h - 1 - y) * stride; // flip GL origin
-    uint8_t *d = dst + y * w * 2;
-    for (int x = 0; x < w; x += 2) {
-      int b0 = row[x * 4 + 0], g0 = row[x * 4 + 1], r0 = row[x * 4 + 2];
-      int b1 = row[(x + 1) * 4 + 0], g1 = row[(x + 1) * 4 + 1], r1 = row[(x + 1) * 4 + 2];
-      int y0 = (66 * r0 + 129 * g0 + 25 * b0 + 128) >> 8;
-      int y1 = (66 * r1 + 129 * g1 + 25 * b1 + 128) >> 8;
+static void SampleRgba(const uint8_t *src, int sw, int sh, int stride, int dx, int dy, int dw, int dh, int *r, int *g, int *b) {
+  int sx = (int)((int64_t)dx * sw / dw);
+  int sy = (int)((int64_t)dy * sh / dh);
+  if (sx < 0) sx = 0; if (sy < 0) sy = 0;
+  if (sx >= sw) sx = sw - 1; if (sy >= sh) sy = sh - 1;
+  const uint8_t *p = src + (sh - 1 - sy) * stride + sx * 4; // GL origin + RGBA
+  int R = p[0], G = p[1], B = p[2], A = p[3];
+  if (A < 8) { *r = 8; *g = 8; *b = 12; return; } // avoid all-zero alpha collapsing to YUY2 black
+  *r = R; *g = G; *b = B;
+}
+
+static void RgbaScaleToYuy2(const uint8_t *src, int sw, int sh, int stride, uint8_t *dst, int dw, int dh) {
+  if (sw < 2 || sh < 2 || dw < 2 || dh < 2) return;
+  for (int y = 0; y < dh; y++) {
+    uint8_t *d = dst + y * dw * 2;
+    for (int x = 0; x < dw; x += 2) {
+      int r0,g0,b0,r1,g1,b1;
+      SampleRgba(src, sw, sh, stride, x, y, dw, dh, &r0, &g0, &b0);
+      SampleRgba(src, sw, sh, stride, x + 1, y, dw, dh, &r1, &g1, &b1);
+      int y0 = ((66 * r0 + 129 * g0 + 25 * b0 + 128) >> 8) + 16;
+      int y1 = ((66 * r1 + 129 * g1 + 25 * b1 + 128) >> 8) + 16;
       int u = ((-38 * r0 - 74 * g0 + 112 * b0 + 128) >> 8) + 128;
       int v = ((112 * r0 - 94 * g0 - 18 * b0 + 128) >> 8) + 128;
-      d[0] = (uint8_t)(y0 + 16); d[1] = (uint8_t)u; d[2] = (uint8_t)(y1 + 16); d[3] = (uint8_t)v;
+      if (y0 < 16) y0 = 16; if (y0 > 235) y0 = 235;
+      if (y1 < 16) y1 = 16; if (y1 > 235) y1 = 235;
+      d[0] = (uint8_t)y0; d[1] = (uint8_t)u; d[2] = (uint8_t)y1; d[3] = (uint8_t)v;
       d += 4;
     }
   }
@@ -368,13 +382,20 @@ HRESULT CamPin::Inactive() {
   return S_OK;
 }
 
+static HANDLE OpenShmRetry() {
+  HANDLE map = OpenFileMappingW(FILE_MAP_READ, FALSE, AURALITH_REBORN_SHM_NAME);
+  if (!map) map = OpenFileMappingW(FILE_MAP_READ, FALSE, AURALITH_REBORN_SHM_NAME_G);
+  return map;
+}
+
 static DWORD WINAPI PushProc(LPVOID p) {
   CamPin *pin = (CamPin *)p;
-  HANDLE map = OpenFileMappingW(FILE_MAP_READ, FALSE, AURALITH_REBORN_SHM_NAME);
+  HANDLE map = OpenShmRetry();
   BYTE *view = map ? (BYTE *)MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0) : nullptr;
   REFERENCE_TIME t = 0;
   uint32_t last = 0;
-  Log("VCAM_START_OK");
+  DWORD lastOpenTry = 0;
+  Log(view ? "VCAM_START_OK CAMERA_TRANSPORT_CONNECTED" : "VCAM_START_OK CAMERA_TRANSPORT DISCONNECTED retrying");
   while (pin->active && WaitForSingleObject(pin->stop, 0) != WAIT_OBJECT_0) {
     int w = pin->vih.bmiHeader.biWidth;
     int h = abs(pin->vih.bmiHeader.biHeight);
@@ -384,6 +405,15 @@ static DWORD WINAPI PushProc(LPVOID p) {
     DWORD waitMs = (DWORD)(1000 / fps);
     WaitForSingleObject(pin->stop, waitMs);
     if (!pin->active || !pin->alloc || !pin->mem) continue;
+    if (!view) {
+      DWORD now = GetTickCount();
+      if (now - lastOpenTry > 250) {
+        lastOpenTry = now;
+        map = OpenShmRetry();
+        view = map ? (BYTE *)MapViewOfFile(map, FILE_MAP_READ, 0, 0, 0) : nullptr;
+        if (view) Log("CAMERA_TRANSPORT_CONNECTED");
+      }
+    }
     IMediaSample *s = nullptr;
     if (FAILED(pin->alloc->GetBuffer(&s, nullptr, nullptr, 0)) || !s) continue;
     BYTE *out = nullptr;
@@ -393,25 +423,23 @@ static DWORD WINAPI PushProc(LPVOID p) {
       bool filled = false;
       if (view) {
         auto *hdr = (AuralithRebornShmHeader *)view;
-        if (hdr->magic == AURALITH_REBORN_SHM_MAGIC && hdr->running && hdr->width && hdr->height) {
+        if (hdr->magic == AURALITH_REBORN_SHM_MAGIC && hdr->width >= 2 && hdr->height >= 2) {
           int sw = (int)hdr->width, sh = (int)hdr->height;
+          int stride = (int)hdr->stride;
+          if (stride < sw * 4) stride = sw * 4;
           const uint8_t *src = view + sizeof(AuralithRebornShmHeader);
-          // scale/letterbox nearest if size mismatch: simple center crop/fit
-          // For matching sizes, convert directly. Else black + centered nearest.
-          if (sw == w && sh == h) {
-            BgraToYuy2(src, w, h, (int)hdr->stride, out);
-            filled = true;
-          } else {
-            memset(out, 0x80, w * h * 2);
-            // nearest-neighbor scale into YUY2 via temp row skip — keep simple black+copy if close
-            filled = true;
-            // convert full src to temp then nn — too big; just convert if same aspect-ish
-            BgraToYuy2(src, sw < w ? sw : w, sh < h ? sh : h, (int)hdr->stride, out);
+          RgbaScaleToYuy2(src, sw, sh, stride, out, w, h);
+          filled = true;
+          if (hdr->seq != last && (hdr->seq % 30) == 1) {
+            Log("VCAM_SAMPLE_CREATED scaled");
           }
           last = hdr->seq;
         }
       }
-      if (!filled) memset(out, 0x10, w * h * 2); // dark idle
+      if (!filled) {
+        Log("VCAM_BLACK_FALLBACK reason=no_shm_or_invalid_header");
+        memset(out, 0x10, w * h * 2);
+      }
       s->SetActualDataLength(w * h * 2);
       REFERENCE_TIME t1 = t + (10000000i64 / fps);
       s->SetTime(&t, &t1);

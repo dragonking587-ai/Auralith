@@ -6,7 +6,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.7";
+const APP_VERSION = "2.0.0-alpha.8";
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
 function parseVcam(raw: unknown): VcamUi {

@@ -180,6 +180,16 @@ fn is_registered() -> bool {
 
 #[tauri::command]
 pub fn vcam_status() -> VcamStatus {
+    #[cfg(windows)]
+    {
+        let mut g = SHM.lock().unwrap();
+        if g.view.is_none() {
+            if let Ok((v, h)) = win::open_shm() {
+                g.view = Some(v);
+                g.map = Some(h);
+            }
+        }
+    }
     let g = SHM.lock().unwrap();
     VcamStatus {
         state: if g.running { "LIVE".into() } else if is_registered() { "READY".into() } else { "NOT INSTALLED".into() },
@@ -306,7 +316,7 @@ pub fn vcam_push_frame(width: u32, height: u32, pixels: Vec<u8>) -> Result<u32, 
         std::ptr::write_unaligned(v.add(4) as *mut u32, width);
         std::ptr::write_unaligned(v.add(8) as *mut u32, height);
         std::ptr::write_unaligned(v.add(12) as *mut u32, stride);
-        std::ptr::write_unaligned(v.add(16) as *mut u32, 1);
+        std::ptr::write_unaligned(v.add(16) as *mut u32, 2); // RGBA
         std::ptr::write_unaligned(v.add(20) as *mut u32, g.seq);
         std::ptr::write_unaligned(v.add(24) as *mut u32, 1);
         std::ptr::copy_nonoverlapping(pixels.as_ptr(), v.add(HEADER), need);
@@ -330,18 +340,33 @@ fn start_ingest() {
         for stream in listener.incoming() {
             let Ok(mut s) = stream else { continue; };
             let mut buf = vec![0u8; 16 * 1024 * 1024];
-            let n = s.read(&mut buf).unwrap_or(0);
-            if n < 64 { let _=s.write_all(b"HTTP/1.1 400 OK\r\nContent-Length:0\r\n\r\n"); continue; }
+            let mut n = s.read(&mut buf).unwrap_or(0);
+            if n < 16 { let _=s.write_all(b"HTTP/1.1 400 OK\r\nContent-Length:0\r\n\r\n"); continue; }
             let head = match buf[..n].windows(4).position(|w| w==b"\r\n\r\n") {
                 Some(i) => i+4,
                 None => { let _=s.write_all(b"HTTP/1.1 400 OK\r\nContent-Length:0\r\n\r\n"); continue; }
             };
             let header = String::from_utf8_lossy(&buf[..head]);
             let mut w = 1280u32; let mut h = 720u32;
+            let mut clen: Option<usize> = None;
+            for line in header.split("\r\n") {
+                let low = line.to_ascii_lowercase();
+                if let Some(v) = low.strip_prefix("content-length:") {
+                    clen = v.trim().parse().ok();
+                }
+            }
             if let Some(q) = header.split("?").nth(1) {
                 for part in q.split(&[' ','&'][..]) {
                     if let Some(v) = part.strip_prefix("w=") { w = v.parse().unwrap_or(w); }
                     if let Some(v) = part.strip_prefix("h=") { h = v.parse().unwrap_or(h); }
+                }
+            }
+            let need = clen.unwrap_or((w as usize) * (h as usize) * 4);
+            while n - head < need && n < buf.len() {
+                match s.read(&mut buf[n..]) {
+                    Ok(0) => break,
+                    Ok(k) => n += k,
+                    Err(_) => break,
                 }
             }
             let body = buf[head..n].to_vec();
