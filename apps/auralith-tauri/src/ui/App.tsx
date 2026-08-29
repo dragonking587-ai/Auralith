@@ -6,7 +6,27 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.6";
+const APP_VERSION = "2.0.0-alpha.7";
+
+type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
+function parseVcam(raw: unknown): VcamUi {
+  const fallback: VcamUi = { state: "NOT INSTALLED", error: "", installed: false, running: false };
+  if (raw == null) return fallback;
+  if (typeof raw === "string") {
+    const s = raw.trim();
+    return { state: s || "NOT INSTALLED", error: "", installed: /READY|LIVE|STOPPED/i.test(s), running: /LIVE/i.test(s) };
+  }
+  if (typeof raw === "object") {
+    const o = raw as Record<string, unknown>;
+    const running = Boolean(o.running);
+    const installed = Boolean(o.installed) || running;
+    const error = String(o.error ?? "");
+    let state = String(o.state ?? o.State ?? "").trim();
+    if (!state) state = running ? "LIVE" : installed ? "READY" : error ? `ERROR — ${error}` : "NOT INSTALLED";
+    return { state, error, installed, running };
+  }
+  return fallback;
+}
 const UPDATE_API = "https://api.github.com/repos/dragonking587-ai/Auralith-Releases/releases";
 
 export function App() {
@@ -19,7 +39,7 @@ export function App() {
   const [sel, setSel] = useState<string | null>(null);
   const [status, setStatus] = useState("Audio STOPPED");
   const [err, setErr] = useState("");
-  const [vcam, setVcam] = useState("NOT INSTALLED");
+  const [vcam, setVcam] = useState<VcamUi>({ state: "NOT INSTALLED", error: "", installed: false, running: false });
   const [vcamBusy, setVcamBusy] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
   const [updateBusy, setUpdateBusy] = useState(false);
@@ -62,8 +82,14 @@ export function App() {
       setTimeout(tick, 66);
     };
     tick();
-    invoke("vcam_status").then((s: any) => setVcam(s.state)).catch(() => {});
-    return () => { stop = true; };
+    const refresh = () => {
+      invoke("vcam_status")
+        .then((s) => setVcam(parseVcam(s)))
+        .catch((e) => setVcam((cur) => ({ ...cur, state: cur.state || "ERROR — status query failed", error: String(e) })));
+    };
+    refresh();
+    const poll = setInterval(refresh, 1000);
+    return () => { stop = true; clearInterval(poll); };
   }, []);
 
   useEffect(() => {
@@ -237,29 +263,61 @@ export function App() {
         </div>
         <aside className={`side ${clean ? "hidden" : ""}`}>
           <h3>VIRTUAL CAMERA</h3>
-          <div className="meters">Device: Auralith Reborn Camera
-Status: {vcam}
-1920×1080 YUY2 / BGRA bridge</div>
-          <button disabled={vcamBusy} onClick={async ()=>{
+          <div className="meters">{`Device: Auralith Reborn Camera\nStatus: ${vcam.state}${vcam.error ? `\n${vcam.error}` : ""}\n1920×1080 YUY2 / BGRA bridge`}</div>
+          <button disabled={vcamBusy || (vcam.installed && !/ERROR|NOT INSTALLED/i.test(vcam.state))} onClick={async ()=>{
+            console.log("UI_VCAM_INSTALL_CLICK");
             if (vcamBusy) return;
             setVcamBusy(true);
-            try { setVcam(String(await invoke("vcam_install"))); setErr(""); }
-            catch(e){ setErr(String(e)); }
-            finally { setVcamBusy(false); }
+            setVcam((s) => ({ ...s, state: "INSTALLING" }));
+            try {
+              const r = await invoke("vcam_install");
+              console.log("UI_VCAM_INSTALL_OK", r);
+              const st = parseVcam(await invoke("vcam_status"));
+              setVcam({ ...st, state: st.installed || /READY|LIVE/i.test(st.state) ? "READY" : (st.state || "READY") });
+              setErr("");
+            } catch (e) {
+              console.error("UI_VCAM_INSTALL_ERR", e);
+              const msg = String(e);
+              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: false, running: false });
+              setErr(msg);
+            } finally { setVcamBusy(false); }
           }}>Install Virtual Camera</button>
-          <button disabled={vcamBusy} onClick={async ()=>{
+          <button disabled={vcamBusy || vcam.running || !(/READY|STOPPED/i.test(vcam.state) || vcam.installed)} onClick={async ()=>{
+            console.log("UI_VCAM_START_CLICK");
             if (vcamBusy) return;
             setVcamBusy(true);
-            try { await invoke("vcam_start"); vcamLive.current=true; setVcam("LIVE"); setErr(""); }
-            catch(e){ setErr(String(e)); }
-            finally { setVcamBusy(false); }
+            setVcam((s) => ({ ...s, state: "STARTING" }));
+            try {
+              await invoke("vcam_start");
+              vcamLive.current = true;
+              const st = parseVcam(await invoke("vcam_status"));
+              setVcam({ ...st, state: "LIVE", running: true });
+              setErr("");
+            } catch (e) {
+              console.error("UI_VCAM_START_ERR", e);
+              const msg = String(e);
+              vcamLive.current = false;
+              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+              setErr(msg);
+            } finally { setVcamBusy(false); }
           }}>Start Virtual Camera</button>
-          <button disabled={vcamBusy} onClick={async ()=>{
+          <button disabled={vcamBusy || !(vcam.running || /LIVE|STARTING/i.test(vcam.state))} onClick={async ()=>{
+            console.log("UI_VCAM_STOP_CLICK");
             if (vcamBusy) return;
             setVcamBusy(true);
-            try { vcamLive.current=false; await invoke("vcam_stop"); setVcam("STOPPED"); setErr(""); }
-            catch(e){ setErr(String(e)); }
-            finally { setVcamBusy(false); }
+            setVcam((s) => ({ ...s, state: "STOPPING" }));
+            try {
+              vcamLive.current = false;
+              await invoke("vcam_stop");
+              const st = parseVcam(await invoke("vcam_status"));
+              setVcam({ ...st, state: "STOPPED", running: false });
+              setErr("");
+            } catch (e) {
+              console.error("UI_VCAM_STOP_ERR", e);
+              const msg = String(e);
+              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+              setErr(msg);
+            } finally { setVcamBusy(false); }
           }}>Stop Virtual Camera</button>
           <h3>AUDIO</h3>
           <div className="meters">{status}{"\n"}{err}</div>
