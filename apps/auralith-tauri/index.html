@@ -3,10 +3,35 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AURALITH</title>
+    <title>AURALITH REBORN</title>
+    <style>
+      html,body,#root{margin:0;height:100%;background:#0b0c12;color:#E8E6E3;font:14px Segoe UI,sans-serif}
+      #boot{padding:24px;max-width:640px}
+      #boot h1{color:#D4AF37;letter-spacing:.16em;font-size:16px}
+      #boot.ok{display:none}
+    </style>
   </head>
   <body>
+    <div id="boot">
+      <h1>AURALITH REBORN</h1>
+      <p id="boot-msg">Starting…</p>
+    </div>
     <div id="root"></div>
+    <script>
+      console.log("APP_BOOT_BEGIN INDEX_LOADED");
+      window.addEventListener("error", function (e) {
+        console.error("APP_BOOT_FAILED stage=window.onerror error=" + (e.message || e));
+        var el = document.getElementById("boot-msg");
+        if (el) el.textContent = "Startup Error: " + (e.message || "unknown");
+        var b = document.getElementById("boot");
+        if (b) b.classList.remove("ok");
+      });
+      window.addEventListener("unhandledrejection", function (e) {
+        console.error("APP_BOOT_FAILED stage=unhandledrejection error=" + e.reason);
+        var el = document.getElementById("boot-msg");
+        if (el) el.textContent = "Startup Error: " + String(e.reason);
+      });
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -12,8 +12,8 @@ uniform float uP0; uniform float uP1; uniform float uP2;
 uniform float uQ; uniform float uBass; uniform float uMid; uniform float uHigh; uniform float uBeat;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
-float fbm(vec2 p){ float v=0.0,a=0.5; int oct = uQ>2.5?5:(uQ>1.5?4:3); for(int i=0;i<5;i++){ if(i>=oct) break; v+=a*n2(p); p=p*2.03+vec2(17.1,9.3); a*=0.5; } return v; }
-vec3 hueShift(vec3 c, float h){ float k=h*6.2831; float cosA=cos(k),sinA=sin(k); vec3 w=vec3(0.299,0.587,0.114); vec3 v=c-dot(w,c); return c+v*cosA+cross(vec3(0.577,0.577,0.577),v)*sinA; }
+float fbm(vec2 p){ float v=0.0,a=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); return v; }
+vec3 hueShift(vec3 c, float h){ return mix(c, vec3(c.g, c.b, c.r), clamp(abs(h)*2.0, 0.0, 1.0)); }
 void main(){
   vec2 uv = gl_FragCoord.xy/uRes;
   vec2 p = (gl_FragCoord.xy - uOrigin)/max(uRadius*(0.35+uP1), 8.0);
@@ -175,10 +175,14 @@ void main(){
 }
 `;
 
-function compile(gl: WebGL2RenderingContext, type: number, src: string) {
+function compile(gl: WebGL2RenderingContext, type: number, src: string, label: string) {
   const s = gl.createShader(type)!;
   gl.shaderSource(s, src); gl.compileShader(s);
-  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s) || "shader");
+  if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
+    const log = gl.getShaderInfoLog(s) || "shader compile failed";
+    console.error("APP_BOOT_FAILED stage=SHADERS_COMPILE error=" + label + " " + log);
+    throw new Error(label + ": " + log);
+  }
   return s;
 }
 const KIND_INDEX: Record<EffectKind, number> = {
@@ -218,18 +222,22 @@ export class GlRenderer {
   private frames = 0;
   private lastFps = performance.now();
   constructor(private canvas: HTMLCanvasElement) {
-    const gl = canvas.getContext("webgl2", { alpha: false, antialias: true, preserveDrawingBuffer: true });
+    console.log("RENDERER_INIT_BEGIN");
+    const gl = canvas.getContext("webgl2", { alpha: false, antialias: true, preserveDrawingBuffer: true })
+      || canvas.getContext("webgl", { alpha: false, antialias: true, preserveDrawingBuffer: true }) as WebGL2RenderingContext | null;
     if (!gl) throw new Error("WebGL2 required");
+    console.log("WEBGL2_CONTEXT_OK");
     this.gl = gl;
+    console.log("SHADERS_COMPILE_BEGIN");
     const p = gl.createProgram()!;
-    gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, VS));
-    gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, FS));
+    gl.attachShader(p, compile(gl, gl.VERTEX_SHADER, VS, "VS"));
+    gl.attachShader(p, compile(gl, gl.FRAGMENT_SHADER, FS, "FS"));
     gl.linkProgram(p);
     if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(p) || "link");
     this.prog = p;
     const bp = gl.createProgram()!;
-    gl.attachShader(bp, compile(gl, gl.VERTEX_SHADER, BVS));
-    gl.attachShader(bp, compile(gl, gl.FRAGMENT_SHADER, BFS));
+    gl.attachShader(bp, compile(gl, gl.VERTEX_SHADER, BVS, "BVS"));
+    gl.attachShader(bp, compile(gl, gl.FRAGMENT_SHADER, BFS, "BFS"));
     gl.linkProgram(bp);
     if (!gl.getProgramParameter(bp, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(bp) || "bg link");
     this.bgProg = bp;
@@ -237,6 +245,7 @@ export class GlRenderer {
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
     this.bgBuf = gl.createBuffer()!;
+    console.log("SHADERS_COMPILE_OK RENDERER_INIT_OK");
   }
   setBackdrop(img: HTMLImageElement | null) {
     const gl = this.gl;

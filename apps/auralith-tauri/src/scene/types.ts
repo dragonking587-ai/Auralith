@@ -88,3 +88,25 @@ export function defaultEffect(kind: EffectKind): EffectInstance {
     color3: "#ffffff", p0: 0.65, p1: 0.5, p2: 0.4, preset: "Default"
   };
 }
+
+export function normalizeEffect(e: Partial<EffectInstance> & { kind: EffectKind }): EffectInstance {
+  const d = defaultEffect(e.kind);
+  return {
+    ...d,
+    ...e,
+    id: e.id || d.id,
+    enabled: e.enabled !== false,
+    intensity: Number.isFinite(e.intensity as number) ? (e.intensity as number) : d.intensity,
+    brightness: Number.isFinite(e.brightness as number) ? (e.brightness as number) : d.brightness,
+    opacity: Number.isFinite(e.opacity as number) ? (e.opacity as number) : d.opacity,
+    speed: Number.isFinite(e.speed as number) ? (e.speed as number) : d.speed,
+    scale: Number.isFinite(e.scale as number) ? (e.scale as number) : d.scale,
+    audioInfluence: Number.isFinite(e.audioInfluence as number) ? (e.audioInfluence as number) : d.audioInfluence,
+    color: e.color || d.color,
+    color2: e.color2 || d.color2,
+    color3: e.color3 || d.color3,
+    p0: Number.isFinite(e.p0 as number) ? e.p0 : d.p0,
+    p1: Number.isFinite(e.p1 as number) ? e.p1 : d.p1,
+    p2: Number.isFinite(e.p2 as number) ? e.p2 : d.p2,
+  };
+}

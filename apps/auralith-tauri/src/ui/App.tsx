@@ -7,7 +7,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.12";
+const APP_VERSION = "2.0.0-alpha.13";
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
 function parseVcam(raw: unknown): VcamUi {
@@ -52,12 +52,25 @@ export function App() {
   projectRef.current = project;
 
   useEffect(() => {
+    console.log("APP_COMPONENT_BEGIN");
     if (!canvasRef.current) return;
-    glRef.current = new GlRenderer(canvasRef.current);
     let id = 0;
+    try {
+      console.log("RENDERER_INIT_BEGIN");
+      glRef.current = new GlRenderer(canvasRef.current);
+      console.log("RENDERER_INIT_OK APP_READY");
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      console.error("APP_BOOT_FAILED stage=RENDERER error=" + msg);
+      setErr("Renderer: " + msg);
+    }
     const loop = () => {
       const wrap = wrapRef.current;
-      if (wrap && glRef.current) glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight);
+      try {
+        if (wrap && glRef.current) glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight);
+      } catch (e) {
+        console.error("APP_BOOT_FAILED stage=RENDER_FRAME error=" + e);
+      }
       setStatus(`AUDIO ${audio.status}  ${audio.sourceLabel}  RAW ${audio.snapshot.raw.toFixed(2)} B ${audio.snapshot.bass.toFixed(2)}`);
       id = requestAnimationFrame(loop);
     };
