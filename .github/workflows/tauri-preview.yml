@@ -21,6 +21,18 @@ jobs:
         with:
           node-version: "20"
       - uses: dtolnay/rust-toolchain@stable
+      - name: Resolve version
+        id: ver
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          $pkg = (Get-Content package.json | ConvertFrom-Json).version
+          if ($v -ne $pkg) { throw "VERSION ($v) != package.json ($pkg)" }
+          if (-not $v) { throw "empty VERSION" }
+          echo "version=$v" >> $env:GITHUB_OUTPUT
+          echo "tag=reborn-v$v" >> $env:GITHUB_OUTPUT
+          echo "file=Auralith-Reborn-Preview-$v-x64-Setup.exe" >> $env:GITHUB_OUTPUT
+          echo "REBORN_VERSION=$v"
       - name: Install frontend
         run: npm install
       - name: Build frontend
@@ -38,20 +50,47 @@ jobs:
         run: |
           New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
           Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
-          Get-ChildItem src-tauri/resources
       - name: Tauri NSIS
         run: npx tauri build --bundles nsis
       - name: Collect installer
         shell: pwsh
         run: |
-          $exe = Get-ChildItem -Recurse src-tauri/target -Filter *.exe | Where-Object { $_.Name -match "setup|nsis" } | Select-Object -First 1
+          $v = "${{ steps.ver.outputs.version }}"
+          $name = "${{ steps.ver.outputs.file }}"
+          $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle -Filter *.exe | Where-Object { $_.Name -match "setup|nsis" } | Select-Object -First 1
+          if (-not $exe) { $exe = Get-ChildItem -Recurse src-tauri/target -Filter *.exe | Where-Object { $_.Name -match "setup|nsis" } | Select-Object -First 1 }
           if (-not $exe) { throw "NSIS installer not found" }
+          if ($exe.Length -le 0) { throw "empty installer" }
           New-Item -ItemType Directory -Force dist-install | Out-Null
-          $dest = "dist-install/Auralith-Reborn-Preview-2.0.0-alpha.6-x64-Setup.exe"
+          $dest = "dist-install/$name"
           Copy-Item $exe.FullName $dest
-          Get-FileHash $dest -Algorithm SHA256 | Out-File dist-install/SHA256SUMS.txt
-          Get-Item $dest | Format-List
+          $hash = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
+          "Auralith-Reborn-Preview-$v-x64-Setup.exe  $hash" | Set-Content dist-install/SHA256SUMS.txt
+          Get-Item $dest | Format-List FullName,Length
+          Write-Host "SHA256 $hash"
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Reborn-Preview-2.0.0-alpha.6
+          name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
           path: apps/auralith-tauri/dist-install/*
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.ver.outputs.tag }}
+          name: Auralith Reborn Preview — ${{ steps.ver.outputs.version }}
+          target_commitish: tauri/auralith-reborn
+          prerelease: true
+          fail_on_unmatched_files: true
+          files: |
+            apps/auralith-tauri/dist-install/${{ steps.ver.outputs.file }}
+            apps/auralith-tauri/dist-install/SHA256SUMS.txt
+          body: |
+            AURALITH REBORN PREVIEW — ${{ steps.ver.outputs.version }}
+
+            WINDOWS DOWNLOAD
+            ${{ steps.ver.outputs.file }}
+
+            Platform: Windows x64
+            Branch: tauri/auralith-reborn
+            Commit: ${{ github.sha }}
+
+            This is a prerelease of Auralith Reborn. It does not replace native Auralith.
