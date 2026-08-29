@@ -6,7 +6,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.9";
+const APP_VERSION = "2.0.0-alpha.10";
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
 function parseVcam(raw: unknown): VcamUi {
@@ -337,9 +337,41 @@ export function App() {
               }}>
                 {ALL_EFFECTS.map((k) => <option key={k} value={k}>{k}</option>)}
               </select>
-              <label>Intensity <input type="range" min={0} max={1} step={0.01} value={ef.intensity} onChange={(e) => {
+              <label>Intensity {ef.intensity.toFixed(2)} <input type="range" min={0} max={2} step={0.01} value={ef.intensity} onChange={(e) => {
                 const v = Number(e.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,intensity:v}:x)}) });
+              }} /></label>
+              <label>Opacity <input type="range" min={0} max={1} step={0.01} value={ef.opacity} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,opacity:v}:x)}) });
+              }} /></label>
+              <label>Speed <input type="range" min={0.05} max={4} step={0.01} value={ef.speed} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,speed:v}:x)}) });
+              }} /></label>
+              <label>Amount/Rate <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p0:v}:x)}) });
+              }} /></label>
+              <label>Size/Width <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p1:v}:x)}) });
+              }} /></label>
+              <label>Shape/Phase <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p2:v}:x)}) });
+              }} /></label>
+              <label>Primary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(ev)=>{
+                const v=ev.target.value;
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color:v}:x)}) });
+              }} /></label>
+              <label>Secondary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(ev)=>{
+                const v=ev.target.value;
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color2:v}:x)}) });
+              }} /></label>
+              <label>Audio Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(ev)=>{
+                const v=Number(ev.target.value);
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,audioInfluence:v}:x)}) });
               }} /></label>
               <select value={ef.audio} onChange={(e) => {
                 const audioMap = e.target.value as typeof ef.audio;
@@ -350,6 +382,15 @@ export function App() {
             </div>
           )) : <p>Click the canvas to place a {tool}.</p>}
           {selected && <button onClick={() => pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, defaultEffect("Pulse")]}) })}>Add Effect</button>}
+          {selected && selected.effects[0] && <button onClick={() => {
+            const kind = selected.effects[0]!.kind;
+            pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects: r.effects.map((x,i)=> i===0?defaultEffect(kind):x)}) });
+          }}>Reset First Effect</button>}
+          {selected && <button onClick={() => {
+            const copy = selected.effects[0];
+            if (!copy) return;
+            pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, { ...copy, id: crypto.randomUUID() }]}) });
+          }}>Duplicate Effect</button>}
           <p>F11 Clean Capture · ESC Edit · 80 effects registered · markers never disable effects</p>
         </aside>
       </div>

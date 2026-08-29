@@ -8,58 +8,147 @@ precision highp float;
 uniform vec2 uRes; uniform float uTime; uniform float uMod;
 uniform vec3 uA; uniform vec3 uB; uniform float uKind; uniform float uInt;
 uniform vec2 uOrigin; uniform float uRadius;
+uniform float uP0; uniform float uP1; uniform float uP2;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
+float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*n2(p); p=p*2.03+vec2(17.1,9.3); a*=0.5; } return v; }
 void main(){
   vec2 uv = gl_FragCoord.xy/uRes;
-  vec2 p = (gl_FragCoord.xy - uOrigin)/max(uRadius,8.0);
+  vec2 p = (gl_FragCoord.xy - uOrigin)/max(uRadius*(0.35+uP1), 8.0);
   float d = length(p);
+  float ang = atan(p.y,p.x);
   float t = uTime;
   float k = uKind;
-  float m = clamp(uMod,0.0,2.0);
+  float m = clamp(uMod,0.0,2.5);
+  float p0 = clamp(uP0,0.0,2.0);
+  float p2 = clamp(uP2,0.0,2.0);
   vec3 col = uA;
   float a = 0.0;
-  if (k < 16.0) {
-    float glow = exp(-d*(1.8+k*0.05))*(0.25+m);
-    float pulse = 0.5+0.5*sin(t*(1.0+k*0.15));
-    float rays = pow(abs(sin(atan(p.y,p.x)*(3.0+mod(k,8.0))+t)), 8.0);
-    a = glow*(0.55+0.45*pulse) + rays*glow*step(11.0,k);
-    col = mix(uA,uB,pulse*0.35);
-  } else if (k < 31.0) {
-    float ang = atan(p.y,p.x);
-    float flow = n2(p*3.0+vec2(t*0.4,t*0.2));
-    float tend = abs(sin(ang*5.0 + t + flow*4.0));
-    float core = exp(-d*3.2);
-    a = core*(0.4+m) + tend*exp(-d*1.4)*0.45*m;
-    col = mix(uB,uA,core);
-    if (k > 26.0) a += step(0.92, hash(vec2(ang,floor(t*20.0)))) * exp(-d);
-  } else if (k < 37.0) {
-    float flame = exp(-abs(p.x)*(3.5+2.0*m)) * smoothstep(0.85,-0.35,p.y);
-    flame *= 0.55 + 0.45*n2(vec2(p.x*6.0, p.y*3.0 - t*2.5));
-    a = flame * (0.7+m);
-    col = mix(vec3(1.0,0.95,0.55), vec3(1.0,0.25,0.02), clamp(d+p.y*0.3,0.0,1.0));
-  } else if (k < 46.0) {
-    a = exp(-d*2.0)*(0.3+m);
-    col = mix(uA,uB,0.5+0.5*sin(t+uv.x*8.0));
-    a *= 0.7 + 0.3*n2(uv*20.0+t);
-  } else if (k < 50.0) {
-    a = (1.0-exp(-d*0.4))*0.25*m;
-    col = vec3(0.02,0.02,0.05);
-  } else if (k < 61.0) {
-    float drop = step(0.97, fract(uv.x*50.0 + hash(vec2(uv.x,0.0))*10.0 - t*(0.6+m)));
-    a = drop * 0.8 + n2(uv*8.0+t*0.05)*0.12*m;
-    col = mix(uB, vec3(0.8,0.9,1.0), 0.5);
-  } else if (k < 66.0) {
-    float ring = abs(d-0.55-0.1*sin(t));
-    a = exp(-ring*18.0)*(0.4+m);
-    col = uA;
+  if (k < 1.5) {
+    float pulse = 0.5+0.5*sin(t*6.2831*(0.4+p0*1.8)+p2*6.2831);
+    float sz = 1.0 + pulse*0.55*p0*m;
+    a = exp(-d*sz*2.2)*(0.25+m*pulse);
+    col = mix(uA,uB,pulse);
+  } else if (k < 2.5) {
+    float flick = n2(vec2(floor(t*(6.0+p0*28.0)), 3.1));
+    float micro = n2(vec2(t*40.0, 8.0));
+    float stab = mix(flick, 0.7, p2);
+    a = exp(-d*2.4)*(0.15+m*(0.2+0.8*stab)+micro*0.12*p0);
+    col = mix(uA,uB,flick);
+  } else if (k < 3.5) {
+    float env = exp(-fract(t*(0.4+p0))* (3.0+p2*8.0));
+    float hold = smoothstep(0.15,0.0,abs(fract(t*0.35)-0.08));
+    a = exp(-d*(1.6-0.4*env))*(env*1.4+hold*0.2)*m;
+    col = mix(uA,uB,env);
+  } else if (k < 4.5) {
+    float rate = 2.0+p0*14.0;
+    float duty = clamp(p1,0.05,0.9);
+    float ph = fract(t*rate);
+    float on = step(ph, duty);
+    a = exp(-d*1.8)*on*m*(0.7+p2);
+    col = mix(uA,uB,step(0.5,fract(t*rate*0.5)));
+  } else if (k < 5.5) {
+    float g1 = exp(-d*1.1); float g2 = exp(-d*0.45); float g3 = exp(-d*0.18);
+    a = (g1*0.7+g2*0.35+g3*0.15)*(0.3+m)*p0;
+    col = mix(uA,uB,smoothstep(0.0,1.2,d));
+  } else if (k < 6.5) {
+    float br = 0.5+0.5*sin(t*6.2831*(0.06+p0*0.5));
+    float inh = smoothstep(-0.2,1.0,sin(t*(0.4+p0)));
+    a = exp(-d*(1.4-0.4*br))*(0.18+0.55*br)*m;
+    col = mix(uA,uB,inh);
+  } else if (k < 7.5) {
+    float tail = exp(-fract(t*0.7)* (1.2+p2*4.0));
+    a = exp(-d*1.3)*tail*m*(0.4+p0);
+    col = mix(uB,uA,tail);
+  } else if (k < 8.5) {
+    a = 0.0;
+    for (int i=0;i<6;i++) {
+      float fi = float(i);
+      float e = exp(-d*(1.5+fi*0.25))*exp(-fi*(0.35+p2))* (0.5+0.5*sin(t*4.0 - fi*(0.8+p0)));
+      a += e;
+    }
+    a *= 0.35*m;
+    col = mix(uA,uB,clamp(d,0.0,1.0));
+  } else if (k < 9.5) {
+    float dir = p2*6.2831;
+    vec2 nrm = vec2(cos(dir),sin(dir));
+    float sweep = fract(dot(p,nrm)*0.35 + t*(0.3+p0));
+    float band = exp(-abs(sweep-0.5)* (14.0+p1*20.0));
+    a = band*exp(-d*0.6)*m;
+    col = mix(uA,uB,sweep);
+  } else if (k < 10.5) {
+    float cone = abs(ang);
+    float pool = exp(-d*(1.8+p0*2.0));
+    float focus = exp(-cone*(2.0+p2*6.0));
+    a = pool*mix(1.0,focus,p1)*m*0.9;
+    col = mix(uA,uB,d);
+  } else if (k < 11.5) {
+    float ring = abs(d-(0.45+0.2*p0+0.15*sin(t)));
+    a = exp(-ring*(18.0+p2*20.0))*m*(0.5+p1);
+    a += exp(-d*3.2)*0.15*m;
+    col = mix(uA,uB,smoothstep(0.2,0.8,d));
+  } else if (k < 12.5) {
+    float rays = pow(abs(sin(ang*(4.0+floor(p0*16.0))+t*p2)), 10.0+p1*10.0);
+    a = rays*exp(-d*1.3)*m;
+    col = mix(uA,uB,rays);
+  } else if (k < 13.5) {
+    float shafts = pow(abs(sin(ang*3.0 + n2(p*2.0+t*0.2)*2.0)), 4.0);
+    float haze = fbm(uv*3.0+t*0.05)*0.35;
+    a = (shafts*0.7+haze)*exp(-d*0.55)*m*(0.4+p0);
+    col = mix(uA,uB,haze);
+  } else if (k < 14.5) {
+    float core = exp(-d*8.0);
+    float streak = exp(-abs(p.y)*20.0)*exp(-abs(p.x)*1.2);
+    float ghost = 0.0;
+    for (int i=1;i<=4;i++) {
+      vec2 gp = p + normalize(p+vec2(0.001))*float(i)*(0.12+p1*0.1);
+      ghost += exp(-length(gp)*10.0)* (0.18/float(i));
+    }
+    a = (core*1.2+streak*p0+ghost)*m;
+    col = mix(uA,uB,core);
+  } else if (k < 15.5) {
+    float spikes = pow(abs(sin(ang*(3.0+floor(2.0+p0*14.0)))), 16.0+p1*20.0);
+    float burst = exp(-fract(t*(1.0+p2))*4.0);
+    a = (spikes*exp(-d*1.1)+exp(-d*6.0))*burst*m;
+    col = mix(uA,uB,spikes);
+  } else if (k < 16.5) {
+    float flow = fract(ang/6.2831*8.0 - t*(0.4+p0)+d*2.0);
+    float seg = exp(-abs(flow-0.5)*(20.0+p1*20.0));
+    a = seg*exp(-abs(d-0.55)*3.0)*m;
+    col = mix(uA,uB,flow);
+  } else if (k < 17.5) {
+    float rip = 0.0;
+    for (int i=0;i<5;i++) {
+      float rad = fract(t*(0.25+p0)+float(i)*0.18);
+      rip += exp(-abs(d-rad*(0.3+p1*1.2))* (16.0+p2*10.0));
+    }
+    a = rip*exp(-d*0.4)*m*0.7;
+    col = mix(uA,uB,d);
+  } else if (k < 18.5) {
+    float rad = fract(t*(0.8+p0*2.0));
+    float ring = exp(-abs(d-rad*1.4)* (22.0+p2*18.0));
+    float kick = exp(-rad*3.0);
+    a = ring*kick*m;
+    col = mix(uB,uA,rad);
+  } else if (k < 19.5) {
+    float mass = fbm(p*2.2+t*0.15);
+    float tend = abs(sin(ang*5.0 + mass*6.0 + t));
+    float core = exp(-d*(2.2-p0));
+    a = core*(0.45+m)+tend*exp(-d*1.1)*0.4*p1*m;
+    a *= 0.65+0.35*mass;
+    col = mix(uA,uB,mass);
+  } else if (k < 20.5) {
+    float field = fbm(p*(1.5+p0*3.0)+vec2(t*0.2,t*0.13));
+    float fil = smoothstep(0.35,0.75,field)*smoothstep(0.85,0.55,field);
+    a = (fil*0.8+field*0.25)*exp(-d*0.7)*m;
+    col = mix(uA,uB,field);
   } else {
-    float bits = step(0.88, hash(floor(p*12.0)+floor(t*(4.0+k-66.0))));
-    a = bits * exp(-d*1.1) * (0.35+m);
-    col = mix(uA,uB,hash(p));
+    a = exp(-d*2.0)*(0.2+m);
+    col = mix(uA,uB,0.5);
   }
   gl_FragColor = vec4(col, clamp(a*uInt,0.0,1.0));
-}`;
+}
+
 
 function compile(gl: WebGL2RenderingContext, type: number, src: string) {
   const s = gl.createShader(type)!;
@@ -211,6 +300,9 @@ export class GlRenderer {
         gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), e.opacity);
         gl.uniform2f(gl.getUniformLocation(this.prog, "uOrigin"), ox, oy);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uRadius"), rad);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uP0"), e.p0 ?? 0.65);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uP1"), e.p1 ?? 0.5);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uP2"), e.p2 ?? 0.4);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
       }
     }

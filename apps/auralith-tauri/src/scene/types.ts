@@ -43,6 +43,11 @@ export type EffectInstance = {
   audioInfluence: number;
   color: string;
   color2: string;
+  color3?: string;
+  p0?: number;
+  p1?: number;
+  p2?: number;
+  preset?: string;
 };
 
 export type Region = {
@@ -79,6 +84,7 @@ export function newProject(): Project {
 export function defaultEffect(kind: EffectKind): EffectInstance {
   return {
     id: crypto.randomUUID(), kind, enabled: true, intensity: 0.8, brightness: 1, opacity: 1,
-    speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7, color: "#f4d27a", color2: "#7ad0ff"
+    speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7, color: "#f4d27a", color2: "#7ad0ff",
+    color3: "#ffffff", p0: 0.65, p1: 0.5, p2: 0.4, preset: "Default"
   };
 }
