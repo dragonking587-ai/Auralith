@@ -6,12 +6,14 @@ const VS = `attribute vec2 a; void main(){ gl_Position=vec4(a,0.0,1.0); }`;
 const FS = `
 precision highp float;
 uniform vec2 uRes; uniform float uTime; uniform float uMod;
-uniform vec3 uA; uniform vec3 uB; uniform float uKind; uniform float uInt;
+uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform float uKind; uniform float uInt;
 uniform vec2 uOrigin; uniform float uRadius;
 uniform float uP0; uniform float uP1; uniform float uP2;
+uniform float uQ; uniform float uBass; uniform float uMid; uniform float uHigh; uniform float uBeat;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
-float fbm(vec2 p){ float v=0.0,a=0.5; for(int i=0;i<5;i++){ v+=a*n2(p); p=p*2.03+vec2(17.1,9.3); a*=0.5; } return v; }
+float fbm(vec2 p){ float v=0.0,a=0.5; int oct = uQ>2.5?5:(uQ>1.5?4:3); for(int i=0;i<5;i++){ if(i>=oct) break; v+=a*n2(p); p=p*2.03+vec2(17.1,9.3); a*=0.5; } return v; }
+vec3 hueShift(vec3 c, float h){ float k=h*6.2831; float cosA=cos(k),sinA=sin(k); vec3 w=vec3(0.299,0.587,0.114); vec3 v=c-dot(w,c); return c+v*cosA+cross(vec3(0.577,0.577,0.577),v)*sinA; }
 void main(){
   vec2 uv = gl_FragCoord.xy/uRes;
   vec2 p = (gl_FragCoord.xy - uOrigin)/max(uRadius*(0.35+uP1), 8.0);
@@ -83,10 +85,12 @@ void main(){
     a = pool*mix(1.0,focus,p1)*m*0.9;
     col = mix(uA,uB,d);
   } else if (k < 11.5) {
-    float ring = abs(d-(0.45+0.2*p0+0.15*sin(t)));
-    a = exp(-ring*(18.0+p2*20.0))*m*(0.5+p1);
-    a += exp(-d*3.2)*0.15*m;
-    col = mix(uA,uB,smoothstep(0.2,0.8,d));
+    float rad = 0.48 + 0.18*p0 + 0.12*sin(t*(0.6+uMid))*uBeat*0.15;
+    float ring = abs(d-rad);
+    float broken = 0.65 + 0.35*smoothstep(p2,1.2,abs(sin(ang*3.0+t*0.4)));
+    float inner = exp(-max(d-rad,0.0)*6.0);
+    a = (exp(-ring*(14.0+p1*22.0))*broken + inner*0.22 + exp(-d*4.0)*0.08)*m;
+    col = mix(mix(uA,uB,smoothstep(0.2,0.9,d)), uC, exp(-ring*30.0));
   } else if (k < 12.5) {
     float rays = pow(abs(sin(ang*(4.0+floor(p0*16.0))+t*p2)), 10.0+p1*10.0);
     a = rays*exp(-d*1.3)*m;
@@ -112,36 +116,57 @@ void main(){
     a = (spikes*exp(-d*1.1)+exp(-d*6.0))*burst*m;
     col = mix(uA,uB,spikes);
   } else if (k < 16.5) {
-    float flow = fract(ang/6.2831*8.0 - t*(0.4+p0)+d*2.0);
-    float seg = exp(-abs(flow-0.5)*(20.0+p1*20.0));
-    a = seg*exp(-abs(d-0.55)*3.0)*m;
-    col = mix(uA,uB,flow);
+    float path = abs(d-0.55);
+    float segs = 6.0+floor(p2*10.0);
+    float flow = fract(ang/6.2831*segs - t*(0.35+p0+uBeat*0.6)+fbm(p*2.0)*uMid);
+    float coreLine = exp(-path*(10.0+p1*16.0));
+    float pulse = exp(-abs(flow-0.5)*(18.0+p1*10.0));
+    a = coreLine*(0.35+pulse)*m;
+    col = mix(mix(uA,uB,flow), uC, pulse);
   } else if (k < 17.5) {
-    float rip = 0.0;
-    for (int i=0;i<5;i++) {
-      float rad = fract(t*(0.25+p0)+float(i)*0.18);
-      rip += exp(-abs(d-rad*(0.3+p1*1.2))* (16.0+p2*10.0));
+    float rip = 0.0; float hi=0.0;
+    for (int i=0;i<6;i++) {
+      float rad = fract(t*(0.18+p0+uBeat*0.25)+float(i)*(0.12+p2*0.08));
+      float edge = abs(d-(0.15+rad*(0.25+p1)));
+      float ring = exp(-edge*(14.0+18.0*(1.0-p2)));
+      float turb = 1.0 + (fbm(p*4.0+t)-0.5)*uMid*0.6;
+      rip += ring*turb*exp(-rad*1.6);
+      hi += exp(-edge*40.0)*exp(-rad);
     }
-    a = rip*exp(-d*0.4)*m*0.7;
-    col = mix(uA,uB,d);
+    a = rip*m*0.55;
+    col = mix(mix(uA,uB,d), uC, clamp(hi,0.0,1.0));
   } else if (k < 18.5) {
-    float rad = fract(t*(0.8+p0*2.0));
-    float ring = exp(-abs(d-rad*1.4)* (22.0+p2*18.0));
-    float kick = exp(-rad*3.0);
-    a = ring*kick*m;
-    col = mix(uB,uA,rad);
+    float rad = fract(t*(1.1+p0*2.4)+uBeat*0.15);
+    float edge = abs(d-rad*1.35);
+    float ring = exp(-edge*(20.0+p2*28.0));
+    float kick = exp(-rad*2.4)*(0.7+uBeat);
+    float tail = exp(-max(rad*1.35-d,0.0)*3.0)*0.18*kick;
+    a = (ring*1.3+tail)*kick*m;
+    col = mix(mix(uA,uB,rad), uC, ring);
   } else if (k < 19.5) {
-    float mass = fbm(p*2.2+t*0.15);
-    float tend = abs(sin(ang*5.0 + mass*6.0 + t));
-    float core = exp(-d*(2.2-p0));
-    a = core*(0.45+m)+tend*exp(-d*1.1)*0.4*p1*m;
-    a *= 0.65+0.35*mass;
-    col = mix(uA,uB,mass);
+    float swirl = ang + t*(0.35+uMid*0.4) + fbm(p*1.8)*1.4;
+    vec2 tp = vec2(cos(swirl),sin(swirl))*d;
+    float mass = fbm(tp*(1.6+p0*2.0)+t*0.12);
+    float tendN = 4.0+floor(p2*10.0);
+    float tend = pow(abs(sin(ang*tendN + mass*5.0 + t*(0.7+uMid))), 2.2+p1);
+    tend *= exp(-d*(0.9+0.4*(1.0-p1)));
+    float core = exp(-d*(3.2-uBass*1.4-p0));
+    float bloom = exp(-d*0.55)*0.28;
+    float dissolve = smoothstep(1.15,0.35,d+mass*0.25);
+    float spark = step(0.92, hash(floor(p*18.0)+floor(t*12.0)))*uHigh;
+    a = (core*1.15 + tend*0.75*m + bloom*m + spark*0.35)*dissolve;
+    col = mix(mix(uA,uB,mass), uC, clamp(core+spark,0.0,1.0));
+    col = hueShift(col, uBeat*0.08);
   } else if (k < 20.5) {
-    float field = fbm(p*(1.5+p0*3.0)+vec2(t*0.2,t*0.13));
-    float fil = smoothstep(0.35,0.75,field)*smoothstep(0.85,0.55,field);
-    a = (fil*0.8+field*0.25)*exp(-d*0.7)*m;
-    col = mix(uA,uB,field);
+    vec2 fp = p;
+    fp += vec2(n2(p+t*0.07), n2(p.yx-t*0.06)-0.5)*(0.15+p2*0.4+uBass*0.2);
+    float field = fbm(fp*(1.2+p0*3.2)+vec2(t*(0.16+p1), t*0.11));
+    float fil = smoothstep(0.32,0.72,field)*smoothstep(0.88,0.52,field);
+    fil = pow(fil, 0.65+p2*0.4);
+    float spark = step(0.94, hash(floor(fp*22.0)+floor(t*16.0)))*uHigh;
+    a = (fil*0.95 + field*0.18 + spark*0.4)*mix(0.55,1.0,m);
+    col = mix(mix(uA,uB,field), uC, fil*0.7+spark);
+    col = hueShift(col, t*0.03+uMid*0.05);
   } else {
     a = exp(-d*2.0)*(0.2+m);
     col = mix(uA,uB,0.5);
@@ -296,6 +321,14 @@ export class GlRenderer {
         gl.uniform1f(gl.getUniformLocation(this.prog, "uMod"), mod * project.masters.intensity);
         gl.uniform3f(gl.getUniformLocation(this.prog, "uA"), c[0]*project.masters.brightness, c[1]*project.masters.brightness, c[2]*project.masters.brightness);
         gl.uniform3f(gl.getUniformLocation(this.prog, "uB"), c2[0], c2[1], c2[2]);
+        const c3 = hex(e.color3 || "#c8f4ff");
+        gl.uniform3f(gl.getUniformLocation(this.prog, "uC"), c3[0], c3[1], c3[2]);
+        const q = project.quality === "Ultra" ? 3 : project.quality === "High" ? 2 : project.quality === "Medium" ? 1 : 0;
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uQ"), q);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uBass"), snap.bass);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMid"), snap.mid);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uHigh"), snap.high);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uBeat"), snap.beat);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), KIND_INDEX[e.kind]);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), e.opacity);
         gl.uniform2f(gl.getUniformLocation(this.prog, "uOrigin"), ox, oy);

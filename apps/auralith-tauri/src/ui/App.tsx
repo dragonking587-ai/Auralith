@@ -2,11 +2,12 @@ import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
+import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.11";
+const APP_VERSION = "2.0.0-alpha.12";
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
 function parseVcam(raw: unknown): VcamUi {
@@ -324,6 +325,9 @@ export function App() {
           <h3>MASTERS</h3>
           <label>Intensity <input type="range" min={0} max={2} step={0.01} value={project.masters.intensity} onChange={(e)=>setProject({...project, masters:{...project.masters, intensity:Number(e.target.value)}})} /></label>
           <label>Brightness <input type="range" min={0} max={2} step={0.01} value={project.masters.brightness} onChange={(e)=>setProject({...project, masters:{...project.masters, brightness:Number(e.target.value)}})} /></label>
+          <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
+            {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
+          </select></label>
           <h3>EFFECT STACK</h3>
           {selected ? selected.effects.map((ef) => (
             <div key={ef.id}>
@@ -369,6 +373,19 @@ export function App() {
                 const v=ev.target.value;
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color2:v}:x)}) });
               }} /></label>
+              <label>Highlight <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(ev)=>{
+                const v=ev.target.value;
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color3:v}:x)}) });
+              }} /></label>
+              <label>Preset <select value={ef.preset || "Default"} onChange={(ev)=>{
+                const name = ev.target.value;
+                const spec = VORTEX_PRESETS.find((p)=>p.name===name);
+                const patch = spec ? spec.apply(ef.kind) : { preset: name };
+                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x, ...patch}:x)}) });
+              }}>
+                <option>Default</option>
+                {VORTEX_PRESETS.map((p)=><option key={p.name}>{p.name}</option>)}
+              </select></label>
               <label>Audio Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(ev)=>{
                 const v=Number(ev.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,audioInfluence:v}:x)}) });
