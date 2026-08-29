@@ -27,6 +27,27 @@ static void Log(const char *m) {
   OutputDebugStringA("[AuralithRebornCam] ");
   OutputDebugStringA(m);
   OutputDebugStringA("\n");
+  wchar_t path[MAX_PATH];
+  if (GetEnvironmentVariableW(L"LOCALAPPDATA", path, MAX_PATH)) {
+    wcscat(path, L"\\Auralith\\Logs");
+    CreateDirectoryW(L"%LOCALAPPDATA%\\Auralith", nullptr);
+    wchar_t dir[MAX_PATH];
+    GetEnvironmentVariableW(L"LOCALAPPDATA", dir, MAX_PATH);
+    wcscat(dir, L"\\Auralith");
+    CreateDirectoryW(dir, nullptr);
+    wcscat(dir, L"\\Logs");
+    CreateDirectoryW(dir, nullptr);
+    wchar_t file[MAX_PATH];
+    wcscpy(file, dir);
+    wcscat(file, L"\\virtual-camera.log");
+    HANDLE h = CreateFileW(file, FILE_APPEND_DATA, FILE_SHARE_READ, nullptr, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, nullptr);
+    if (h != INVALID_HANDLE_VALUE) {
+      DWORD w = 0;
+      WriteFile(h, m, (DWORD)strlen(m), &w, nullptr);
+      WriteFile(h, "\r\n", 2, &w, nullptr);
+      CloseHandle(h);
+    }
+  }
 }
 
 // ---- tiny COM helpers ----
@@ -42,16 +63,23 @@ public:
 };
 
 static HRESULT MakeYuy2(VIDEOINFOHEADER *vih, int w, int h, int fps) {
+  if (w & 1) w--;
+  if (w < 2) w = 2;
+  if (h < 2) h = 2;
+  if (fps < 1) fps = 30;
   ZeroMemory(vih, sizeof(*vih));
+  SetRect(&vih->rcSource, 0, 0, w, h);
+  SetRect(&vih->rcTarget, 0, 0, w, h);
   vih->bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
   vih->bmiHeader.biWidth = w;
   vih->bmiHeader.biHeight = h;
   vih->bmiHeader.biPlanes = 1;
   vih->bmiHeader.biBitCount = 16;
   vih->bmiHeader.biCompression = MAKEFOURCC('Y', 'U', 'Y', '2');
-  vih->bmiHeader.biSizeImage = (DWORD)w * h * 2;
-  vih->AvgTimePerFrame = 10000000i64 / (fps > 0 ? fps : 30);
-  vih->dwBitRate = (DWORD)((uint64_t)vih->bmiHeader.biSizeImage * 8 * fps);
+  vih->bmiHeader.biSizeImage = (DWORD)w * (DWORD)h * 2;
+  vih->AvgTimePerFrame = 10000000i64 / fps;
+  vih->dwBitRate = (DWORD)((uint64_t)vih->bmiHeader.biSizeImage * 8 * (DWORD)fps);
+  vih->dwBitErrorRate = 0;
   return S_OK;
 }
 
@@ -114,7 +142,7 @@ public:
   }
 
   HRESULT STDMETHODCALLTYPE Connect(IPin *p, const AM_MEDIA_TYPE *t);
-  HRESULT STDMETHODCALLTYPE ReceiveConnection(IPin *, const AM_MEDIA_TYPE *) { return E_FAIL; }
+  HRESULT STDMETHODCALLTYPE ReceiveConnection(IPin *p, const AM_MEDIA_TYPE *t);
   HRESULT STDMETHODCALLTYPE Disconnect();
   HRESULT STDMETHODCALLTYPE ConnectedTo(IPin **p);
   HRESULT STDMETHODCALLTYPE ConnectionMediaType(AM_MEDIA_TYPE *t);
@@ -135,7 +163,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE SetFormat(AM_MEDIA_TYPE *pmt);
   HRESULT STDMETHODCALLTYPE GetFormat(AM_MEDIA_TYPE **ppmt);
-  HRESULT STDMETHODCALLTYPE GetNumberOfCapabilities(int *c, int *s) { *c = 4; *s = sizeof(VIDEO_STREAM_CONFIG_CAPS); return S_OK; }
+  HRESULT STDMETHODCALLTYPE GetNumberOfCapabilities(int *c, int *s) { if (c) *c = 4; if (s) *s = (int)sizeof(VIDEO_STREAM_CONFIG_CAPS); return S_OK; }
   HRESULT STDMETHODCALLTYPE GetStreamCaps(int i, AM_MEDIA_TYPE **ppmt, BYTE *caps);
 
   HRESULT STDMETHODCALLTYPE Set(REFGUID, DWORD, LPVOID, DWORD, LPVOID, DWORD) { return E_NOTIMPL; }
@@ -198,7 +226,8 @@ public:
   HRESULT STDMETHODCALLTYPE Clone(IEnumMediaTypes **e) { *e = new EnumMT(); return S_OK; }
 };
 
-static const int kModes[][3] = {{1920, 1080, 30}, {1920, 1080, 60}, {1280, 720, 30}, {1280, 720, 60}};
+static const int kModes[][3] = {{1920, 1080, 30}, {1280, 720, 30}, {1920, 1080, 60}, {1280, 720, 60}};
+static const int kModeCount = 4;
 
 static AM_MEDIA_TYPE *AllocMt(int w, int h, int fps) {
   AM_MEDIA_TYPE *mt = (AM_MEDIA_TYPE *)CoTaskMemAlloc(sizeof(AM_MEDIA_TYPE));
@@ -207,7 +236,8 @@ static AM_MEDIA_TYPE *AllocMt(int w, int h, int fps) {
   mt->subtype = MEDIASUBTYPE_YUY2;
   mt->formattype = FORMAT_VideoInfo;
   mt->bFixedSizeSamples = TRUE;
-  mt->lSampleSize = w * h * 2;
+  mt->bTemporalCompression = FALSE;
+  mt->lSampleSize = (ULONG)w * (ULONG)h * 2;
   mt->cbFormat = sizeof(VIDEOINFOHEADER);
   mt->pbFormat = (BYTE *)CoTaskMemAlloc(sizeof(VIDEOINFOHEADER));
   MakeYuy2((VIDEOINFOHEADER *)mt->pbFormat, w, h, fps);
@@ -273,17 +303,56 @@ HRESULT CamPin::QueryInterface(REFIID riid, void **ppv) {
 
 HRESULT CamPin::QueryAccept(const AM_MEDIA_TYPE *t) {
   if (!t || t->majortype != MEDIATYPE_Video) return S_FALSE;
-  if (t->subtype != MEDIASUBTYPE_YUY2) return S_FALSE;
+  if (t->subtype != MEDIASUBTYPE_YUY2) {
+    char buf[128];
+    sprintf(buf, "VCAM_CHECK_MEDIA_TYPE accepted=false subtype!=YUY2");
+    Log(buf);
+    return S_FALSE;
+  }
+  if (t->formattype != GUID_NULL && t->formattype != FORMAT_VideoInfo && t->formattype != FORMAT_VideoInfo2)
+    return S_FALSE;
+  if (t->pbFormat && t->cbFormat >= sizeof(VIDEOINFOHEADER)) {
+    VIDEOINFOHEADER *v = (VIDEOINFOHEADER *)t->pbFormat;
+    int w = v->bmiHeader.biWidth;
+    int h = abs(v->bmiHeader.biHeight);
+    if (w < 2 || h < 2 || (w & 1)) return S_FALSE;
+    if (v->bmiHeader.biCompression && v->bmiHeader.biCompression != MAKEFOURCC('Y','U','Y','2'))
+      return S_FALSE;
+  }
+  Log("VCAM_CHECK_MEDIA_TYPE accepted=true subtype=YUY2");
   return S_OK;
 }
 
 HRESULT CamPin::EnumMediaTypes(IEnumMediaTypes **e) { *e = new EnumMT(); return S_OK; }
 
+static void ApplyNegotiated(CamPin *pin, const AM_MEDIA_TYPE *use) {
+  if (use->pbFormat && use->cbFormat >= sizeof(VIDEOINFOHEADER))
+    memcpy(&pin->vih, use->pbFormat, sizeof(VIDEOINFOHEADER));
+  int w = pin->vih.bmiHeader.biWidth;
+  int h = abs(pin->vih.bmiHeader.biHeight);
+  int fps = 30;
+  if (pin->vih.AvgTimePerFrame > 0) fps = (int)(10000000i64 / pin->vih.AvgTimePerFrame);
+  if (fps < 1) fps = 30;
+  MakeYuy2(&pin->vih, w, h, fps);
+  pin->mt.majortype = MEDIATYPE_Video;
+  pin->mt.subtype = MEDIASUBTYPE_YUY2;
+  pin->mt.formattype = FORMAT_VideoInfo;
+  pin->mt.bFixedSizeSamples = TRUE;
+  pin->mt.bTemporalCompression = FALSE;
+  pin->mt.lSampleSize = (ULONG)w * (ULONG)h * 2;
+  pin->mt.cbFormat = sizeof(pin->vih);
+  pin->mt.pbFormat = (BYTE *)&pin->vih;
+  char buf[192];
+  sprintf(buf, "VCAM_SET_MEDIA_TYPE YUY2 %dx%d %d sampleSize=%d", w, h, fps, (int)pin->mt.lSampleSize);
+  Log(buf);
+}
+
 HRESULT CamPin::Connect(IPin *pReceive, const AM_MEDIA_TYPE *t) {
   if (connected) return VFW_E_ALREADY_CONNECTED;
   const AM_MEDIA_TYPE *use = t ? t : &mt;
   if (QueryAccept(use) != S_OK) return VFW_E_TYPE_NOT_ACCEPTED;
-  HRESULT hr = pReceive->ReceiveConnection(this, use);
+  ApplyNegotiated(this, use);
+  HRESULT hr = pReceive->ReceiveConnection(this, &mt);
   if (FAILED(hr)) return hr;
   connected = pReceive;
   connected->AddRef();
@@ -294,10 +363,25 @@ HRESULT CamPin::Connect(IPin *pReceive, const AM_MEDIA_TYPE *t) {
   ALLOCATOR_PROPERTIES req{}, act{};
   req.cBuffers = 3;
   req.cbBuffer = (LONG)mt.lSampleSize;
-  req.cbAlign = 1;
+  if (req.cbBuffer < 1920 * 1080 * 2) req.cbBuffer = 1920 * 1080 * 2;
+  req.cbAlign = 2;
   alloc->SetProperties(&req, &act);
+  char ab[96];
+  sprintf(ab, "VCAM_ALLOCATOR bufferSize=%ld buffers=%ld", act.cbBuffer, act.cBuffers);
+  Log(ab);
   alloc->Commit();
-  Log("VCAM_CLIENT_CONNECTED");
+  Log("VCAM_CLIENT_CONNECTED VCAM_STREAM_START");
+  return S_OK;
+}
+
+HRESULT CamPin::ReceiveConnection(IPin *p, const AM_MEDIA_TYPE *t) {
+  if (!p || !t) return E_POINTER;
+  if (connected) return VFW_E_ALREADY_CONNECTED;
+  if (QueryAccept(t) != S_OK) return VFW_E_TYPE_NOT_ACCEPTED;
+  ApplyNegotiated(this, t);
+  connected = p;
+  connected->AddRef();
+  Log("VCAM_CLIENT_CONNECTED via ReceiveConnection");
   return S_OK;
 }
 
@@ -330,24 +414,45 @@ HRESULT CamPin::QueryPinInfo(PIN_INFO *p) {
 }
 
 HRESULT CamPin::SetFormat(AM_MEDIA_TYPE *pmt) {
-  if (!pmt || QueryAccept(pmt) != S_OK) return E_FAIL;
-  if (pmt->pbFormat && pmt->cbFormat >= sizeof(VIDEOINFOHEADER))
-    memcpy(&vih, pmt->pbFormat, sizeof(vih));
-  mt.lSampleSize = vih.bmiHeader.biWidth * abs(vih.bmiHeader.biHeight) * 2;
+  if (!pmt || QueryAccept(pmt) != S_OK) return VFW_E_INVALIDMEDIATYPE;
+  ApplyNegotiated(this, pmt);
   return S_OK;
 }
-HRESULT CamPin::GetFormat(AM_MEDIA_TYPE **ppmt) { *ppmt = AllocMt(vih.bmiHeader.biWidth, abs(vih.bmiHeader.biHeight), 30); return S_OK; }
+HRESULT CamPin::GetFormat(AM_MEDIA_TYPE **ppmt) {
+  int w = vih.bmiHeader.biWidth ? vih.bmiHeader.biWidth : 1920;
+  int h = abs(vih.bmiHeader.biHeight) ? abs(vih.bmiHeader.biHeight) : 1080;
+  int fps = 30;
+  if (vih.AvgTimePerFrame > 0) fps = (int)(10000000i64 / vih.AvgTimePerFrame);
+  *ppmt = AllocMt(w, h, fps);
+  Log("VCAM_GET_FORMAT default YUY2");
+  return S_OK;
+}
 HRESULT CamPin::GetStreamCaps(int i, AM_MEDIA_TYPE **ppmt, BYTE *caps) {
   if (i < 0 || i > 3) return S_FALSE;
-  *ppmt = AllocMt(kModes[i][0], kModes[i][1], kModes[i][2]);
+  int w = kModes[i][0], h = kModes[i][1], fps = kModes[i][2];
+  *ppmt = AllocMt(w, h, fps);
   VIDEO_STREAM_CONFIG_CAPS *c = (VIDEO_STREAM_CONFIG_CAPS *)caps;
   ZeroMemory(c, sizeof(*c));
   c->guid = FORMAT_VideoInfo;
-  c->MinOutputSize.cx = 1280; c->MinOutputSize.cy = 720;
-  c->MaxOutputSize.cx = 1920; c->MaxOutputSize.cy = 1080;
-  c->InputSize.cx = kModes[i][0]; c->InputSize.cy = kModes[i][1];
-  c->MinFrameInterval = 10000000i64 / 60;
-  c->MaxFrameInterval = 10000000i64 / 30;
+  c->VideoStandard = AnalogVideo_None;
+  c->InputSize.cx = w; c->InputSize.cy = h;
+  c->MinCroppingSize.cx = w; c->MinCroppingSize.cy = h;
+  c->MaxCroppingSize.cx = w; c->MaxCroppingSize.cy = h;
+  c->CropGranularityX = 2; c->CropGranularityY = 2;
+  c->CropAlignX = 2; c->CropAlignY = 2;
+  c->MinOutputSize.cx = w; c->MinOutputSize.cy = h;
+  c->MaxOutputSize.cx = w; c->MaxOutputSize.cy = h;
+  c->OutputGranularityX = 2; c->OutputGranularityY = 2;
+  c->StretchTapsX = 0; c->StretchTapsY = 0;
+  c->ShrinkTapsX = 0; c->ShrinkTapsY = 0;
+  REFERENCE_TIME interval = 10000000i64 / fps;
+  c->MinFrameInterval = interval;
+  c->MaxFrameInterval = interval;
+  c->MinBitsPerSecond = (LONG)((long long)w * h * 2 * 8 * fps);
+  c->MaxBitsPerSecond = c->MinBitsPerSecond;
+  char buf[160];
+  sprintf(buf, "VCAM_ENUM_MEDIA_TYPE subtype=YUY2 width=%d height=%d fps=%d sampleSize=%d", w, h, fps, w * h * 2);
+  Log(buf);
   return S_OK;
 }
 
