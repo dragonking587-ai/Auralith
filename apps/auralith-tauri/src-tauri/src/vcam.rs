@@ -67,6 +67,22 @@ mod win {
     }
 }
 
+const CLSID: &str = r"{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}";
+const CAT_VIDEO: &str = r"{860BB310-5D01-11d0-BD3B-00A0C911CE86}";
+const FRIENDLY: &str = "Auralith Reborn Camera";
+
+fn log_vcam(line: &str) {
+    eprintln!("{line}");
+    if let Some(base) = std::env::var_os("LOCALAPPDATA") {
+        let dir = std::path::PathBuf::from(base).join("Auralith").join("Logs");
+        let _ = std::fs::create_dir_all(&dir);
+        if let Ok(mut f) = std::fs::OpenOptions::new().create(true).append(true).open(dir.join("virtual-camera.log")) {
+            use std::io::Write;
+            let _ = writeln!(f, "{}", line);
+        }
+    }
+}
+
 fn dll_path() -> std::path::PathBuf {
     let exe = std::env::current_exe().unwrap_or_default();
     let dir = exe.parent().map(|p| p.to_path_buf()).unwrap_or_default();
@@ -80,14 +96,83 @@ fn dll_path() -> std::path::PathBuf {
     dir.join("auralith_reborn_vcam.dll")
 }
 
+fn stable_dll() -> Result<std::path::PathBuf, String> {
+    let src = dll_path();
+    if !src.exists() {
+        return Err(format!("VCAM MEDIA SOURCE NOT FOUND path={}", src.display()));
+    }
+    let dest_dir = std::path::PathBuf::from(std::env::var("LOCALAPPDATA").unwrap_or_default())
+        .join("Auralith")
+        .join("vcam");
+    std::fs::create_dir_all(&dest_dir).map_err(|e| format!("VCAM COPY FAILED {e}"))?;
+    let dest = dest_dir.join("auralith_reborn_vcam.dll");
+    if src != dest {
+        std::fs::copy(&src, &dest).map_err(|e| format!("VCAM COPY FAILED {e}"))?;
+    }
+    Ok(dest)
+}
+
+#[cfg(windows)]
+mod reg {
+    use super::*;
+    use std::ffi::c_void;
+    use std::ptr;
+    const KEY_READ: u32 = 0x20019;
+    const KEY_WRITE: u32 = 0x20006;
+    const REG_SZ: u32 = 1;
+    #[link(name = "advapi32")]
+    extern "system" {
+        fn RegCreateKeyExW(h: isize, sub: *const u16, r: u32, c: *mut u16, opt: u32, sam: u32, sec: *mut c_void, out: *mut isize, disp: *mut u32) -> i32;
+        fn RegSetValueExW(h: isize, name: *const u16, r: u32, ty: u32, data: *const u8, cb: u32) -> i32;
+        fn RegOpenKeyExW(h: isize, sub: *const u16, opt: u32, sam: u32, out: *mut isize) -> i32;
+        fn RegCloseKey(h: isize) -> i32;
+    }
+    fn wide(s: &str) -> Vec<u16> { s.encode_utf16().chain(std::iter::once(0)).collect() }
+    fn set_sz(root: isize, path: &str, name: Option<&str>, val: &str) -> Result<(), String> {
+        let p = wide(path);
+        let mut key = 0isize;
+        let e = unsafe { RegCreateKeyExW(root, p.as_ptr(), 0, ptr::null_mut(), 0, KEY_WRITE, ptr::null_mut(), &mut key, ptr::null_mut()) };
+        if e != 0 { return Err(format!("RegCreateKeyEx 0x{:08X} {path}", e as u32)); }
+        let n = name.map(wide);
+        let v = wide(val);
+        let e = unsafe {
+            RegSetValueExW(key, n.as_ref().map(|x| x.as_ptr()).unwrap_or(ptr::null()), 0, REG_SZ, v.as_ptr() as *const u8, (v.len() * 2) as u32)
+        };
+        unsafe { RegCloseKey(key); }
+        if e != 0 { return Err(format!("RegSetValueEx 0x{:08X} {path}", e as u32)); }
+        Ok(())
+    }
+    pub fn key_exists(root: isize, path: &str) -> bool {
+        let p = wide(path);
+        let mut key = 0isize;
+        let e = unsafe { RegOpenKeyExW(root, p.as_ptr(), 0, KEY_READ, &mut key) };
+        if e == 0 { unsafe { RegCloseKey(key); } true } else { false }
+    }
+    pub fn write_camera_keys(root: isize, prefix: &str, dll: &str) -> Result<(), String> {
+        let clsid = format!("{prefix}CLSID\\{CLSID}");
+        let inproc = format!("{clsid}\\InprocServer32");
+        let inst = format!("{prefix}CLSID\\{CAT_VIDEO}\\Instance\\{CLSID}");
+        set_sz(root, &clsid, None, FRIENDLY)?;
+        set_sz(root, &inproc, None, dll)?;
+        set_sz(root, &inproc, Some("ThreadingModel"), "Both")?;
+        set_sz(root, &inst, Some("FriendlyName"), FRIENDLY)?;
+        set_sz(root, &inst, Some("CLSID"), CLSID)?;
+        Ok(())
+    }
+}
+
 fn is_registered() -> bool {
     #[cfg(windows)]
     {
-        use std::process::Command;
-        let out = Command::new("reg")
-            .args(["query", r"HKCR\CLSID\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}", "/ve"])
-            .output();
-        return out.map(|o| o.status.success()).unwrap_or(false);
+        const HKCR: isize = 0x80000000u32 as i32 as isize;
+        const HKCU: isize = 0x80000001u32 as i32 as isize;
+        const HKLM: isize = 0x80000002u32 as i32 as isize;
+        let paths = [
+            (HKCR, format!(r"CLSID\{CLSID}")),
+            (HKCU, format!(r"Software\Classes\CLSID\{CLSID}")),
+            (HKLM, format!(r"Software\Classes\CLSID\{CLSID}")),
+        ];
+        return paths.iter().any(|(r, p)| reg::key_exists(*r, p));
     }
     #[cfg(not(windows))]
     false
@@ -108,31 +193,54 @@ pub fn vcam_status() -> VcamStatus {
 
 #[tauri::command]
 pub fn vcam_install() -> Result<String, String> {
-    eprintln!("VCAM_INSTALL_BEGIN");
-    let dll = dll_path();
-    if !dll.exists() {
-        let msg = format!("VCAM_INSTALL_FAILED missing {}", dll.display());
-        eprintln!("{msg}");
-        return Err(msg);
-    }
+    log_vcam("VCAM_INSTALL_BEGIN architecture=DirectShow (not MFCreateVirtualCamera)");
+    log_vcam(&format!("CLSID={CLSID} name={FRIENDLY}"));
+    let dll = stable_dll()?;
+    log_vcam(&format!("Media Source DLL: FOUND {}", dll.display()));
+
     #[cfg(windows)]
     {
-        let status = std::process::Command::new("regsvr32")
-            .args(["/s", dll.to_str().unwrap_or("")])
-            .status()
-            .map_err(|e| format!("VCAM_INSTALL_FAILED {e}"))?;
-        if !status.success() {
-            // retry elevated
+        const HKCU: isize = 0x80000001u32 as i32 as isize;
+        const HKLM: isize = 0x80000002u32 as i32 as isize;
+        let dll_s = dll.to_string_lossy().to_string();
+
+        match reg::write_camera_keys(HKCU, r"Software\Classes\", &dll_s) {
+            Ok(()) => log_vcam("COM CLSID: REGISTERED HKCU\\Software\\Classes"),
+            Err(e) => {
+                log_vcam(&format!("VCAM CREATE FAILED HKCU {e}"));
+                return Err(format!("VCAM CREATE FAILED {e}"));
+            }
+        }
+
+        match reg::write_camera_keys(HKLM, r"Software\Classes\", &dll_s) {
+            Ok(()) => log_vcam("COM CLSID: REGISTERED HKLM (all users)"),
+            Err(e) => log_vcam(&format!("HKLM write skipped (elevation may be required): {e}")),
+        }
+
+        let sys_regsvr = r"C:\Windows\System32\regsvr32.exe";
+        let st = std::process::Command::new(sys_regsvr)
+            .args(["/s", &dll_s])
+            .status();
+        log_vcam(&format!("regsvr32 System32 status={st:?}"));
+        if !st.map(|s| s.success()).unwrap_or(false) {
+            let arg = format!(
+                "Start-Process -FilePath '{}' -ArgumentList '/s','{}' -Verb RunAs -Wait",
+                sys_regsvr.replace('\'', "''"),
+                dll_s.replace('\'', "''")
+            );
             let _ = std::process::Command::new("powershell")
-                .args(["-NoProfile", "-Command",
-                    &format!("Start-Process regsvr32 -ArgumentList '/s','{}' -Verb RunAs -Wait", dll.display())])
+                .args(["-NoProfile", "-Command", &arg])
                 .status();
+            log_vcam("regsvr32 elevated retry issued");
         }
-        if is_registered() {
-            eprintln!("VCAM_INSTALL_OK VCAM_REGISTERED VCAM_ENUMERATION_READY");
-            return Ok("installed".into());
+
+        if !is_registered() {
+            let msg = "VCAM STARTED BUT NOT ENUMERATED CLSID key missing after HKCU/HKLM/regsvr32";
+            log_vcam(msg);
+            return Err(msg.into());
         }
-        return Err("VCAM_INSTALL_FAILED registration not visible".into());
+        log_vcam("VCAM_INSTALL_OK VCAM_REGISTERED VCAM READY");
+        return Ok("READY".into());
     }
     #[cfg(not(windows))]
     Err("Windows only".into())

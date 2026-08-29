@@ -2,6 +2,7 @@
 // Reads BGRA frames from a named shared-memory mapping written by the app.
 #define _CRT_SECURE_NO_WARNINGS
 #include <windows.h>
+#include <stdio.h>
 #include <dshow.h>
 #include <ks.h>
 #include <ksmedia.h>
@@ -492,22 +493,42 @@ STDAPI DllGetClassObject(REFCLSID clsid, REFIID riid, void **ppv) {
 }
 STDAPI DllCanUnloadNow() { return gLocks ? S_FALSE : S_OK; }
 
+static HRESULT RegisterUnder(HKEY root, const wchar_t *prefix, const wchar_t *dll) {
+  wchar_t p1[512], p2[512], inst[512];
+  swprintf(p1, 512, L"%sCLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}", prefix);
+  swprintf(p2, 512, L"%sCLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}\\InprocServer32", prefix);
+  swprintf(inst, 512, L"%sCLSID\\{860BB310-5D01-11d0-BD3B-00A0C911CE86}\\Instance\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}", prefix);
+  HRESULT hr = SetSz(root, p1, nullptr, kFriendly);
+  if (FAILED(hr)) return hr;
+  hr = SetSz(root, p2, nullptr, dll);
+  if (FAILED(hr)) return hr;
+  hr = SetSz(root, p2, L"ThreadingModel", L"Both");
+  if (FAILED(hr)) return hr;
+  hr = SetSz(root, inst, L"FriendlyName", kFriendly);
+  if (FAILED(hr)) return hr;
+  return SetSz(root, inst, L"CLSID", L"{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
+}
+
 STDAPI DllRegisterServer() {
   wchar_t path[MAX_PATH];
   GetModuleFileNameW(gMod ? gMod : GetModuleHandleW(nullptr), path, MAX_PATH);
-  SetSz(HKEY_CLASSES_ROOT, L"CLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}", nullptr, kFriendly);
-  SetSz(HKEY_CLASSES_ROOT, L"CLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}\\InprocServer32", nullptr, path);
-  SetSz(HKEY_CLASSES_ROOT, L"CLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}\\InprocServer32", L"ThreadingModel", L"Both");
-  const wchar_t *inst = L"CLSID\\{860BB310-5D01-11d0-BD3B-00A0C911CE86}\\Instance\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}";
-  SetSz(HKEY_CLASSES_ROOT, inst, L"FriendlyName", kFriendly);
-  SetSz(HKEY_CLASSES_ROOT, inst, L"CLSID", L"{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
-  SetSz(HKEY_CLASSES_ROOT, inst, L"FilterData", L"");
+  HRESULT hr = RegisterUnder(HKEY_CLASSES_ROOT, L"", path);
+  if (FAILED(hr)) {
+    Log("HKCR write failed, trying HKCU Software\\Classes");
+    hr = RegisterUnder(HKEY_CURRENT_USER, L"Software\\Classes\\", path);
+  }
+  if (FAILED(hr)) {
+    Log("VCAM_INSTALL_FAILED COM registration");
+    return hr;
+  }
   Log("VCAM_REGISTERED");
   return S_OK;
 }
 STDAPI DllUnregisterServer() {
   RegDeleteTreeW(HKEY_CLASSES_ROOT, L"CLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
   RegDeleteTreeW(HKEY_CLASSES_ROOT, L"CLSID\\{860BB310-5D01-11d0-BD3B-00A0C911CE86}\\Instance\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
+  RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\CLSID\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
+  RegDeleteTreeW(HKEY_CURRENT_USER, L"Software\\Classes\\CLSID\\{860BB310-5D01-11d0-BD3B-00A0C911CE86}\\Instance\\{8F3C1A90-7B2E-4D61-9C4A-B7E21F0A4C01}");
   return S_OK;
 }
 
