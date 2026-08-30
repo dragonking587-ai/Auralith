@@ -23,6 +23,7 @@ void main(){
   float k = uKind;
   float m = clamp(uMod,0.0,2.5);
   float p0 = clamp(uP0,0.0,2.0);
+  float p1 = clamp(uP1,0.0,2.0);
   float p2 = clamp(uP2,0.0,2.0);
   vec3 col = uA;
   float a = 0.0;
@@ -181,6 +182,8 @@ function compile(gl: WebGL2RenderingContext, type: number, src: string, label: s
   if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) {
     const log = gl.getShaderInfoLog(s) || "shader compile failed";
     console.error("APP_BOOT_FAILED stage=SHADERS_COMPILE error=" + label + " " + log);
+    const numbered = src.split("\n").map((line, i) => String(i + 1).padStart(3, "0") + " | " + line).join("\n");
+    console.error("SHADER_SOURCE " + label + "\n" + numbered);
     throw new Error(label + ": " + log);
   }
   return s;
