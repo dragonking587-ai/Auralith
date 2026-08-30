@@ -7,7 +7,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.15";
+const APP_VERSION = "2.0.0-alpha.16";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -49,6 +49,26 @@ const PARAM_LABELS: Record<string, [string, string, string]> = {
   Shockwave: ["Expansion Speed", "Ring Width", "Sharpness"],
   MagicEnergy: ["Core Size", "Tendril Length", "Tendril Count"],
   Plasma: ["Plasma Scale", "Flow Speed", "Warp"],
+  NeonChase: ["Chase Speed", "Segment Length", "Segment Count"],
+  Shimmer: ["Shimmer Speed", "Shimmer Scale", "Softness"],
+  GlitterSparkle: ["Twinkle Rate", "Density", "Size"],
+  HolographicDistortion: ["Phase Drift", "Scanline Density", "Layer Shift"],
+  GlitchLight: ["Glitch Rate", "Block Size", "Tear"],
+  ShadowPulse: ["Pulse Speed", "Pulse Width", "Phase"],
+  RoomDim: ["Dim Amount", "Vignette", "Recovery"],
+  LocalDim: ["Dim Strength", "Radius", "Feather"],
+  ContrastSurge: ["Contrast Amount", "Clarity", "Release"],
+  Rain: ["Fall Speed", "Drop Density", "Wind"],
+  WetReflection: ["Reflection Strength", "Surface Position", "Ripple"],
+  Snow: ["Fall Speed", "Flake Density", "Drift"],
+  Ash: ["Ash Density", "Drift", "Tumble"],
+  DustMotes: ["Drift Speed", "Mote Size", "Twinkle"],
+  Aurora: ["Flow Speed", "Curtain Height", "Ribbon Count"],
+  AtmosphericHaze: ["Haze Amount", "Depth Falloff", "Drift"],
+  WaterReflection: ["Wave Speed", "Waterline", "Wave Frequency"],
+  Caustics: ["Caustic Scale", "Flow Speed", "Warp"],
+  WaterRipple: ["Ripple Speed", "Amplitude", "Ring Width"],
+  Refraction: ["Index Amount", "Lens Radius", "Dispersion"],
 };
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
