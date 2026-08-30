@@ -77,6 +77,8 @@ export type Project = {
   masters: { intensity: number; brightness: number; sensitivity: number; density: number; motion: number };
   quality: "Low" | "Medium" | "High" | "Ultra";
   showMarkers: boolean;
+  depthDataUrl?: string;
+  aiMeta?: { model: string; version: string };
 };
 
 export function newProject(): Project {

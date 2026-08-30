@@ -5,13 +5,14 @@ import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, 
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
+import { assistedTrace, analyzeCandidates, foregroundMask, estimateDepth, invertDepth, type AiCandidate } from "../scene/localVision";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.4";
+const APP_VERSION = "1.0.0-rc.5";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -132,6 +133,16 @@ export function App() {
   const [preserveCorners, setPreserveCorners] = useState(true);
   const [showGrid, setShowGrid] = useState(false);
   const [traceDebug, setTraceDebug] = useState(false);
+  const [aiEnabled, setAiEnabled] = useState(() => localStorage.getItem("auralith.aiEnabled")==="1");
+  const [aiWarn, setAiWarn] = useState(() => localStorage.getItem("auralith.aiWarn")!=="hide");
+  const [aiMode, setAiMode] = useState<"idle"|"click"|"box"|"brush">("idle");
+  const [aiBusy, setAiBusy] = useState(false);
+  const [aiMsg, setAiMsg] = useState("");
+  const [aiPreview, setAiPreview] = useState<{points:{x:number;y:number}[]; closed:boolean} | null>(null);
+  const [aiCands, setAiCands] = useState<AiCandidate[]>([]);
+  const [aiDepth, setAiDepth] = useState<string>("");
+  const [aiSens, setAiSens] = useState(0.55);
+  const brushRef = useRef<{x:number;y:number}[]>([]);
   const spaceRef = useRef(false);
   const viewZoomRef = useRef<number | "fit">("fit");
   viewZoomRef.current = viewZoom;
@@ -159,7 +170,7 @@ export function App() {
   const [updateDetails, setUpdateDetails] = useState("");
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
-  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
+  const [tab, setTab] = useState<"effects"|"audio"|"output"|"ai"|"settings">("effects");
   const [openFx, setOpenFx] = useState<string | null>(null);
   const [fxSub, setFxSub] = useState<"basic"|"color"|"audio"|"motion">("basic");
   const [fxQuery, setFxQuery] = useState("");
@@ -358,8 +369,35 @@ export function App() {
     if (bestSeg) return { kind: "seg", id: bestSeg.id, index: -1 };
     return null;
   };
+  const runAssisted = async (mode: "click"|"box"|"brush", seed: {x:number;y:number;w?:number;h?:number;path?:{x:number;y:number}[]}) => {
+    const img = imgRef.current;
+    if (!img) { setAiMsg("Load an image first."); return; }
+    setAiBusy(true); setAiMsg("Analyzing selection...");
+    try {
+      const res = await assistedTrace(img, projectRef.current.width, projectRef.current.height, mode, seed, aiSens);
+      if (!res) setAiMsg("Could not create a reliable suggestion.");
+      else { setAiPreview(res); setAiMsg("Preview ready. Accept to create a normal Trace."); }
+    } catch (err) { setAiMsg("AI failed: "+String(err)); }
+    finally { setAiBusy(false); }
+  };
   const onPointerDown = (e: React.PointerEvent) => {
     if (view === "CleanCapture") return;
+    if (aiEnabled && aiMode !== "idle" && tab === "ai") {
+      const s = sceneFromEvent(e);
+      if (aiMode === "click") { void runAssisted("click", s); return; }
+      if (aiMode === "box") {
+        const d = dragRef.current as any;
+        if (!d || d.mode !== "aibox") {
+          dragRef.current = { id: "__aibox__", ox: s.x, oy: s.y, sx: s.x, sy: s.y, moved: false, mode: "aibox" } as any;
+          return;
+        }
+      }
+      if (aiMode === "brush") {
+        brushRef.current = [s];
+        dragRef.current = { id: "__aibrush__", ox: s.x, oy: s.y, sx: s.x, sy: s.y, moved: false, mode: "aibrush" } as any;
+        return;
+      }
+    }
     const wrap = wrapRef.current; if (!wrap) return;
     if (spaceRef.current || e.button === 1) {
       e.preventDefault();
@@ -411,6 +449,8 @@ export function App() {
   };
   const onPointerMove = (e: React.PointerEvent) => {
     const d = dragRef.current as any; if (!d) return;
+    if (d.mode === "aibrush") { brushRef.current.push(sceneFromEvent(e)); return; }
+    if (d.mode === "aibox") { d.sx = sceneFromEvent(e).x; d.sy = sceneFromEvent(e).y; return; }
     if (d.mode === "pan") {
       setPan({ x: d.ox + (e.clientX - d.sx), y: d.oy + (e.clientY - d.sy) });
       d.moved = true;
@@ -449,6 +489,16 @@ export function App() {
   const onPointerUp = () => {
     const d = dragRef.current as any;
     dragRef.current = null;
+    if (d?.mode === "aibox") {
+      const w = Math.abs(d.sx-d.ox), h = Math.abs(d.sy-d.oy);
+      void runAssisted("box", { x: Math.min(d.ox,d.sx), y: Math.min(d.oy,d.sy), w, h });
+      return;
+    }
+    if (d?.mode === "aibrush") {
+      void runAssisted("brush", { x: d.ox, y: d.oy, path: brushRef.current.slice() });
+      brushRef.current = [];
+      return;
+    }
     if (!d?.moved || d.mode === "pan") return;
     const cur = projectRef.current;
     // snapshot already live; push previous via stored origin
@@ -549,7 +599,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.4",
+      tag: "v1.0.0-rc.5",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -730,6 +780,12 @@ export function App() {
                     </g>
                   );
                 })}
+                {aiPreview && wrapRef.current && (() => {
+                  const wrap = wrapRef.current!.getBoundingClientRect();
+                  const vp = currentVp(wrap);
+                  const cs = aiPreview.points.map((pt)=>sceneToCanvas(pt.x,pt.y,vp,project.width,project.height));
+                  return <polygon points={cs.map(c=>`${c.x},${c.y}`).join(" ")} fill="rgba(80,180,255,0.2)" stroke="#7ad0ff" strokeDasharray="4 3" />;
+                })()}
               </svg>
             </div>
           )}
@@ -739,7 +795,7 @@ export function App() {
         </div>
         <aside className={`side ${clean ? "hidden" : ""}`}>
           <div className="tabs">
-            {(["effects","audio","output","settings"] as const).map((id)=>(
+            {(["effects","audio","output","ai","settings"] as const).map((id)=>(
               <button key={id} className={tab===id?"tab on":"tab"} onClick={()=>setTab(id)}>{id.toUpperCase()}</button>
             ))}
           </div>
@@ -1030,8 +1086,113 @@ export function App() {
             </div>
           )}
 
+
+          {tab==="ai" && (
+            <div className="pane">
+              <h3>AI PHASE ONE <span className="badge">EXPERIMENTAL</span></h3>
+              {aiWarn && (
+                <div className="warnbox">
+                  <strong>AI PHASE ONE — EXPERIMENTAL</strong>
+                  <p>This is the first phase of Auralith's AI features. AI-assisted detection, tracing, masking, and depth estimation are still being developed and may not always be accurate. Review AI suggestions before applying them.</p>
+                  <button onClick={()=>setAiWarn(false)}>Continue</button>
+                  <button onClick={()=>{ localStorage.setItem("auralith.aiWarn","hide"); setAiWarn(false); }}>Don't Show Again</button>
+                </div>
+              )}
+              {!aiEnabled && <p className="muted">Enable Experimental AI in Settings to run analysis. Manual Trace still works.</p>}
+              <h3>ASSISTED TRACE</h3>
+              <label>Edge Sensitivity <input type="range" min={0} max={1} step={0.01} value={aiSens} onChange={(e)=>setAiSens(Number(e.target.value))} /></label>
+              <div className="row">
+                <button disabled={!aiEnabled||aiBusy} className={aiMode==="click"?"on":""} onClick={()=>setAiMode("click")}>Click Object</button>
+                <button disabled={!aiEnabled||aiBusy} className={aiMode==="box"?"on":""} onClick={()=>setAiMode("box")}>Box Select</button>
+                <button disabled={!aiEnabled||aiBusy} className={aiMode==="brush"?"on":""} onClick={()=>setAiMode("brush")}>Rough Brush</button>
+              </div>
+              <p className="muted">{aiMode==="idle"?"Choose a mode, then click the image.":aiMode==="click"?"Click the object on the canvas.":aiMode==="box"?"Click two corners of a box.": "Drag a scribble on the object."}</p>
+              {aiBusy && <p>Analyzing selection...</p>}
+              {aiMsg && <p>{aiMsg}</p>}
+              {aiPreview && (
+                <div className="row">
+                  <button onClick={()=>{
+                    const region: Region = {
+                      id: crypto.randomUUID(), kind: "Trace", points: aiPreview.points,
+                      x: aiPreview.points[0]!.x, y: aiPreview.points[0]!.y, sx:1,sy:1,rotation:0,radius:80,
+                      effects: [defaultEffect("GlowBloom")], pathClosed: aiPreview.closed, label: "AI Trace"
+                    };
+                    pushHist({ ...project, regions: [...project.regions, region] });
+                    setSel(region.id); setAiPreview(null); setAiMode("idle"); setAiMsg("Accepted as normal Trace.");
+                  }}>Accept Trace</button>
+                  <button onClick={()=>setAiPreview(null)}>Reject</button>
+                  <button onClick={()=>setAiMode(aiMode==="idle"?"click":aiMode)}>Try Again</button>
+                  <button onClick={()=>{ setAiPreview(null); setTool("Trace"); setTab("effects"); }}>Manual Trace</button>
+                </div>
+              )}
+              <h3>SCENE ANALYSIS</h3>
+              <button disabled={!aiEnabled||aiBusy} onClick={async ()=>{
+                const img=imgRef.current; if(!img){ setAiMsg("Load an image first."); return; }
+                setAiBusy(true); setAiMsg("Analyzing image...");
+                try {
+                  const list = await analyzeCandidates(img, project.width, project.height, 80);
+                  setAiCands(list);
+                  setAiMsg(list.length? `${list.length} candidate(s). Confidence: Not available.` : "Could not create a reliable suggestion.");
+                } catch(e){ setAiMsg("AI failed: "+String(e)); }
+                finally { setAiBusy(false); }
+              }}>Analyze Image</button>
+              {aiCands.map((c)=>(
+                <div key={c.id} className="acc">
+                  <div className="acc-h"><strong>{c.label}</strong><span className="sum">Closed Trace · Confidence: Not available</span></div>
+                  <div className="row">
+                    <button onClick={()=>setAiPreview({points:c.points, closed:c.closed})}>Preview</button>
+                    <button onClick={()=>{
+                      const region: Region = {
+                        id: crypto.randomUUID(), kind:"Trace", points:c.points,
+                        x:c.points[0]!.x,y:c.points[0]!.y,sx:1,sy:1,rotation:0,radius:80,
+                        effects:[defaultEffect("GlowBloom")], pathClosed:true, label:c.label
+                      };
+                      pushHist({...project, regions:[...project.regions, region]});
+                      setSel(region.id);
+                    }}>Accept</button>
+                    <button onClick={()=>setAiCands((xs)=>xs.filter(x=>x.id!==c.id))}>Ignore</button>
+                  </div>
+                </div>
+              ))}
+              <h3>SEGMENTATION</h3>
+              <button disabled={!aiEnabled||aiBusy} onClick={async ()=>{
+                const img=imgRef.current; if(!img){ setAiMsg("Load an image first."); return; }
+                setAiBusy(true); setAiMsg("Generating mask...");
+                try {
+                  const fg = await foregroundMask(img, project.width, project.height);
+                  if (!fg.points.length) setAiMsg("Could not create a reliable suggestion.");
+                  else { setAiPreview({points:fg.points, closed:true}); setAiMsg("Foreground preview ready."); }
+                } catch(e){ setAiMsg("AI failed: "+String(e)); }
+                finally { setAiBusy(false); }
+              }}>Detect Foreground</button>
+              <button disabled={!aiEnabled||aiBusy} onClick={()=>setAiMsg("Use Detect Foreground, then Accept Trace as a Smart Mask target. Brush add/remove: use Rough Brush then Accept.")}>Create Smart Mask</button>
+              <h3>DEPTH</h3>
+              <button disabled={!aiEnabled||aiBusy} onClick={async ()=>{
+                const img=imgRef.current; if(!img){ setAiMsg("Load an image first."); return; }
+                setAiBusy(true); setAiMsg("Estimating depth...");
+                try {
+                  const url = await estimateDepth(img);
+                  setAiDepth(url); setAiMsg("Depth preview ready. Accept to store with the project.");
+                } catch(e){ setAiMsg("AI failed: "+String(e)); }
+                finally { setAiBusy(false); }
+              }}>Estimate Depth</button>
+              {aiDepth && <img alt="depth preview" src={aiDepth} style={{maxWidth:"100%",opacity:0.95}} />}
+              {aiDepth && <div className="row">
+                <button onClick={()=>pushHist({...project, depthDataUrl: aiDepth, aiMeta:{ model:"local-heuristic-v1", version: APP_VERSION }})}>Accept Depth Map</button>
+                <button onClick={async ()=>{ try { setAiDepth(await invertDepth(aiDepth)); } catch(e){ setAiMsg(String(e)); } }}>Invert Near/Far</button>
+                <button onClick={()=>setAiDepth("")}>Discard</button>
+              </div>}
+              <h3>DIAGNOSTICS</h3>
+              <p className="muted">Backend: local canvas CPU heuristic · GPU: none bundled · Models: none downloaded · Idle inference: off</p>
+              <button onClick={()=>navigator.clipboard.writeText(`Auralith AI Phase One enabled=${aiEnabled} backend=local-heuristic model=none`).catch(()=>{})}>Copy AI Diagnostics</button>
+            </div>
+          )}
+
           {tab==="settings" && (
             <div className="pane">
+              <h3>AI</h3>
+              <label className="chk"><input type="checkbox" checked={aiEnabled} onChange={(e)=>{ setAiEnabled(e.target.checked); localStorage.setItem("auralith.aiEnabled", e.target.checked?"1":"0"); }} /> Enable Experimental AI</label>
+              <p className="muted">AI Phase One processes images locally in this app. Loaded images are not uploaded by this feature. No neural model is downloaded unless you later opt in; Phase One uses the built-in on-device heuristic engine.</p>
               <h3>UI</h3>
               <label className="chk"><input type="checkbox" checked={traceDebug} onChange={(e)=>setTraceDebug(e.target.checked)} /> Trace debug</label>
               <label className="chk"><input type="checkbox" checked={showGrid} onChange={(e)=>setShowGrid(e.target.checked)} /> Pixel grid (editor)</label>
