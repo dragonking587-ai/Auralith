@@ -10,6 +10,7 @@ uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform float uKind; uniform 
 uniform vec2 uOrigin; uniform float uRadius;
 uniform float uP0; uniform float uP1; uniform float uP2;
 uniform float uQ; uniform float uBass; uniform float uMid; uniform float uHigh; uniform float uBeat;
+uniform sampler2D uMask; uniform float uUseMask;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
 float fbm(vec2 p){ float v=0.0,a=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); return v; }
@@ -472,15 +473,17 @@ void main(){
     a = cloud*0.45*m + layer*0.15;
     col = mix(mix(uA,uB,cloud), uC, layer*0.4);
   } else if (k < 81.5) {
-    float tube = exp(-abs(d-0.42)*(16.0+p1*22.0));
-    float bloom = exp(-abs(d-0.42)*3.2)*0.4;
+    float mk = uUseMask > 0.5 ? texture2D(uMask, uv).r : 0.0;
     float path = fract(ang/6.2831 - t*(0.25+p0+uMid*0.4));
     vec3 rb = 0.5+0.5*cos(6.2831*path + vec3(0.0,2.094,4.188));
-    float chase = exp(-abs(fract(path* (1.0+p2*3.0))-0.5)*18.0);
-    float flick = 0.75+0.25*n2(vec2(t*9.0,2.0))*uHigh;
-    a = (tube+bloom+chase*0.35)*flick*m;
+    float chase = exp(-abs(fract(path*(1.0+p2*3.0))-0.5)*18.0);
+    float flick = 0.82+0.18*n2(vec2(t*9.0,2.0))*uHigh;
+    float tube = mk;
+    float bloom = mk * 0.22 * (0.5+p1);
+    a = (tube*1.05 + bloom + chase*mk*0.25)*flick*m;
     col = mix(mix(uA,uB,path), rb, 0.55);
     col = mix(col, uC, tube);
+    if (mk < 0.04) a = 0.0;
   } else {
     a = exp(-d*2.0)*(0.2+m);
     col = mix(uA,uB,0.5);
@@ -532,6 +535,8 @@ export class GlRenderer {
   private buf: WebGLBuffer;
   private bgBuf: WebGLBuffer;
   private tex: WebGLTexture | null = null;
+  private maskTex: WebGLTexture | null = null;
+  private hasMask = false;
   private hasBackdrop = false;
   fps = 0;
   lastW = 0;
@@ -582,6 +587,18 @@ export class GlRenderer {
     this.hasBackdrop = true;
     console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
     console.log("[ImageLoad] STATE_UPDATED backdrop=texture");
+  }
+  setNeonMask(src: HTMLCanvasElement | null) {
+    const gl = this.gl;
+    if (!src) { this.hasMask = false; return; }
+    if (!this.maskTex) this.maskTex = gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
+    this.hasMask = true;
   }
   private drawBackdrop(w: number, h: number, vp: { x: number; y: number; w: number; h: number }) {
     if (!this.hasBackdrop || !this.tex) return;
@@ -655,7 +672,12 @@ export class GlRenderer {
         gl.uniform1f(gl.getUniformLocation(this.prog, "uMid"), snap.mid);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uHigh"), snap.high);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uBeat"), snap.beat);
-        gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), KIND_INDEX[e.kind]);
+        gl.activeTexture(gl.TEXTURE1);
+        gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
+        gl.uniform1i(gl.getUniformLocation(this.prog, "uMask"), 1);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uUseMask"), (this.hasMask && e.kind==="SmartNeon") ? 1.0 : 0.0);
+        gl.activeTexture(gl.TEXTURE0);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), KIND_INDEX[e.kind] ?? 0);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), e.opacity);
         gl.uniform2f(gl.getUniformLocation(this.prog, "uOrigin"), ox, oy);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uRadius"), rad);

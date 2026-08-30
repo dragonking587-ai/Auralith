@@ -4,11 +4,11 @@ import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
-import { detectNeonCandidates, type NeonCandidate } from "../scene/smartNeon";
+import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.19";
+const APP_VERSION = "2.0.0-alpha.20";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -138,10 +138,9 @@ export function App() {
   const [neonWarn, setNeonWarn] = useState(() => localStorage.getItem("auralith.neonWarn") !== "hide");
   const [neonOpen, setNeonOpen] = useState(false);
   const [neonBusy, setNeonBusy] = useState(false);
-  const [neonCands, setNeonCands] = useState<NeonCandidate[]>([]);
+  const [neonCands, setNeonCands] = useState<WordCandidate[]>([]);
   const [neonMsg, setNeonMsg] = useState("");
   const [neonSens, setNeonSens] = useState(0.7);
-  const [neonGlow, setNeonGlow] = useState(0.8);
   const vcamLive = useRef(false);
   const [history, setHistory] = useState<Project[]>([]);
   const [redo, setRedo] = useState<Project[]>([]);
@@ -384,59 +383,59 @@ export function App() {
                 {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
               <h3>EXPERIMENTAL TOOLS</h3>
-              <button onClick={()=>setNeonOpen(true)}>Smart Neon Detect <span className="badge">EXPERIMENTAL</span></button>
+              <button onClick={()=>setNeonOpen(true)}>Smart Word Trace <span className="badge">EXPERIMENTAL</span></button>
               {neonWarn && neonOpen && (
                 <div className="warnbox">
                   <strong>SMART NEON DETECT — EXPERIMENTAL</strong>
-                  <p>Smart Neon Detect is still being developed. It may not always detect text, glowing signs, or letter outlines perfectly. If the result is not right, adjust detection settings or refine the outline manually.</p>
+                  <p>Smart Word Trace is still being developed. It may not always detect text, or trace lettering perfectly. If the result is not right, adjust detection settings or refine the lettering manually.</p>
                   <button onClick={()=>setNeonWarn(false)}>Continue</button>
                   <button onClick={()=>{ localStorage.setItem("auralith.neonWarn","hide"); setNeonWarn(false); }}>Don’t Show Again</button>
                 </div>
               )}
               {neonOpen && !neonWarn && (
                 <div className="picker">
-                  <p>Sensitivity / Glow</p>
-                  <label>Sensitivity <input type="range" min={0} max={1} step={0.01} value={neonSens} onChange={(e)=>setNeonSens(Number(e.target.value))} /></label>
-                  <label>Glow Detection <input type="range" min={0} max={1} step={0.01} value={neonGlow} onChange={(e)=>setNeonGlow(Number(e.target.value))} /></label>
+                  <p>Text detection only — glow regions are ignored.</p>
+                  <label>Text Sensitivity <input type="range" min={0} max={1} step={0.01} value={neonSens} onChange={(e)=>setNeonSens(Number(e.target.value))} /></label>
                   <button disabled={neonBusy} onClick={async ()=>{
                     const img = imgRef.current;
                     if (!img) { setNeonMsg("Load an image first."); return; }
                     setNeonBusy(true); setNeonMsg("Scanning…");
                     try {
-                      const list = await detectNeonCandidates(img, project.width, project.height, { sensitivity:neonSens, glow:neonGlow, brightness:0.7, minSize:6, merge:0.6 });
+                      const list = await detectWordTraces(img, project.width, project.height, { sensitivity:neonSens, minLetter:8, merge:0.55 });
                       setNeonCands(list);
-                      setNeonMsg(list.length ? `${list.length} candidate(s)` : "No neon/text candidates found. Try higher sensitivity or Manual Neon Outline.");
+                      setNeonMsg(list.length ? `${list.length} word region(s)` : "No words detected. Try higher Text Sensitivity or Manual Word Trace.");
                     } catch (e) { setNeonMsg(String(e)); }
                     finally { setNeonBusy(false); }
-                  }}>{neonBusy?"Scanning…":"Scan Image"}</button>
+                  }}>{neonBusy?"Scanning…":"Scan for Words"}</button>
                   <button onClick={()=>{
                     const region: Region = {
                       id: crypto.randomUUID(), kind: "Trace", points: [{x:project.width/2,y:project.height/2}],
                       x: project.width/2, y: project.height/2, sx:1, sy:1, rotation:0, radius: 140,
                       effects: [{...defaultEffect("SmartNeon"), preset:"Rainbow Flow"}],
-                      label: "Manual Neon Outline", experimental: true
+                      label: "Manual Word Trace", experimental: true
                     };
                     pushHist({ ...project, regions: [...project.regions, region] });
                     setSel(region.id);
-                  }}>Manual Neon Outline</button>
+                  }}>Manual Word Trace</button>
                   {neonMsg && <p>{neonMsg}</p>}
                   {neonCands.map((c)=>(
                     <div key={c.id} className="acc">
                       <div className="acc-h">
                         <strong>{c.label}</strong>
-                        <span className="sum">{Math.round(c.confidence*100)}% · {c.type}</span>
+                        <span className="sum">{Math.round(c.confidence*100)}% · {c.letters.length} letters</span>
                       </div>
                       <div className="row">
                         <button onClick={()=>{
                           const region: Region = {
-                            id: crypto.randomUUID(), kind: "Trace", points: [{x:c.x,y:c.y}],
-                            x:c.x, y:c.y, sx:1, sy:1, rotation:0, radius: Math.max(40, Math.max(c.w,c.h)*0.55),
+                            id: crypto.randomUUID(), kind: "Trace", points: c.letters.map((L)=>({x:L.x,y:L.y})),
+                            x:c.x, y:c.y, sx:1, sy:1, rotation:0, radius: Math.max(24, Math.max(c.w,c.h)*0.5),
                             effects: [{...defaultEffect("SmartNeon"), preset:"Rainbow Flow", audio:"Bass"}],
                             label: c.label, experimental: true
                           };
                           pushHist({ ...project, regions: [...project.regions, region] });
                           setSel(region.id);
-                        }}>Create Neon</button>
+                          try { glRef.current?.setNeonMask(rasterizeWordMask(c, project.width, project.height)); } catch {}
+                        }}>Create Word Trace</button>
                       </div>
                     </div>
                   ))}
