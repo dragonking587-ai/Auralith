@@ -5,11 +5,11 @@ import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, 
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
-import { BETA_ACCESS_REQUIRED, isBetaApproved, persistBetaApproval, validateBetaCode } from "../scene/betaAccess";
+import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.1";
+const APP_VERSION = "1.0.0-rc.2";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -123,11 +123,15 @@ export function App() {
   const [view, setView] = useState<ViewMode>("Edit");
   const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit">("Edit");
   const [sel, setSel] = useState<string | null>(null);
-  const [betaOk, setBetaOk] = useState(() => !BETA_ACCESS_REQUIRED || isBetaApproved());
-  const [betaInput, setBetaInput] = useState("");
-  const [betaStatus, setBetaStatus] = useState("");
-  const [betaBusy, setBetaBusy] = useState(false);
-  const failCount = useRef(0);
+  const [fbType, setFbType] = useState<(typeof FEEDBACK_TYPES)[number]>("Bug Report");
+  const [fbTitle, setFbTitle] = useState("");
+  const [fbBody, setFbBody] = useState("");
+  const [fbSteps, setFbSteps] = useState("");
+  const [fbExpected, setFbExpected] = useState("");
+  const [fbActual, setFbActual] = useState("");
+  const [fbDiag, setFbDiag] = useState(false);
+  const [fbPreview, setFbPreview] = useState(false);
+  const [fbMsg, setFbMsg] = useState("");
   const [status, setStatus] = useState("Audio STOPPED");
   const [err, setErr] = useState("");
   const [vcam, setVcam] = useState<VcamUi>({ state: "NOT INSTALLED", error: "", installed: false, running: false });
@@ -386,61 +390,51 @@ export function App() {
     pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:arr}) });
   };
 
-  const activateBeta = async () => {
-    if (betaBusy) return;
-    setBetaBusy(true);
-    setBetaStatus("Validating...");
-    try {
-      if (failCount.current >= 8) {
-        await new Promise((r) => setTimeout(r, 2500));
-      } else if (failCount.current >= 3) {
-        await new Promise((r) => setTimeout(r, 800));
-      }
-      const res = await validateBetaCode(betaInput);
-      setBetaInput("");
-      if (res.ok) {
-        persistBetaApproval();
-        setBetaStatus("Access Granted");
-        setBetaOk(true);
-      } else if (res.reason === "format") {
-        failCount.current += 1;
-        setBetaStatus("Code format not recognized");
-      } else {
-        failCount.current += 1;
-        setBetaStatus("Invalid Beta Code");
-      }
-    } catch {
-      setBetaStatus("Beta access could not be validated");
-    } finally {
-      setBetaBusy(false);
-    }
-  };
 
-  if (!betaOk) {
-    return (
-      <div className="beta-gate">
-        <div className="beta-card">
-          <h1>AURALITH REBORN</h1>
-          <h2>PRIVATE BETA / RELEASE CANDIDATE</h2>
-          <p>This build is currently available for invited beta testers.</p>
-          <label>Beta Access Code
-            <input
-              type="password"
-              autoComplete="off"
-              value={betaInput}
-              onChange={(e) => setBetaInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === "Enter") void activateBeta(); }}
-              placeholder="AUR-BETA-XXXXX-XXXXX-XXXXX"
-            />
-          </label>
-          <button disabled={betaBusy} onClick={() => void activateBeta()}>Activate Beta Access</button>
-          <p className="muted">Enter the beta access code provided by the Auralith developer.</p>
-          {betaStatus && <p className="beta-status">{betaStatus}{betaStatus==="Invalid Beta Code" ? ". Check the code and try again." : ""}</p>}
-          <button className="ghost" onClick={() => { try { window.close(); } catch {} }}>Exit</button>
-        </div>
-      </div>
-    );
-  }
+  const collectDiag = () => {
+    const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
+    return {
+      version: APP_VERSION,
+      tag: "v1.0.0-rc.2",
+      userAgent: navigator.userAgent,
+      screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
+      renderer: glRef.current ? "WebGL2" : "pending",
+      quality: String(project.quality ?? "default"),
+      effects,
+      audio: audio.status,
+      view,
+      lastError: err || "",
+    };
+  };
+  const collectDiagText = () => {
+    const d = collectDiag();
+    return [
+      `version=${d.version}`,
+      `tag=${d.tag}`,
+      `ua=${d.userAgent}`,
+      `screen=${d.screen}`,
+      `renderer=${d.renderer}`,
+      `quality=${d.quality}`,
+      `audio=${d.audio}`,
+      `view=${d.view}`,
+      `effects=${d.effects}`,
+      err ? `lastError=${err.slice(0,400)}` : "lastError=(none)",
+    ].join("\n");
+  };
+  const submitFeedback = async (mode: "github" | "copy") => {
+    const draft: FeedbackDraft = { type: fbType, title: fbTitle || fbType, body: fbBody, steps: fbSteps, expected: fbExpected, actual: fbActual, includeDiag: fbDiag };
+    const report = buildReport(draft, collectDiag());
+    try {
+      await navigator.clipboard.writeText(report);
+    } catch { /* ignore */ }
+    if (mode === "copy") {
+      setFbMsg("Report copied to clipboard.");
+      return;
+    }
+    const url = githubNewIssueUrl(`[${draft.type}] ${draft.title}`, report);
+    window.open(url, "_blank");
+    setFbMsg("Your feedback report is ready. A browser window will open so you can review and submit it on GitHub. Sign in to GitHub if prompted.");
+  };
 
   return (
     <div className="app">
@@ -451,6 +445,7 @@ export function App() {
         <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
         <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
         <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
+        <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
         <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
         <button className={tool==="Trace"?"on":""} title="Draw or edit a trace path" onClick={() => setTool("Trace")}>Trace</button>
@@ -774,8 +769,38 @@ export function App() {
                   <p>Renderer ⚠ {err.split("\n")[0]}</p>
                   <button onClick={()=>setShowErrDetails((v)=>!v)}>{showErrDetails?"Hide":"View"} Details</button>
                   {showErrDetails && <pre>{err}</pre>}
+                  <button onClick={()=>{ setTab("settings"); setFbType("Bug Report"); setFbTitle("Renderer / runtime error"); setFbBody(err.split("\n")[0]); setFbActual(err.slice(0,400)); setFbMsg(""); }}>Report This Problem</button>
                 </div>
               )}
+              <h3>FEEDBACK</h3>
+              <p className="muted">Feedback only includes what you enter plus any technical diagnostics you explicitly choose to include. Auralith does not attach loaded images or captured audio unless you explicitly choose to share them.</p>
+              <label>Feedback Type
+                <select value={fbType} onChange={(e)=>setFbType(e.target.value as typeof fbType)}>
+                  {FEEDBACK_TYPES.map((x)=><option key={x} value={x}>{x}</option>)}
+                </select>
+              </label>
+              <label>Title<input value={fbTitle} onChange={(e)=>setFbTitle(e.target.value)} /></label>
+              <label>What happened / What would you like to tell us?
+                <textarea rows={4} value={fbBody} onChange={(e)=>setFbBody(e.target.value)} />
+              </label>
+              <label>Steps to reproduce
+                <textarea rows={3} value={fbSteps} onChange={(e)=>setFbSteps(e.target.value)} />
+              </label>
+              <label>Expected behavior
+                <textarea rows={2} value={fbExpected} onChange={(e)=>setFbExpected(e.target.value)} />
+              </label>
+              <label>Actual behavior
+                <textarea rows={2} value={fbActual} onChange={(e)=>setFbActual(e.target.value)} />
+              </label>
+              <label className="chk"><input type="checkbox" checked={fbDiag} onChange={(e)=>setFbDiag(e.target.checked)} /> Include technical diagnostics</label>
+              <button type="button" onClick={()=>setFbPreview((v)=>!v)}>{fbPreview?"Hide":"View"} Included Diagnostics</button>
+              {fbPreview && <pre>{collectDiagText()}</pre>}
+              {fbMsg && <p>{fbMsg}</p>}
+              <div className="row">
+                <button onClick={()=>submitFeedback("github")}>Send Feedback</button>
+                <button onClick={()=>submitFeedback("copy")}>Copy Report</button>
+                <button onClick={()=>window.open("https://github.com/dragonking587-ai/Auralith/issues","_blank")}>Open GitHub Issues</button>
+              </div>
             </div>
           )}
         </aside>
