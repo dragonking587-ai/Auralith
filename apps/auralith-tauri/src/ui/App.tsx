@@ -4,13 +4,14 @@ import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
+import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.3";
+const APP_VERSION = "1.0.0-rc.4";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -122,6 +123,20 @@ export function App() {
   const [project, setProject] = useState<Project>(newProject());
   const [view, setView] = useState<ViewMode>("Edit");
   const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit">("Edit");
+  const [viewZoom, setViewZoom] = useState<number | "fit">("fit");
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [selPt, setSelPt] = useState<number | null>(null);
+  const [traceFill, setTraceFill] = useState<"outline"|"fill"|"both">("outline");
+  const [smoothAmt, setSmoothAmt] = useState(0.5);
+  const [simpAmt, setSimpAmt] = useState(4);
+  const [preserveCorners, setPreserveCorners] = useState(true);
+  const [showGrid, setShowGrid] = useState(false);
+  const [traceDebug, setTraceDebug] = useState(false);
+  const spaceRef = useRef(false);
+  const viewZoomRef = useRef<number | "fit">("fit");
+  viewZoomRef.current = viewZoom;
+  const panRef = useRef(pan);
+  panRef.current = pan;
   const [sel, setSel] = useState<string | null>(null);
   const [fbType, setFbType] = useState<(typeof FEEDBACK_TYPES)[number]>("Bug Report");
   const [fbTitle, setFbTitle] = useState("");
@@ -236,7 +251,8 @@ export function App() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "F11") { e.preventDefault(); setView((v) => v === "CleanCapture" ? "Edit" : "CleanCapture"); }
-      if (e.key === "Escape") setView("Edit");
+      if (e.key === "Escape") { setView("Edit"); dragRef.current = null; }
+      if (e.code === "Space") spaceRef.current = true;
       if (e.ctrlKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
       if (e.ctrlKey && e.key.toLowerCase() === "y") { e.preventDefault(); redoAct(); }
       const tag = (e.target as HTMLElement)?.tagName;
@@ -252,8 +268,26 @@ export function App() {
         }
       }
     };
+    const onUp = (e: KeyboardEvent) => { if (e.code === "Space") spaceRef.current = false; };
+    const onNudge = (e: KeyboardEvent) => {
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+      if (!selRef.current || selPt == null) return;
+      if (!["ArrowLeft","ArrowRight","ArrowUp","ArrowDown"].includes(e.key)) return;
+      e.preventDefault();
+      const step = e.altKey ? 0.25 : e.shiftKey ? 10 : 1;
+      const dx = e.key==="ArrowLeft"?-step:e.key==="ArrowRight"?step:0;
+      const dy = e.key==="ArrowUp"?-step:e.key==="ArrowDown"?step:0;
+      const cur = projectRef.current;
+      const r = cur.regions.find((x)=>x.id===selRef.current);
+      if (!r || !r.points[selPt]) return;
+      const pts = r.points.map((p,i)=> i===selPt ? { x: p.x+dx, y: p.y+dy } : p);
+      pushHist({ ...cur, regions: cur.regions.map((x)=> x.id!==r.id ? x : { ...x, points: pts, x: pts[0]!.x, y: pts[0]!.y, pathLength: pathLength(pts, !!x.pathClosed).total }) });
+    };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    window.addEventListener("keyup", onUp);
+    window.addEventListener("keydown", onNudge);
+    return () => { window.removeEventListener("keydown", onKey); window.removeEventListener("keyup", onUp); window.removeEventListener("keydown", onNudge); };
   });
 
   const pushHist = (next: Project) => {
@@ -276,72 +310,177 @@ export function App() {
     return rest;
   });
 
+  const currentVp = (rect?: DOMRect) => {
+    const wrap = wrapRef.current;
+    const r = rect || wrap!.getBoundingClientRect();
+    const proj = projectRef.current;
+    const z = viewZoomRef.current;
+    if (z === "fit") {
+      const base = sceneViewport(r.width, r.height, proj.width, proj.height, proj.fit);
+      return { ...base, x: base.x + panRef.current.x, y: base.y + panRef.current.y };
+    }
+    const s = z / 100;
+    const w = proj.width * s, h = proj.height * s;
+    return { x: (r.width - w) / 2 + panRef.current.x, y: (r.height - h) / 2 + panRef.current.y, w, h };
+  };
   const sceneFromEvent = (e: { clientX: number; clientY: number }) => {
     const wrap = wrapRef.current!;
     const rect = wrap.getBoundingClientRect();
     const proj = projectRef.current;
-    const vp = sceneViewport(rect.width, rect.height, proj.width, proj.height, proj.fit);
+    const vp = currentVp(rect);
     return canvasToScene(e.clientX - rect.left, e.clientY - rect.top, vp, proj.width, proj.height);
   };
-  const hitRegion = (e: { clientX: number; clientY: number }) => {
-    const wrap = wrapRef.current; if (!wrap) return null;
+  const hitTest = (e: { clientX: number; clientY: number }) => {
+    const wrap = wrapRef.current; if (!wrap) return null as null | { kind: "point"|"marker"|"seg"|"all"; id: string; index: number };
     const rect = wrap.getBoundingClientRect();
     const proj = projectRef.current;
-    const vp = sceneViewport(rect.width, rect.height, proj.width, proj.height, proj.fit);
+    const vp = currentVp(rect);
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
-    let best: { id: string; d: number } | null = null;
+    let bestPt: { id: string; index: number; d: number } | null = null;
     for (const r of proj.regions) {
-      const c = sceneToCanvas(r.x, r.y, vp, proj.width, proj.height);
-      const d = Math.hypot(c.x - px, c.y - py);
-      if (d <= 16 && (!best || d < best.d)) best = { id: r.id, d };
+      const pts = r.kind === "Trace" && r.points.length ? r.points : [{ x: r.x, y: r.y }];
+      pts.forEach((pt, i) => {
+        const c = sceneToCanvas(pt.x, pt.y, vp, proj.width, proj.height);
+        const d = Math.hypot(c.x - px, c.y - py);
+        if (d <= 14 && (!bestPt || d < bestPt.d)) bestPt = { id: r.id, index: i, d };
+      });
     }
-    return best?.id ?? null;
+    if (bestPt) return { kind: bestPt.index > 0 || proj.regions.find(r=>r.id===bestPt!.id)?.kind==="Trace" ? "point" : "marker", id: bestPt.id, index: bestPt.index };
+    const s = canvasToScene(px, py, vp, proj.width, proj.height);
+    let bestSeg: { id: string; d: number } | null = null;
+    for (const r of proj.regions) {
+      if (r.kind !== "Trace" || r.points.length < 2) continue;
+      const hit = closestSegment(r.points, !!r.pathClosed, s);
+      const c = sceneToCanvas(hit.x, hit.y, vp, proj.width, proj.height);
+      const d = Math.hypot(c.x - px, c.y - py);
+      if (d <= 10 && (!bestSeg || d < bestSeg.d)) bestSeg = { id: r.id, d };
+    }
+    if (bestSeg) return { kind: "seg", id: bestSeg.id, index: -1 };
+    return null;
   };
   const onPointerDown = (e: React.PointerEvent) => {
     if (view === "CleanCapture") return;
     const wrap = wrapRef.current; if (!wrap) return;
-    const hit = hitRegion(e);
+    if (spaceRef.current || e.button === 1) {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      dragRef.current = { id: "__pan__", ox: panRef.current.x, oy: panRef.current.y, sx: e.clientX, sy: e.clientY, moved: false, mode: "pan" } as any;
+      return;
+    }
+    const hit = hitTest(e);
+    const s = sceneFromEvent(e);
     if (hit) {
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
-      const s = sceneFromEvent(e);
-      const r = projectRef.current.regions.find((x) => x.id === hit)!;
-      dragRef.current = { id: hit, ox: r.x, oy: r.y, sx: s.x, sy: s.y, moved: false };
-      setSel(hit);
+      const r = projectRef.current.regions.find((x) => x.id === hit.id)!;
+      setSel(hit.id);
+      if (hit.kind === "point") {
+        setSelPt(hit.index);
+        const pt = r.points[hit.index] || { x: r.x, y: r.y };
+        dragRef.current = { id: hit.id, ox: pt.x, oy: pt.y, sx: s.x, sy: s.y, moved: false, mode: "point", index: hit.index } as any;
+      } else if (toolRef.current === "Edit") {
+        setSelPt(null);
+        dragRef.current = { id: hit.id, ox: 0, oy: 0, sx: s.x, sy: s.y, moved: false, mode: "all", points: r.points.map((p)=>({...p})), rx: r.x, ry: r.y } as any;
+      } else {
+        setSelPt(hit.index >= 0 ? hit.index : null);
+        dragRef.current = { id: hit.id, ox: r.x, oy: r.y, sx: s.x, sy: s.y, moved: false, mode: "marker" } as any;
+      }
       return;
     }
     if (toolRef.current === "Edit") return;
-    const s = sceneFromEvent(e);
+    if (toolRef.current === "Trace") {
+      const cur = projectRef.current;
+      const active = selRef.current ? cur.regions.find((r)=>r.id===selRef.current && r.kind==="Trace") : null;
+      if (active) {
+        const pts = [...active.points, { x: s.x, y: s.y }];
+        const len = pathLength(pts, !!active.pathClosed).total;
+        pushHist({ ...cur, regions: cur.regions.map((r)=> r.id!==active.id ? r : { ...r, points: pts, x: pts[0]!.x, y: pts[0]!.y, pathLength: len }) });
+        setSelPt(pts.length-1);
+        return;
+      }
+    }
     const kind = toolRef.current === "Trace" || toolRef.current === "Stamp" || toolRef.current === "Emitter" ? toolRef.current : "Emitter";
     const region: Region = {
       id: crypto.randomUUID(), kind, points: [{ x: s.x, y: s.y }],
       x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: 80,
-      effects: [defaultEffect("GlowBloom")]
+      effects: [defaultEffect("GlowBloom")], pathClosed: false, pathLength: 0
     };
     pushHist({ ...projectRef.current, regions: [...projectRef.current.regions, region] });
     setSel(region.id);
+    setSelPt(0);
   };
   const onPointerMove = (e: React.PointerEvent) => {
-    const d = dragRef.current; if (!d) return;
+    const d = dragRef.current as any; if (!d) return;
+    if (d.mode === "pan") {
+      setPan({ x: d.ox + (e.clientX - d.sx), y: d.oy + (e.clientY - d.sy) });
+      d.moved = true;
+      return;
+    }
     const s = sceneFromEvent(e);
     const dx = s.x - d.sx, dy = s.y - d.sy;
-    if (!d.moved && Math.hypot(dx, dy) < 3) return;
+    if (!d.moved && Math.hypot(dx, dy) < 2) return;
     d.moved = true;
-    const nx = Math.max(0, Math.min(projectRef.current.width, d.ox + dx));
-    const ny = Math.max(0, Math.min(projectRef.current.height, d.oy + dy));
+    const cur = projectRef.current;
+    if (d.mode === "all") {
+      setProject({
+        ...cur,
+        regions: cur.regions.map((r) => r.id !== d.id ? r : {
+          ...r,
+          x: d.rx + dx, y: d.ry + dy,
+          points: (d.points as {x:number;y:number}[]).map((p)=>({ x: p.x+dx, y: p.y+dy }))
+        })
+      });
+      return;
+    }
+    const nx = Math.max(0, Math.min(cur.width, d.ox + dx));
+    const ny = Math.max(0, Math.min(cur.height, d.oy + dy));
     setProject({
-      ...projectRef.current,
-      regions: projectRef.current.regions.map((r) => r.id !== d.id ? r : { ...r, x: nx, y: ny, points: r.points.map((p, i) => i === 0 ? { x: nx, y: ny } : p) })
+      ...cur,
+      regions: cur.regions.map((r) => {
+        if (r.id !== d.id) return r;
+        if (d.mode === "point") {
+          const pts = r.points.map((p,i)=> i===d.index ? { x: nx, y: ny } : p);
+          return { ...r, points: pts, x: pts[0]?.x ?? r.x, y: pts[0]?.y ?? r.y, pathLength: pathLength(pts, !!r.pathClosed).total };
+        }
+        return { ...r, x: nx, y: ny, points: r.points.map((p,i)=> i===0 ? { x: nx, y: ny } : p) };
+      })
     });
   };
   const onPointerUp = () => {
-    const d = dragRef.current;
+    const d = dragRef.current as any;
     dragRef.current = null;
-    if (!d?.moved) return;
+    if (!d?.moved || d.mode === "pan") return;
     const cur = projectRef.current;
-    const before = { ...cur, regions: cur.regions.map((r) => r.id !== d.id ? r : { ...r, x: d.ox, y: d.oy, points: r.points.map((p, i) => i === 0 ? { x: d.ox, y: d.oy } : p) }) };
+    // snapshot already live; push previous via stored origin
+    const before = { ...cur, regions: cur.regions.map((r) => {
+      if (r.id !== d.id) return r;
+      if (d.mode === "all") return { ...r, x: d.rx, y: d.ry, points: d.points };
+      if (d.mode === "point") {
+        const pts = r.points.map((p,i)=> i===d.index ? { x: d.ox, y: d.oy } : p);
+        return { ...r, points: pts, x: pts[0]?.x ?? r.x, y: pts[0]?.y ?? r.y };
+      }
+      return { ...r, x: d.ox, y: d.oy, points: r.points.map((p,i)=> i===0 ? { x: d.ox, y: d.oy } : p) };
+    }) };
     setHistory((h) => [...h.slice(-40), before]);
     setRedo([]);
+  };
+  const onWheel = (e: React.WheelEvent) => {
+    if (view === "CleanCapture") return;
+    e.preventDefault();
+    const wrap = wrapRef.current; if (!wrap) return;
+    const rect = wrap.getBoundingClientRect();
+    const proj = projectRef.current;
+    const before = currentVp(rect);
+    const s0 = canvasToScene(e.clientX-rect.left, e.clientY-rect.top, before, proj.width, proj.height);
+    const curZ = viewZoomRef.current === "fit" ? Math.min(rect.width/proj.width, rect.height/proj.height)*100 : viewZoomRef.current;
+    const next = Math.max(25, Math.min(1600, curZ * (e.deltaY < 0 ? 1.12 : 1/1.12)));
+    setViewZoom(next);
+    viewZoomRef.current = next;
+    const after = currentVp(rect);
+    const s1 = canvasToScene(e.clientX-rect.left, e.clientY-rect.top, after, proj.width, proj.height);
+    const c0 = sceneToCanvas(s0.x, s0.y, after, proj.width, proj.height);
+    const c1 = sceneToCanvas(s1.x, s1.y, after, proj.width, proj.height);
+    setPan((p)=>({ x: p.x + (c1.x-c0.x), y: p.y + (c1.y-c0.y) }));
   };
 
   const loadGen = useRef(0);
@@ -410,7 +549,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.3",
+      tag: "v1.0.0-rc.4",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -553,12 +692,19 @@ export function App() {
           <option value="1440x2560">1440×2560</option>
         </select>
         <label className="chk"><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Overlays</label>
+        <span className="grp">VIEW</span>
+        <select value={viewZoom==="fit"?"fit":String(viewZoom)} onChange={(e)=>{ const v=e.target.value; if(v==="fit"){ setViewZoom("fit"); setPan({x:0,y:0}); } else setViewZoom(Number(v)); }}>
+          <option value="fit">Fit</option>
+          {[25,50,100,200,400,800,1600].map((z)=><option key={z} value={z}>{z}%</option>)}
+        </select>
+        <button onClick={()=>setViewZoom((z)=> z==="fit"?50:Math.max(25, Math.round(z/1.25)))}>-</button>
+        <button onClick={()=>setViewZoom((z)=> z==="fit"?125:Math.min(1600, Math.round(z*1.25)))}>+</button>
         <span className="grp">OUTPUT</span>
         <button onClick={() => setView("Preview")}>Preview</button>
         <button className="gold" onClick={() => setView("CleanCapture")}>Clean Capture</button>
       </div>
       <div className={`stage ${clean ? "clean" : ""}`}>
-        <div className="canvas-wrap" ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
+        <div className="canvas-wrap" ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
           <canvas id="gl" ref={canvasRef} />
           {!clean && project.showMarkers && view === "Edit" && (
             <div className="overlay">
@@ -566,9 +712,23 @@ export function App() {
                 {project.regions.map((r) => {
                   const wrap = wrapRef.current?.getBoundingClientRect();
                   if (!wrap) return null;
-                  const vp = sceneViewport(wrap.width, wrap.height, project.width, project.height, project.fit);
-                  const p = sceneToCanvas(r.x, r.y, vp, project.width, project.height);
-                  return <circle key={r.id} cx={p.x} cy={p.y} r={8} fill={r.id===sel?"#D4AF37":"#7ad0ff"} />;
+                  const vp = currentVp(wrap);
+                  const pts = r.kind==="Trace" && r.points.length ? r.points : [{x:r.x,y:r.y}];
+                  const cs = pts.map((pt)=>sceneToCanvas(pt.x,pt.y,vp,project.width,project.height));
+                  const d = cs.map((c,i)=>`${i?"L":"M"}${c.x},${c.y}`).join(" ") + (r.pathClosed && cs.length>=3 ? " Z" : "");
+                  return (
+                    <g key={r.id}>
+                      {r.kind==="Trace" && (traceFill==="fill" || traceFill==="both") && r.pathClosed && cs.length>=3 && (
+                        <polygon points={cs.map(c=>`${c.x},${c.y}`).join(" ")} fill="rgba(212,175,55,0.18)" stroke="none" />
+                      )}
+                      {r.kind==="Trace" && cs.length>=2 && (traceFill!=="fill") && (
+                        <path d={d} fill="none" stroke={r.id===sel?"#D4AF37":"#7ad0ff"} strokeWidth={2} />
+                      )}
+                      {cs.map((c,i)=>(
+                        <circle key={i} cx={c.x} cy={c.y} r={r.id===sel && selPt===i ? 6 : 5} fill={r.id===sel && selPt===i ? "#fff3a0" : r.id===sel?"#D4AF37":"#7ad0ff"} />
+                      ))}
+                    </g>
+                  );
                 })}
               </svg>
             </div>
@@ -587,6 +747,58 @@ export function App() {
           {tab==="effects" && (
             <div className="pane">
               <h3>MASTERS</h3>
+              {selected && selected.kind==="Trace" && (
+                <div className="acc on">
+                  <h3>TRACE</h3>
+                  <div className="row">
+                    <button className={!selected.pathClosed?"on":""} onClick={()=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, pathClosed:false})})}>Open Path</button>
+                    <button className={selected.pathClosed?"on":""} onClick={()=>{ if((selected.points.length)<3) return; pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, pathClosed:true, pathLength: pathLength(r.points,true).total})}); }}>Closed Path</button>
+                  </div>
+                  <p>Points: {selected.points.length} · Length: {Math.round(selected.pathLength || pathLength(selected.points, !!selected.pathClosed).total)}</p>
+                  {selPt!=null && selected.points[selPt] && <p>Selected Point {selPt}: X {selected.points[selPt].x.toFixed(2)} Y {selected.points[selPt].y.toFixed(2)}</p>}
+                  <div className="row">
+                    <button onClick={()=>{
+                      if(!selected || selected.points.length<2) return;
+                      const hit = closestSegment(selected.points, !!selected.pathClosed, selected.points[selPt||0] || selected.points[0]!);
+                      const pts=[...selected.points];
+                      pts.splice(hit.i+1,0,{x:hit.x,y:hit.y});
+                      pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, points:pts, pathLength: pathLength(pts, !!r.pathClosed).total})});
+                      setSelPt(hit.i+1);
+                    }}>Insert Point</button>
+                    <button onClick={()=>{
+                      if(selPt==null || !selected) return;
+                      if(selected.pathClosed && selected.points.length<=3) return;
+                      if(!selected.pathClosed && selected.points.length<=1) return;
+                      const pts=selected.points.filter((_,i)=>i!==selPt);
+                      pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, points:pts, x:pts[0]?.x??r.x, y:pts[0]?.y??r.y, pathLength: pathLength(pts, !!r.pathClosed).total})});
+                      setSelPt(null);
+                    }}>Delete Point</button>
+                  </div>
+                  <label>Smooth <input type="range" min={0} max={1} step={0.01} value={smoothAmt} onChange={(e)=>setSmoothAmt(Number(e.target.value))} /></label>
+                  <label className="chk"><input type="checkbox" checked={preserveCorners} onChange={(e)=>setPreserveCorners(e.target.checked)} /> Preserve Corners</label>
+                  <button onClick={()=>{
+                    if(!selected) return;
+                    const pts=chaikin(selected.points, !!selected.pathClosed, preserveCorners, smoothAmt);
+                    pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, points:pts, x:pts[0]!.x, y:pts[0]!.y, pathLength: pathLength(pts, !!r.pathClosed).total})});
+                  }}>Apply Smooth</button>
+                  <label>Simplify <input type="range" min={0.5} max={24} step={0.5} value={simpAmt} onChange={(e)=>setSimpAmt(Number(e.target.value))} /></label>
+                  <button onClick={()=>{
+                    if(!selected) return;
+                    let pts=rdp(selected.points, simpAmt);
+                    if(selected.pathClosed && pts.length<3) pts=selected.points.slice(0,3);
+                    pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, points:pts, x:pts[0]!.x, y:pts[0]!.y, pathLength: pathLength(pts, !!r.pathClosed).total})});
+                  }}>Simplify Path</button>
+                  <label>Closed preview
+                    <select value={traceFill} onChange={(e)=>setTraceFill(e.target.value as any)}>
+                      <option value="outline">Outline</option>
+                      <option value="fill">Filled Mask</option>
+                      <option value="both">Both</option>
+                    </select>
+                  </label>
+                  {traceDebug && <p className="muted">zoom={String(viewZoom)} pan={pan.x.toFixed(0)},{pan.y.toFixed(0)}</p>}
+                </div>
+              )}
+
               <label>Intensity <input type="range" min={0} max={2} step={0.01} value={project.masters.intensity} onChange={(e)=>setProject({...project, masters:{...project.masters, intensity:Number(e.target.value)}})} /></label>
               <label>Brightness <input type="range" min={0} max={2} step={0.01} value={project.masters.brightness} onChange={(e)=>setProject({...project, masters:{...project.masters, brightness:Number(e.target.value)}})} /></label>
               <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
@@ -821,6 +1033,8 @@ export function App() {
           {tab==="settings" && (
             <div className="pane">
               <h3>UI</h3>
+              <label className="chk"><input type="checkbox" checked={traceDebug} onChange={(e)=>setTraceDebug(e.target.checked)} /> Trace debug</label>
+              <label className="chk"><input type="checkbox" checked={showGrid} onChange={(e)=>setShowGrid(e.target.checked)} /> Pixel grid (editor)</label>
               <label className="chk"><input type="checkbox" checked={oneOpen} onChange={(e)=>setOneOpen(e.target.checked)} /> One effect expanded at a time</label>
               <h3>UPDATES</h3>
               <p>Installed: {APP_VERSION}</p>

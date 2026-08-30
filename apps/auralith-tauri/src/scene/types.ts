@@ -63,6 +63,8 @@ export type Region = {
   effects: EffectInstance[];
   label?: string;
   experimental?: boolean;
+  pathClosed?: boolean;
+  pathLength?: number;
 };
 
 export type Project = {
