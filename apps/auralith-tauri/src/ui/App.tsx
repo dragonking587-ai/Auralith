@@ -8,7 +8,7 @@ import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scen
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.20";
+const APP_VERSION = "2.0.0-alpha.21";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -120,7 +120,7 @@ export function App() {
   const glRef = useRef<GlRenderer | null>(null);
   const [project, setProject] = useState<Project>(newProject());
   const [view, setView] = useState<ViewMode>("Edit");
-  const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter">("Emitter");
+  const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit">("Edit");
   const [sel, setSel] = useState<string | null>(null);
   const [status, setStatus] = useState("Audio STOPPED");
   const [err, setErr] = useState("");
@@ -147,6 +147,11 @@ export function App() {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const projectRef = useRef(project);
   projectRef.current = project;
+  const dragRef = useRef<{ id: string; ox: number; oy: number; sx: number; sy: number; moved: boolean } | null>(null);
+  const toolRef = useRef(tool);
+  toolRef.current = tool;
+  const selRef = useRef(sel);
+  selRef.current = sel;
 
   useEffect(() => {
     console.log("APP_COMPONENT_BEGIN");
@@ -209,6 +214,18 @@ export function App() {
       if (e.key === "Escape") setView("Edit");
       if (e.ctrlKey && e.key.toLowerCase() === "z") { e.preventDefault(); undo(); }
       if (e.ctrlKey && e.key.toLowerCase() === "y") { e.preventDefault(); redoAct(); }
+      const tag = (e.target as HTMLElement)?.tagName;
+      if ((e.key === "Delete" || e.key === "Backspace") && tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+        const id = selRef.current;
+        if (id) {
+          e.preventDefault();
+          const cur = projectRef.current;
+          setHistory((h) => [...h.slice(-40), cur]);
+          setRedo([]);
+          setProject({ ...cur, regions: cur.regions.filter((r) => r.id !== id) });
+          setSel(null);
+        }
+      }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -234,19 +251,72 @@ export function App() {
     return rest;
   });
 
-  const onCanvasClick = (e: React.MouseEvent) => {
+  const sceneFromEvent = (e: { clientX: number; clientY: number }) => {
+    const wrap = wrapRef.current!;
+    const rect = wrap.getBoundingClientRect();
+    const proj = projectRef.current;
+    const vp = sceneViewport(rect.width, rect.height, proj.width, proj.height, proj.fit);
+    return canvasToScene(e.clientX - rect.left, e.clientY - rect.top, vp, proj.width, proj.height);
+  };
+  const hitRegion = (e: { clientX: number; clientY: number }) => {
+    const wrap = wrapRef.current; if (!wrap) return null;
+    const rect = wrap.getBoundingClientRect();
+    const proj = projectRef.current;
+    const vp = sceneViewport(rect.width, rect.height, proj.width, proj.height, proj.fit);
+    const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    let best: { id: string; d: number } | null = null;
+    for (const r of proj.regions) {
+      const c = sceneToCanvas(r.x, r.y, vp, proj.width, proj.height);
+      const d = Math.hypot(c.x - px, c.y - py);
+      if (d <= 16 && (!best || d < best.d)) best = { id: r.id, d };
+    }
+    return best?.id ?? null;
+  };
+  const onPointerDown = (e: React.PointerEvent) => {
     if (view === "CleanCapture") return;
     const wrap = wrapRef.current; if (!wrap) return;
-    const rect = wrap.getBoundingClientRect();
-    const vp = sceneViewport(rect.width, rect.height, project.width, project.height, project.fit);
-    const s = canvasToScene(e.clientX - rect.left, e.clientY - rect.top, vp, project.width, project.height);
+    const hit = hitRegion(e);
+    if (hit) {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      const s = sceneFromEvent(e);
+      const r = projectRef.current.regions.find((x) => x.id === hit)!;
+      dragRef.current = { id: hit, ox: r.x, oy: r.y, sx: s.x, sy: s.y, moved: false };
+      setSel(hit);
+      return;
+    }
+    if (toolRef.current === "Edit") return;
+    const s = sceneFromEvent(e);
+    const kind = toolRef.current === "Trace" || toolRef.current === "Stamp" || toolRef.current === "Emitter" ? toolRef.current : "Emitter";
     const region: Region = {
-      id: crypto.randomUUID(), kind: tool, points: [{ x: s.x, y: s.y }],
+      id: crypto.randomUUID(), kind, points: [{ x: s.x, y: s.y }],
       x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: 80,
       effects: [defaultEffect("GlowBloom")]
     };
-    pushHist({ ...project, regions: [...project.regions, region] });
+    pushHist({ ...projectRef.current, regions: [...projectRef.current.regions, region] });
     setSel(region.id);
+  };
+  const onPointerMove = (e: React.PointerEvent) => {
+    const d = dragRef.current; if (!d) return;
+    const s = sceneFromEvent(e);
+    const dx = s.x - d.sx, dy = s.y - d.sy;
+    if (!d.moved && Math.hypot(dx, dy) < 3) return;
+    d.moved = true;
+    const nx = Math.max(0, Math.min(projectRef.current.width, d.ox + dx));
+    const ny = Math.max(0, Math.min(projectRef.current.height, d.oy + dy));
+    setProject({
+      ...projectRef.current,
+      regions: projectRef.current.regions.map((r) => r.id !== d.id ? r : { ...r, x: nx, y: ny, points: r.points.map((p, i) => i === 0 ? { x: nx, y: ny } : p) })
+    });
+  };
+  const onPointerUp = () => {
+    const d = dragRef.current;
+    dragRef.current = null;
+    if (!d?.moved) return;
+    const cur = projectRef.current;
+    const before = { ...cur, regions: cur.regions.map((r) => r.id !== d.id ? r : { ...r, x: d.ox, y: d.oy, points: r.points.map((p, i) => i === 0 ? { x: d.ox, y: d.oy } : p) }) };
+    setHistory((h) => [...h.slice(-40), before]);
+    setRedo([]);
   };
 
   const loadGen = useRef(0);
@@ -321,13 +391,13 @@ export function App() {
         <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
         <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
-        <button className={tool==="Trace"?"on":""} onClick={() => setTool("Trace")}>Trace</button>
-        <button className={tool==="Stamp"?"on":""} onClick={() => setTool("Stamp")}>Stamp</button>
-        <button className={tool==="Emitter"?"on":""} onClick={() => setTool("Emitter")}>Emitter</button>
-        <button onClick={() => setView("Edit")}>Edit</button>
+        <button className={tool==="Trace"?"on":""} title="Draw or edit a trace path" onClick={() => setTool("Trace")}>Trace</button>
+        <button className={tool==="Stamp"?"on":""} title="Place or move a stamp target" onClick={() => setTool("Stamp")}>Stamp</button>
+        <button className={tool==="Emitter"?"on":""} title="Place or move an effect emitter" onClick={() => setTool("Emitter")}>Emitter</button>
+        <button className={tool==="Edit"?"on":""} title="Select and move existing objects" onClick={() => setTool("Edit")}>Edit</button>
         <button onClick={undo}>Undo</button>
         <button onClick={redoAct}>Redo</button>
-        <button onClick={() => { if (!sel) return; pushHist({ ...project, regions: project.regions.filter((r) => r.id !== sel) }); setSel(null); }}>Delete Region</button>
+        <button disabled={!sel} title={sel?"Delete selected region":"Select a region first"} onClick={() => { if (!sel) return; pushHist({ ...project, regions: project.regions.filter((r) => r.id !== sel) }); setSel(null); }}>Delete Region</button>
         <span className="grp">VIEW</span>
         <select value={project.fit} onChange={(e) => setProject({ ...project, fit: e.target.value as Project["fit"] })}>
           <option>Fit</option><option>Fill</option><option>Stretch</option><option>Center</option>
@@ -348,7 +418,7 @@ export function App() {
         <button className="gold" onClick={() => setView("CleanCapture")}>Clean Capture</button>
       </div>
       <div className={`stage ${clean ? "clean" : ""}`}>
-        <div className="canvas-wrap" ref={wrapRef} onClick={onCanvasClick}>
+        <div className="canvas-wrap" ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp}>
           <canvas id="gl" ref={canvasRef} />
           {!clean && project.showMarkers && view === "Edit" && (
             <div className="overlay">
