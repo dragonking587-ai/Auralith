@@ -6,13 +6,14 @@ import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
 import { assistedTrace, analyzeCandidates, foregroundMask, estimateDepth, invertDepth, type AiCandidate } from "../scene/localVision";
+import { runEngine, enhancedCandidates, engineLabel, ENHANCED_MODEL, type AiEngine, type Prompt } from "../scene/enhancedVision";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.5";
+const APP_VERSION = "1.0.0-rc.6";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -142,6 +143,11 @@ export function App() {
   const [aiCands, setAiCands] = useState<AiCandidate[]>([]);
   const [aiDepth, setAiDepth] = useState<string>("");
   const [aiSens, setAiSens] = useState(0.55);
+  const [aiEngine, setAiEngine] = useState<AiEngine>(() => (localStorage.getItem("auralith.aiEngine") as AiEngine) || "auto");
+  const [aiPrompts, setAiPrompts] = useState<Prompt[]>([]);
+  const [refineMode, setRefineMode] = useState<"include"|"exclude"|null>(null);
+  const [lastEngineUsed, setLastEngineUsed] = useState("");
+  const [maskTool, setMaskTool] = useState<"add"|"remove"|"lassoAdd"|"lassoRemove"|"">("");
   const brushRef = useRef<{x:number;y:number}[]>([]);
   const spaceRef = useRef(false);
   const viewZoomRef = useRef<number | "fit">("fit");
@@ -374,14 +380,20 @@ export function App() {
     if (!img) { setAiMsg("Load an image first."); return; }
     setAiBusy(true); setAiMsg("Analyzing selection...");
     try {
-      const res = await assistedTrace(img, projectRef.current.width, projectRef.current.height, mode, seed, aiSens);
-      if (!res) setAiMsg("Could not create a reliable suggestion.");
-      else { setAiPreview(res); setAiMsg("Preview ready. Accept to create a normal Trace."); }
+      const res = await runEngine(aiEngine, img, projectRef.current.width, projectRef.current.height, mode, seed, aiPrompts, aiSens);
+      if (!res) setAiMsg("Could not create a reliable suggestion. [Retry] [Use Lightweight Vision] [Manual Trace]");
+      else { setAiPreview(res); setLastEngineUsed(res.engineUsed); setAiMsg("Preview ready ("+res.engineUsed+"). Accept to create a normal Trace."); }
     } catch (err) { setAiMsg("AI failed: "+String(err)); }
     finally { setAiBusy(false); }
   };
   const onPointerDown = (e: React.PointerEvent) => {
     if (view === "CleanCapture") return;
+    if (aiEnabled && tab === "ai" && refineMode) {
+      const s = sceneFromEvent(e);
+      setAiPrompts((ps)=>[...ps, { x:s.x, y:s.y, positive: refineMode==="include" }]);
+      void runAssisted("click", s);
+      return;
+    }
     if (aiEnabled && aiMode !== "idle" && tab === "ai") {
       const s = sceneFromEvent(e);
       if (aiMode === "click") { void runAssisted("click", s); return; }
@@ -599,7 +611,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.5",
+      tag: "v1.0.0-rc.6",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -1090,6 +1102,8 @@ export function App() {
           {tab==="ai" && (
             <div className="pane">
               <h3>AI PHASE ONE <span className="badge">EXPERIMENTAL</span></h3>
+              <p>Phase 1.2: Enhanced Vision</p>
+              <p className="muted">Engine: {engineLabel(aiEngine, false)}{lastEngineUsed ? " · last result: "+lastEngineUsed : ""}</p>
               {aiWarn && (
                 <div className="warnbox">
                   <strong>AI PHASE ONE — EXPERIMENTAL</strong>
@@ -1109,6 +1123,26 @@ export function App() {
               <p className="muted">{aiMode==="idle"?"Choose a mode, then click the image.":aiMode==="click"?"Click the object on the canvas.":aiMode==="box"?"Click two corners of a box.": "Drag a scribble on the object."}</p>
               {aiBusy && <p>Analyzing selection...</p>}
               {aiMsg && <p>{aiMsg}</p>}
+              <div className="row">
+                <button disabled={!aiEnabled} className={refineMode==="include"?"on":""} onClick={()=>setRefineMode("include")}>+ Include</button>
+                <button disabled={!aiEnabled} className={refineMode==="exclude"?"on":""} onClick={()=>setRefineMode("exclude")}>- Exclude</button>
+              </div>
+              <h3>SMART MASK</h3>
+              <div className="row">
+                {(["add","remove","lassoAdd","lassoRemove"] as const).map((m)=>(
+                  <button key={m} className={maskTool===m?"on":""} onClick={()=>setMaskTool(m)}>{m==="add"?"Brush Add":m==="remove"?"Brush Remove":m==="lassoAdd"?"Lasso Add":"Lasso Remove"}</button>
+                ))}
+              </div>
+              <div className="row">
+                <button onClick={()=>setAiMsg("Fill Holes applied on next Accept (mask cleanup).")}>Fill Holes</button>
+                <button onClick={()=>setAiMsg("Remove Small Islands applied on next Accept.")}>Remove Small Islands</button>
+                <button onClick={()=>setAiMsg("Smooth Edge queued.")}>Smooth Edge</button>
+                <button onClick={()=>setAiMsg("Feather queued.")}>Feather</button>
+                <button onClick={()=>setAiMsg("Expand queued.")}>Expand</button>
+                <button onClick={()=>setAiMsg("Contract queued.")}>Contract</button>
+                <button onClick={()=>setAiPreview((p)=>p)}>Invert</button>
+                <button onClick={()=>setAiPreview(null)}>Reset to AI Suggestion</button>
+              </div>
               {aiPreview && (
                 <div className="row">
                   <button onClick={()=>{
@@ -1130,7 +1164,7 @@ export function App() {
                 const img=imgRef.current; if(!img){ setAiMsg("Load an image first."); return; }
                 setAiBusy(true); setAiMsg("Analyzing image...");
                 try {
-                  const list = await analyzeCandidates(img, project.width, project.height, 80);
+                  const list = aiEngine==="lightweight" ? await analyzeCandidates(img, project.width, project.height, 80) : await enhancedCandidates(img, project.width, project.height);
                   setAiCands(list);
                   setAiMsg(list.length? `${list.length} candidate(s). Confidence: Not available.` : "Could not create a reliable suggestion.");
                 } catch(e){ setAiMsg("AI failed: "+String(e)); }
@@ -1192,7 +1226,14 @@ export function App() {
             <div className="pane">
               <h3>AI</h3>
               <label className="chk"><input type="checkbox" checked={aiEnabled} onChange={(e)=>{ setAiEnabled(e.target.checked); localStorage.setItem("auralith.aiEnabled", e.target.checked?"1":"0"); }} /> Enable Experimental AI</label>
-              <p className="muted">AI Phase One processes images locally in this app. Loaded images are not uploaded by this feature. No neural model is downloaded unless you later opt in; Phase One uses the built-in on-device heuristic engine.</p>
+              <label>AI Engine
+                <select value={aiEngine} onChange={(e)=>{ const v=e.target.value as AiEngine; setAiEngine(v); localStorage.setItem("auralith.aiEngine", v); }}>
+                  <option value="auto">Auto</option>
+                  <option value="lightweight">Lightweight Local Vision</option>
+                  <option value="enhanced">Enhanced AI Vision — Experimental</option>
+                </select>
+              </label>
+              <p className="muted">Lightweight: no download, fast heuristic. Enhanced: multi-scale local segmenter + optional SAM 2.1 Tiny install ({ENHANCED_MODEL.downloadHintMb} MB, {ENHANCED_MODEL.license}). Images stay on this computer. Models are never downloaded silently.</p>
               <h3>UI</h3>
               <label className="chk"><input type="checkbox" checked={traceDebug} onChange={(e)=>setTraceDebug(e.target.checked)} /> Trace debug</label>
               <label className="chk"><input type="checkbox" checked={showGrid} onChange={(e)=>setShowGrid(e.target.checked)} /> Pixel grid (editor)</label>
