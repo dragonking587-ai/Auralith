@@ -6,10 +6,11 @@ import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
+import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.2";
+const APP_VERSION = "1.0.0-rc.3";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -113,7 +114,6 @@ function parseVcam(raw: unknown): VcamUi {
   }
   return fallback;
 }
-const UPDATE_API = "https://api.github.com/repos/dragonking587-ai/Auralith-Releases/releases";
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -138,6 +138,12 @@ export function App() {
   const [vcamBusy, setVcamBusy] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
   const [updateBusy, setUpdateBusy] = useState(false);
+  const [updateAvail, setUpdateAvail] = useState<string>("");
+  const [updateNotes, setUpdateNotes] = useState("");
+  const [updatePct, setUpdatePct] = useState("");
+  const [updateDetails, setUpdateDetails] = useState("");
+  const [showUpdateDetails, setShowUpdateDetails] = useState(false);
+  const pendingUpdateRef = useRef<any>(null);
   const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
   const [openFx, setOpenFx] = useState<string | null>(null);
   const [fxSub, setFxSub] = useState<"basic"|"color"|"audio"|"motion">("basic");
@@ -216,6 +222,15 @@ export function App() {
     refresh();
     const poll = setInterval(refresh, 1000);
     return () => { stop = true; clearInterval(poll); };
+  }, []);
+
+  useEffect(() => {
+    const pending = takePending();
+    if (pending && (pending === APP_VERSION || pending.endsWith(APP_VERSION))) {
+      setUpdateMsg(`Auralith Reborn updated successfully to v${APP_VERSION}.`);
+    }
+    const t = window.setTimeout(() => { void checkUpdates(true); }, 2500);
+    return () => window.clearTimeout(t);
   }, []);
 
   useEffect(() => {
@@ -395,7 +410,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.2",
+      tag: "v1.0.0-rc.3",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -434,6 +449,74 @@ export function App() {
     const url = githubNewIssueUrl(`[${draft.type}] ${draft.title}`, report);
     window.open(url, "_blank");
     setFbMsg("Your feedback report is ready. A browser window will open so you can review and submit it on GitHub. Sign in to GitHub if prompted.");
+  };
+
+
+  const checkUpdates = async (quiet: boolean) => {
+    if (updateBusy) return;
+    setUpdateBusy(true);
+    if (!quiet) setUpdateMsg("Checking for updates...");
+    setUpdateDetails("");
+    try {
+      const { check } = await import("@tauri-apps/plugin-updater");
+      const upd = await check();
+      if (!upd) {
+        setUpdateAvail("");
+        setUpdateNotes("");
+        pendingUpdateRef.current = null;
+        setUpdateMsg(`Auralith Reborn is up to date.\n\nInstalled:\n${APP_VERSION}\n\nLatest:\n${APP_VERSION}`);
+      } else if (!semverNewer(upd.version, APP_VERSION)) {
+        setUpdateAvail("");
+        pendingUpdateRef.current = null;
+        setUpdateMsg(`Auralith Reborn is up to date.\n\nInstalled:\n${APP_VERSION}\n\nLatest:\n${upd.version}`);
+      } else {
+        pendingUpdateRef.current = upd;
+        setUpdateAvail(upd.version);
+        setUpdateNotes(String(upd.body || ""));
+        setUpdateMsg(`Auralith Reborn Update Available\n\nInstalled:\n${APP_VERSION}\n\nAvailable:\n${upd.version}`);
+      }
+    } catch (e) {
+      const msg = String(e);
+      setUpdateDetails(msg);
+      if (!quiet) setUpdateMsg("Could not check for updates.");
+    } finally {
+      setUpdateBusy(false);
+    }
+  };
+  const installUpdate = async () => {
+    const upd = pendingUpdateRef.current;
+    if (!upd || updateBusy) return;
+    autosaveProject(JSON.stringify(project));
+    persistPending(updateAvail || upd.version);
+    setUpdateBusy(true);
+    setUpdateMsg("Preparing update...");
+    try {
+      await upd.downloadAndInstall((ev: any) => {
+        if (ev.event === "Started") setUpdatePct("Downloading update...");
+        else if (ev.event === "Progress") {
+          const c = Number(ev.data?.chunkLength || 0);
+          const tot = Number(ev.data?.contentLength || 0);
+          if (tot > 0) setUpdatePct(`Downloading update... ${Math.min(99, Math.round((c / tot) * 100))}%  ${formatBytes(c)} / ${formatBytes(tot)}`);
+          else setUpdatePct(`Downloading update... ${formatBytes(c)}`);
+        } else if (ev.event === "Finished") {
+          setUpdatePct("Verifying update...");
+          setUpdateMsg("Preparing installation...");
+        }
+      });
+      setUpdateMsg("Installing update. Auralith will close and restart.");
+      try {
+        const proc = await import("@tauri-apps/plugin-process");
+        await proc.relaunch();
+      } catch { /* Windows updater typically exits the process first */ }
+    } catch (e) {
+      const msg = String(e);
+      setUpdateDetails(msg);
+      if (/signat/i.test(msg)) setUpdateMsg("The update could not be verified and was NOT installed.");
+      else if (/download/i.test(msg)) setUpdateMsg("The update could not be downloaded. Your current version has not been changed.");
+      else setUpdateMsg("The update could not be installed. Auralith remains on the current version.");
+    } finally {
+      setUpdateBusy(false);
+    }
   };
 
   return (
@@ -740,27 +823,20 @@ export function App() {
               <h3>UI</h3>
               <label className="chk"><input type="checkbox" checked={oneOpen} onChange={(e)=>setOneOpen(e.target.checked)} /> One effect expanded at a time</label>
               <h3>UPDATES</h3>
-              <button disabled={updateBusy} onClick={async () => {
-                if (updateBusy) return;
-                setUpdateBusy(true);
-                setUpdateMsg("Checking for updates…");
-                try {
-                  const res = await fetch(UPDATE_API);
-                  if (!res.ok) throw new Error(`Update source HTTP ${res.status}`);
-                  const list = await res.json() as { tag_name?: string; html_url?: string; prerelease?: boolean }[];
-                  const tags = list.map((r) => r.tag_name || "").filter((t) => t.startsWith("reborn-v"));
-                  const latest = tags[0] || "";
-                  const latestVer = latest.replace(/^reborn-v/, "");
-                  if (!latest) setUpdateMsg(`Up to date (no Reborn tags). Installed ${APP_VERSION}`);
-                  else if (latestVer === APP_VERSION || latest.endsWith(APP_VERSION)) setUpdateMsg(`Up to date. Installed ${APP_VERSION}`);
-                  else setUpdateMsg(`Update available: ${latest} (installed ${APP_VERSION}). Download from GitHub Releases.`);
-                } catch (e) {
-                  setUpdateMsg("Update check failed: " + String(e));
-                } finally {
-                  setUpdateBusy(false);
-                }
-              }}>Check for Updates</button>
+              <p>Installed: {APP_VERSION}</p>
+              {updateAvail && <p>Available: {updateAvail}</p>}
+              {updateNotes && <pre className="notes">{updateNotes}</pre>}
+              {updatePct && <p>{updatePct}</p>}
               {updateMsg && <p>{updateMsg}</p>}
+              <div className="row">
+                <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Check for Updates</button>
+                {updateAvail && semverNewer(updateAvail, APP_VERSION) && (
+                  <button disabled={updateBusy} onClick={()=>void installUpdate()}>Download &amp; Install</button>
+                )}
+                {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
+              </div>
+              {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
+              {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
               <h3>ABOUT</h3>
               <p>Auralith Reborn {APP_VERSION}</p>
               <p>80 effects registered</p>

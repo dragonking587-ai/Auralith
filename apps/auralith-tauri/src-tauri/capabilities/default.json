@@ -1,7 +1,9 @@
 {
   "identifier": "default",
   "description": "Auralith Reborn Preview",
-  "windows": ["main"],
+  "windows": [
+    "main"
+  ],
   "permissions": [
     "core:default",
     "dialog:default",
@@ -10,6 +12,8 @@
     "allow-vcam-install",
     "allow-vcam-start",
     "allow-vcam-stop",
-    "allow-vcam-push-frame"
+    "allow-vcam-push-frame",
+    "updater:default",
+    "process:default"
   ]
 }

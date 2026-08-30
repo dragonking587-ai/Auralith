@@ -51,6 +51,9 @@ jobs:
           New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
           Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
       - name: Tauri NSIS
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         run: npx tauri build --bundles nsis
       - name: Collect installer
         shell: pwsh
@@ -68,6 +71,28 @@ jobs:
           "$name  $hash" | Set-Content dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List FullName,Length
           Write-Host "SHA256 $hash"
+          $sig = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.sig | Select-Object -First 1
+          $zip = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.nsis.zip,*.zip | Where-Object { $_.Name -match "nsis|updater" } | Select-Object -First 1
+          if (-not $zip) { $zip = $exe }
+          if ($sig) { Copy-Item $sig.FullName "dist-install/$($sig.Name)" }
+          if ($zip -and $zip.FullName -ne $exe.FullName) { Copy-Item $zip.FullName "dist-install/$($zip.Name)" }
+          $sigText = if ($sig) { (Get-Content $sig.FullName -Raw).Trim() } else { "" }
+          $assetName = if ($zip) { $zip.Name } else { $name }
+          $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$v/$assetName"
+          $latest = [ordered]@{
+            version = $v
+            notes = "Auralith Reborn $v"
+            pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $sigText
+                url = $url
+              }
+            }
+          }
+          $latest | ConvertTo-Json -Depth 6 | Set-Content dist-install/latest.json -Encoding utf8
+          if (-not $sigText) { Write-Warning "No updater signature produced" }
+          Get-ChildItem dist-install | Format-Table Name,Length
       - uses: actions/upload-artifact@v4
         with:
           name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
@@ -78,11 +103,10 @@ jobs:
           tag_name: ${{ steps.ver.outputs.tag }}
           name: Auralith Reborn ${{ steps.ver.outputs.version }}
           target_commitish: tauri/auralith-reborn
-          prerelease: true
+          prerelease: false
           fail_on_unmatched_files: true
           files: |
-            apps/auralith-tauri/dist-install/${{ steps.ver.outputs.file }}
-            apps/auralith-tauri/dist-install/SHA256SUMS.txt
+            apps/auralith-tauri/dist-install/*
           body: |
             # Auralith Reborn ${{ steps.ver.outputs.version }}
 
@@ -117,3 +141,17 @@ jobs:
             Installer: ${{ steps.ver.outputs.file }}
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
+
+      - name: Publish updater-latest pointer
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: updater-latest
+          name: Auralith Reborn updater metadata
+          target_commitish: tauri/auralith-reborn
+          prerelease: true
+          allow_updates: true
+          files: |
+            apps/auralith-tauri/dist-install/latest.json
+          body: |
+            Rolling updater metadata for Auralith Reborn.
+            Points Check for Updates at the current signed Windows artifact.

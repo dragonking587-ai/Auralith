@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Auralith Reborn Preview",
-  "version": "2.0.0",
+  "version": "1.0.0-rc.3",
   "identifier": "com.auralith.reborn.preview",
   "build": {
     "beforeDevCommand": "npm run dev",
@@ -21,16 +21,39 @@
         "decorations": true
       }
     ],
-    "security": { "csp": null }
+    "security": {
+      "csp": null
+    }
   },
   "bundle": {
     "active": true,
-    "targets": ["nsis"],
-    "resources": ["resources/*"],
-    "icon": ["icons/icon.png", "icons/icon.ico"],
+    "targets": [
+      "nsis"
+    ],
+    "resources": [
+      "resources/*"
+    ],
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.ico"
+    ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "windows/hooks.nsh"
+      }
+    },
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdEODhERUE4RjBGNDZBOTUKUldTVmF2VHdxTjZJZlh2aHBSdC9aTjF0SWxOUTRKd2NxSlJReDdrK3lFU3BYRGZKT2RlVG5PSVAK",
+      "endpoints": [
+        "https://github.com/dragonking587-ai/Auralith/releases/latest/download/latest.json",
+        "https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest.json"
+      ],
+      "windows": {
+        "installMode": "passive"
       }
     }
   }
