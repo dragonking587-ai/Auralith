@@ -7,7 +7,49 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.14";
+const APP_VERSION = "2.0.0-alpha.15";
+const PARAM_LABELS: Record<string, [string, string, string]> = {
+  VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
+  Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
+  Vortex: ["Spiral Tightness", "Rotation Speed", "Arm Count"],
+  EnergyBeam: ["Beam Length", "Beam Width", "Turbulence"],
+  EnergySparks: ["Spark Rate", "Spark Size", "Spread"],
+  SpectralAura: ["Aura Radius", "Thickness", "Wisp Motion"],
+  LightningArc: ["Bolt Rate", "Bolt Width", "Branching"],
+  ElectricCrawl: ["Crawl Speed", "Arc Width", "Density"],
+  ThunderFlash: ["Flash Rate", "Flash Strength", "Decay"],
+  Laser: ["Beam Length", "Core Sharpness", "Glow Width"],
+  RealisticFlame: ["Flame Height", "Flame Width", "Tongue Motion"],
+  Embers: ["Spawn Rate", "Rise Speed", "Drift"],
+  Sparks: ["Burst Rate", "Speed", "Spread"],
+  HeatDistortion: ["Rise Speed", "Distortion Scale", "Ripple"],
+  SmokeFog: ["Density", "Coverage", "Roll"],
+  Mist: ["Drift Speed", "Opacity", "Softness"],
+  HueShift: ["Hue Rotation", "Saturation", "Contrast"],
+  ChromaticPulse: ["Pulse Speed", "Separation", "Decay"],
+  PrismaticLight: ["Spread", "Sweep Speed", "Dispersion"],
+  NeonGlow: ["Glow Strength", "Tube Width", "Flicker"],
+  Pulse: ["Pulse Amount", "Pulse Size", "Phase"],
+  Flicker: ["Flicker Depth", "Speed", "Stability"],
+  LightSurge: ["Surge Strength", "Bloom", "Decay"],
+  Strobe: ["Rate", "Duty", "Phase"],
+  GlowBloom: ["Bloom Strength", "Radius", "Layers"],
+  BreathingGlow: ["Breath Speed", "Depth", "Phase"],
+  Afterglow: ["Persistence", "Radius", "Decay"],
+  EchoPulse: ["Main Strength", "Size Growth", "Echo Decay"],
+  WaveSweep: ["Speed", "Band Width", "Direction"],
+  Spotlight: ["Brightness", "Radius", "Focus"],
+  Halo: ["Radius", "Ring Width", "Broken Arc"],
+  LightRays: ["Ray Count", "Width", "Rotation"],
+  GodRays: ["Strength", "Softness", "Haze"],
+  LensFlare: ["Intensity", "Ghost Spacing", "Streak"],
+  Starburst: ["Spike Count", "Sharpness", "Decay"],
+  EnergyFlow: ["Flow Speed", "Width", "Segment Count"],
+  EnergyRipple: ["Ripple Speed", "Ring Width", "Spacing"],
+  Shockwave: ["Expansion Speed", "Ring Width", "Sharpness"],
+  MagicEnergy: ["Core Size", "Tendril Length", "Tendril Count"],
+  Plasma: ["Plasma Scale", "Flow Speed", "Warp"],
+};
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };
 function parseVcam(raw: unknown): VcamUi {
@@ -366,15 +408,15 @@ export function App() {
                 const v=Number(ev.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,speed:v}:x)}) });
               }} /></label>
-              <label>Amount/Rate <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(ev)=>{
+              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(ev)=>{
                 const v=Number(ev.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p0:v}:x)}) });
               }} /></label>
-              <label>Size/Width <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(ev)=>{
+              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(ev)=>{
                 const v=Number(ev.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p1:v}:x)}) });
               }} /></label>
-              <label>Shape/Phase <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(ev)=>{
+              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(ev)=>{
                 const v=Number(ev.target.value);
                 setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p2:v}:x)}) });
               }} /></label>

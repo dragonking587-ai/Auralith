@@ -36,5 +36,17 @@ export const VORTEX_PRESETS: NamedPreset[] = [
   {
     name: "Custom Vortex",
     apply: (kind) => ({ ...defaultEffect(kind), preset: "Custom Vortex", intensity: 1 })
+  },
+  {
+    name: "Candle",
+    apply: () => ({ color: "#ffd27a", color2: "#ff6a00", color3: "#fff4c2", p0: 0.35, p1: 0.25, p2: 0.4, speed: 0.7, preset: "Candle" })
+  },
+  {
+    name: "Inferno",
+    apply: () => ({ color: "#ff3b00", color2: "#ffd000", color3: "#fff0c0", p0: 1.2, p1: 0.9, p2: 0.8, intensity: 1.2, preset: "Inferno" })
+  },
+  {
+    name: "Blue Flame",
+    apply: () => ({ color: "#7ad0ff", color2: "#2a6bff", color3: "#e8ffff", p0: 0.8, p1: 0.55, p2: 0.5, preset: "Blue Flame" })
   }
 ];

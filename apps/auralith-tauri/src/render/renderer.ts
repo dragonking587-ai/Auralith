@@ -168,6 +168,117 @@ void main(){
     a = (fil*0.95 + field*0.18 + spark*0.4)*mix(0.55,1.0,m);
     col = mix(mix(uA,uB,field), uC, fil*0.7+spark);
     col = hueShift(col, t*0.03+uMid*0.05);
+  } else if (k < 21.5) {
+    float absorb = smoothstep(0.15,1.1,d);
+    float tend = pow(abs(sin(ang*(4.0+p2*8.0)+fbm(p)*4.0+t)), 3.0)*exp(-d*(0.8+p1));
+    float rim = exp(-abs(d-0.55)*18.0);
+    a = (1.0-absorb)*0.55*p0 + tend*0.5*m + rim*0.7;
+    col = mix(uA*0.25, uB, tend);
+    col = mix(col, uC, rim);
+  } else if (k < 22.5) {
+    float hole = smoothstep(0.42+p0*0.15, 0.28, d);
+    float rim = exp(-abs(d-(0.38+p0*0.12))*(16.0+p1*20.0));
+    float inner = fbm(vec2(ang*1.2, d*3.0-t*(0.3+p2)))*hole;
+    a = rim*1.2*m + inner*0.55 + exp(-d*0.4)*0.08;
+    col = mix(uA, uB, inner);
+    col = mix(col, uC, rim);
+  } else if (k < 23.5) {
+    float arms = 3.0+floor(p2*5.0);
+    float spiral = fract(ang/6.2831*arms + d*(2.0+p0*4.0) - t*(0.4+p1+uBeat*0.4));
+    float arm = exp(-abs(spiral-0.5)*(14.0+p1*10.0))*exp(-d*0.45);
+    float core = exp(-d*(3.0+p0));
+    a = arm*m + core;
+    col = mix(mix(uA,uB,spiral), uC, core);
+  } else if (k < 24.5) {
+    float beam = exp(-abs(p.x)*(8.0+p1*18.0))*smoothstep(1.1,-0.1,p.y*(0.6+p0));
+    float turb = 0.7+0.3*n2(vec2(p.y*6.0-t, p.x*10.0));
+    a = beam*turb*m;
+    col = mix(uA, uC, exp(-abs(p.x)*30.0));
+  } else if (k < 25.5) {
+    float cells = hash(floor(p*(8.0+p0*20.0)+t*(2.0+uHigh*4.0)));
+    float dots = step(0.82-p1*0.2, cells)*exp(-d*1.1);
+    a = dots*m;
+    col = mix(uA, uC, cells);
+  } else if (k < 26.5) {
+    float wisp = fbm(p*1.4+vec2(t*0.08, t*0.05));
+    float aura = exp(-d*(0.7+p1))* (0.25+wisp*0.7);
+    a = aura*m*(0.45+p0);
+    col = mix(uA, uB, wisp);
+    col = mix(col, uC, exp(-d*4.0));
+  } else if (k < 27.5) {
+    float bolt = pow(abs(sin(ang*2.0 + n2(vec2(t*8.0, floor(d*12.0)))*6.0)), 18.0+p1*20.0);
+    float fork = pow(abs(sin(ang*5.0+t*3.0)), 22.0)*0.45;
+    a = (bolt+fork)*exp(-d*0.35)*step(0.35, fract(t*(1.2+p0)+uBeat))*m;
+    col = mix(uA, uC, bolt);
+  } else if (k < 28.5) {
+    float crawl = exp(-abs(d-0.5)*(10.0+p1*16.0));
+    float walk = exp(-abs(fract(ang*4.0 - t*(0.5+p0))-0.5)*22.0);
+    a = crawl*walk*m;
+    col = mix(uA, uC, walk);
+  } else if (k < 29.5) {
+    float hit = exp(-fract(t*(0.25+p0)+uBeat)* (3.0+p2*6.0));
+    a = hit*m*(0.4+p1);
+    col = mix(uA, uC, hit);
+  } else if (k < 30.5) {
+    float core = exp(-abs(p.x)*(28.0+p1*40.0));
+    float glow = exp(-abs(p.x)*(8.0+p2*8.0))*0.35;
+    float len = smoothstep(1.05,-0.2,p.y*(0.5+p0));
+    a = (core+glow)*len*m;
+    col = mix(uA, uC, core);
+  } else if (k < 31.5) {
+    float base = exp(-abs(p.x)*(3.0+p1*6.0)/(0.15+max(0.05,0.55-p.y)));
+    float height = smoothstep(0.95+p0*0.3,-0.15,p.y);
+    float tongue = 0.6+0.4*n2(vec2(p.x*8.0, p.y*3.0 - t*(1.4+uMid)));
+    float flame = base*height*tongue;
+    flame *= step(p.y, 0.85+p0*0.2);
+    a = flame*m;
+    col = mix(mix(uB,uA,clamp(-p.y,0.0,1.0)), uC, exp(-abs(p.x)*8.0)*height);
+  } else if (k < 32.5) {
+    float id = hash(floor(p*12.0+vec2(0.0, floor(t*(0.4+p0)))));
+    float rise = fract(id + t*(0.12+p1*0.3));
+    float ember = step(0.78, hash(floor(p*10.0)))*exp(-abs(p.x)*6.0)*exp(-abs(p.y+0.6-rise*1.6)*8.0);
+    a = ember*m*(1.0-rise);
+    col = mix(uA, uB, rise);
+  } else if (k < 33.5) {
+    float id = hash(floor(p*18.0));
+    float life = fract(id*3.1 + t*(1.4+p0+uBeat));
+    vec2 dir = vec2(id-0.5, 0.35+id*0.4);
+    float sp = exp(-length(p-dir*life* (0.6+p1))*18.0);
+    a = sp*m*(1.0-life);
+    col = mix(uC, uB, life);
+  } else if (k < 34.5) {
+    float heat = exp(-d*(0.8+p1))* (0.3+fbm(p*2.0+vec2(0.0,t*(0.4+p0))));
+    a = heat*0.35*m;
+    col = mix(uA, uC, heat);
+  } else if (k < 35.5) {
+    float sm = fbm(p*(0.8+p0)+vec2(t*0.05, t*0.03));
+    float fog = smoothstep(0.25,0.75,sm)*exp(-abs(p.y)* (0.4+p1));
+    a = fog*m*0.55;
+    col = mix(uA, uB, sm);
+  } else if (k < 36.5) {
+    float mist = fbm(vec2(uv.x*1.4+t*(0.04+p0), uv.y*0.6));
+    a = mist*0.22*m*(0.4+p1);
+    col = mix(uA, uC, mist);
+  } else if (k < 37.5) {
+    a = 0.35*m;
+    col = hueShift(mix(uA,uB,0.5), p0-1.0 + uBass*0.2);
+  } else if (k < 38.5) {
+    float pulse = 0.5+0.5*sin(t*(2.0+p0*6.0));
+    float sep = (p1+uBeat)*0.08;
+    col = vec3(uA.r, uB.g, uC.b);
+    a = (0.25+pulse*0.5)*m;
+    col = mix(uA, col, clamp(sep*8.0,0.0,1.0));
+  } else if (k < 39.5) {
+    float band = fract(ang/6.2831*6.0 + d*(2.0+p0) + t*p1);
+    a = exp(-d*0.7)*m*0.6;
+    col = mix(uA, uB, band);
+    col = mix(col, uC, exp(-d*5.0));
+  } else if (k < 40.5) {
+    float tube = exp(-abs(d-0.5)*(18.0+p1*22.0));
+    float bloom = exp(-abs(d-0.5)*3.5)*0.35;
+    float buzz = 0.75+0.25*n2(vec2(t*(6.0+p2*10.0), 2.0));
+    a = (tube+bloom)*buzz*m;
+    col = mix(uA, uC, tube);
   } else {
     a = exp(-d*2.0)*(0.2+m);
     col = mix(uA,uB,0.5);
