@@ -373,6 +373,104 @@ void main(){
     float fringe = abs(sin(d*(8.0+p0*10.0)+t*0.2));
     a = lens*0.28*m + fringe*lens*0.2;
     col = mix(uA, uC, fringe);
+  } else if (k < 61.5) {
+    float cover = smoothstep(0.15, 0.95, fbm(p*(2.0+p1*3.0))+p0*0.35);
+    float branch = pow(abs(sin(ang*8.0+fbm(p)*5.0)), 8.0)*exp(-d*0.6);
+    a = (cover*0.45 + branch*0.35)*m;
+    col = mix(uA, uC, branch);
+  } else if (k < 62.5) {
+    float facet = abs(sin(ang*(3.0+floor(p2*6.0)) + d*(4.0+p0)));
+    float grow = smoothstep(1.1, 0.15+p1*0.2, d)*pow(facet, 4.0);
+    a = grow*m;
+    col = mix(uA, uC, facet);
+  } else if (k < 63.5) {
+    float shine = fbm(p*(5.0+p1*6.0)+vec2(t*(0.3+p0),0.0));
+    float ice = smoothstep(0.55,0.8,shine)*smoothstep(0.95,0.65,shine);
+    a = ice*exp(-d*0.35)*m;
+    col = mix(uA, uC, ice);
+  } else if (k < 64.5) {
+    float puff = exp(-d*(1.1+p1))*fbm(p*1.6+vec2(t*(0.2+p0),0.0));
+    a = puff*m*0.55;
+    col = mix(uA, uC, puff);
+  } else if (k < 65.5) {
+    float id = hash(floor(p*9.0));
+    vec2 w = vec2(sin(t*(0.4+p0)+id*6.0), cos(t*0.33+id*4.0))* (0.3+p1);
+    float fly = exp(-length(p-w)*18.0);
+    float blink = step(0.35, fract(t*(0.6+p2)+id));
+    a = fly*blink*m;
+    col = mix(uA, uC, fly);
+  } else if (k < 66.5) {
+    float spore = hash(floor(p*11.0+t*0.04));
+    float glow = step(0.86, spore)*exp(-d*0.5);
+    a = glow*(0.4+0.4*sin(t*(0.7+p0)+spore*10.0))*m;
+    col = mix(uA, uB, spore);
+  } else if (k < 67.5) {
+    float rune = exp(-abs(d-0.48)*(12.0+p1*16.0));
+    float flow = exp(-abs(fract(ang*3.0 - t*(0.3+p0))-0.5)*18.0);
+    a = (rune+flow*0.6)*m;
+    col = mix(uA, uC, flow);
+  } else if (k < 68.5) {
+    float phase = fract(t*(0.2+p0)+uBeat*0.15);
+    float ring = exp(-abs(d-(0.25+phase*0.4))*(14.0+p1*10.0));
+    float core = exp(-d*(3.0+p2))*step(0.35, phase);
+    a = (ring+core)*m;
+    col = mix(uA, uC, core+phase);
+  } else if (k < 69.5) {
+    float tend = pow(abs(sin(ang*(3.0+p2*4.0)+fbm(p)*3.0+t*(0.2+p0))), 5.0);
+    tend *= exp(-d*(0.6+p1));
+    a = tend*m;
+    col = mix(uA*0.2, uC, tend*0.3);
+  } else if (k < 70.5) {
+    float disc = smoothstep(0.42+p0*0.15, 0.35, d);
+    float corona = exp(-abs(d-(0.4+p0*0.12))*(10.0+p1*16.0));
+    a = disc*0.55 + corona*m;
+    col = mix(uA*0.05, uC, corona);
+  } else if (k < 71.5) {
+    float pull = exp(-d*(0.8+p1));
+    a = pull*0.4*m + exp(-d*6.0)*0.3;
+    col = mix(uA, uC, exp(-d*4.0));
+  } else if (k < 72.5) {
+    float warp = fbm(p*(1.4+p0)+t*0.08);
+    a = exp(-d*(0.6+p1))* (0.25+warp*0.5)*m;
+    col = mix(uA, uB, warp);
+  } else if (k < 73.5) {
+    float segs = 4.0+floor(p2*8.0);
+    float kal = abs(fract(ang/6.2831*segs)-0.5);
+    a = exp(-kal*(6.0+p1))*exp(-d*0.4)*m;
+    col = mix(uA, uC, kal);
+  } else if (k < 74.5) {
+    float shard = hash(floor(p*(5.0+p0*8.0)));
+    float edge = abs(sin(ang*6.0+shard*8.0));
+    a = step(0.55, shard)*exp(-d*0.3)*m*0.45 + exp(-abs(edge-0.7)*20.0)*0.3;
+    col = mix(uA, uC, edge);
+  } else if (k < 75.5) {
+    float pix = hash(floor(uv*(12.0+p1*24.0)));
+    a = step(pix, p0*0.6+uBeat*0.2)*m*0.5;
+    col = mix(uA, uC, pix);
+  } else if (k < 76.5) {
+    float scan = exp(-abs(uv.y-fract(t*(0.25+p0)))*(18.0+p1*20.0));
+    a = scan*m;
+    col = mix(uA, uC, scan);
+  } else if (k < 77.5) {
+    float sep = p0*0.15+uBeat*0.05;
+    col = vec3(uA.r, uB.g, uC.b);
+    a = 0.28*m;
+    col = mix(uA, col, clamp(sep*6.0,0.0,1.0));
+  } else if (k < 78.5) {
+    float burn = smoothstep(0.2,0.9, uv.y + fbm(uv*3.0)*0.2 - (0.3+p0*0.4));
+    float hot = exp(-abs(burn-0.5)*8.0);
+    a = burn*m*0.5 + hot*0.35;
+    col = mix(uA, uC, hot);
+  } else if (k < 79.5) {
+    float star = hash(floor(uv*(30.0+p0*40.0)));
+    float tw = 0.5+0.5*sin(t*(1.0+p1)+star*20.0);
+    a = step(0.93, star)*tw*m;
+    col = mix(uA, uC, star);
+  } else if (k < 80.5) {
+    float cloud = fbm(uv*(1.1+p0)+vec2(t*(0.04+p1), t*0.03));
+    float layer = fbm(uv*2.2-t*0.02);
+    a = cloud*0.45*m + layer*0.15;
+    col = mix(mix(uA,uB,cloud), uC, layer*0.4);
   } else {
     a = exp(-d*2.0)*(0.2+m);
     col = mix(uA,uB,0.5);
@@ -402,9 +500,10 @@ const KIND_INDEX: Record<EffectKind, number> = {
   HueShift:37,ChromaticPulse:38,PrismaticLight:39,NeonGlow:40,NeonChase:41,Shimmer:42,GlitterSparkle:43,HolographicDistortion:44,GlitchLight:45,
   ShadowPulse:46,RoomDim:47,LocalDim:48,ContrastSurge:49,
   Rain:50,WetReflection:51,Snow:52,Ash:53,DustMotes:54,Aurora:55,AtmosphericHaze:56,WaterReflection:57,Caustics:58,WaterRipple:59,Refraction:60,
-  RuneGlow:61,RuneSequence:62,TraceChase:63,TracePulse:64,OutlineEnergy:65,
-  ParticleBurst:66,ParticleFountain:67,OrbitingParticles:68,GravityParticles:69,ReverseGravity:70,Swarm:71,Trail:72,
-  BeatFlash:73,TransientBurst:74,BassExpansion:75,FrequencyGradient:76,SpectrumSweep:77,AudioRipple:78,PeakHoldGlow:79,RhythmChase:80
+  FrostIce:61,CrystalGrowth:62,IceShimmer:63,FrozenBreath:64,Fireflies:65,
+  BioluminescentSpores:66,RuneGlow:67,SigilActivation:68,ShadowTendrils:69,Eclipse:70,
+  GravityWell:71,SpatialWarp:72,Kaleidoscope:73,MirrorFracture:74,PixelDissolve:75,
+  ScanlinePulse:76,RgbSplit:77,FilmBurn:78,CelestialStars:79,CosmicNebula:80
 };
 export function bandOf(snap: AudioSnapshot, map: string) {
   switch (map) {

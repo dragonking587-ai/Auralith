@@ -7,7 +7,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.16";
+const APP_VERSION = "2.0.0-alpha.17";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -69,6 +69,26 @@ const PARAM_LABELS: Record<string, [string, string, string]> = {
   Caustics: ["Caustic Scale", "Flow Speed", "Warp"],
   WaterRipple: ["Ripple Speed", "Amplitude", "Ring Width"],
   Refraction: ["Index Amount", "Lens Radius", "Dispersion"],
+  FrostIce: ["Coverage", "Grain", "Branching"],
+  CrystalGrowth: ["Growth Amount", "Crystal Length", "Facet Count"],
+  IceShimmer: ["Shimmer Speed", "Highlight Width", "Sparkle"],
+  FrozenBreath: ["Puff Rate", "Puff Size", "Curl"],
+  Fireflies: ["Flight Speed", "Wander", "Blink"],
+  BioluminescentSpores: ["Pulse Speed", "Density", "Curl"],
+  RuneGlow: ["Flow Speed", "Core Width", "Pulse"],
+  SigilActivation: ["Activation Speed", "Ring Width", "Core Ignition"],
+  ShadowTendrils: ["Growth Speed", "Reach", "Curl"],
+  Eclipse: ["Radius", "Corona Width", "Totality"],
+  GravityWell: ["Pull", "Well Radius", "Horizon"],
+  SpatialWarp: ["Warp Strength", "Warp Radius", "Twist"],
+  Kaleidoscope: ["Rotation", "Zoom", "Segments"],
+  MirrorFracture: ["Fracture", "Shard Size", "Edge"],
+  PixelDissolve: ["Dissolve Amount", "Pixel Size", "Scatter"],
+  ScanlinePulse: ["Scan Speed", "Band Width", "Tail"],
+  RgbSplit: ["Separation", "Direction", "Wave"],
+  FilmBurn: ["Burn Amount", "Spread", "Grain"],
+  CelestialStars: ["Density", "Twinkle", "Parallax"],
+  CosmicNebula: ["Scale", "Flow Speed", "Turbulence"],
 };
 
 type VcamUi = { state: string; error: string; installed: boolean; running: boolean };

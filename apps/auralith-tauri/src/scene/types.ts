@@ -12,9 +12,10 @@ export type EffectKind =
   | "HueShift" | "ChromaticPulse" | "PrismaticLight" | "NeonGlow" | "NeonChase" | "Shimmer" | "GlitterSparkle" | "HolographicDistortion" | "GlitchLight"
   | "ShadowPulse" | "RoomDim" | "LocalDim" | "ContrastSurge"
   | "Rain" | "WetReflection" | "Snow" | "Ash" | "DustMotes" | "Aurora" | "AtmosphericHaze" | "WaterReflection" | "Caustics" | "WaterRipple" | "Refraction"
-  | "RuneGlow" | "RuneSequence" | "TraceChase" | "TracePulse" | "OutlineEnergy"
-  | "ParticleBurst" | "ParticleFountain" | "OrbitingParticles" | "GravityParticles" | "ReverseGravity" | "Swarm" | "Trail"
-  | "BeatFlash" | "TransientBurst" | "BassExpansion" | "FrequencyGradient" | "SpectrumSweep" | "AudioRipple" | "PeakHoldGlow" | "RhythmChase";
+  | "FrostIce" | "CrystalGrowth" | "IceShimmer" | "FrozenBreath" | "Fireflies"
+  | "BioluminescentSpores" | "RuneGlow" | "SigilActivation" | "ShadowTendrils" | "Eclipse"
+  | "GravityWell" | "SpatialWarp" | "Kaleidoscope" | "MirrorFracture" | "PixelDissolve"
+  | "ScanlinePulse" | "RgbSplit" | "FilmBurn" | "CelestialStars" | "CosmicNebula";
 
 export const ALL_EFFECTS: EffectKind[] = [
   "Pulse","Flicker","LightSurge","Strobe","GlowBloom","BreathingGlow","Afterglow","EchoPulse","WaveSweep","Spotlight",
@@ -25,9 +26,10 @@ export const ALL_EFFECTS: EffectKind[] = [
   "HueShift","ChromaticPulse","PrismaticLight","NeonGlow","NeonChase","Shimmer","GlitterSparkle","HolographicDistortion","GlitchLight",
   "ShadowPulse","RoomDim","LocalDim","ContrastSurge",
   "Rain","WetReflection","Snow","Ash","DustMotes","Aurora","AtmosphericHaze","WaterReflection","Caustics","WaterRipple","Refraction",
-  "RuneGlow","RuneSequence","TraceChase","TracePulse","OutlineEnergy",
-  "ParticleBurst","ParticleFountain","OrbitingParticles","GravityParticles","ReverseGravity","Swarm","Trail",
-  "BeatFlash","TransientBurst","BassExpansion","FrequencyGradient","SpectrumSweep","AudioRipple","PeakHoldGlow","RhythmChase"
+  "FrostIce","CrystalGrowth","IceShimmer","FrozenBreath","Fireflies",
+  "BioluminescentSpores","RuneGlow","SigilActivation","ShadowTendrils","Eclipse",
+  "GravityWell","SpatialWarp","Kaleidoscope","MirrorFracture","PixelDissolve",
+  "ScanlinePulse","RgbSplit","FilmBurn","CelestialStars","CosmicNebula"
 ];
 
 export type EffectInstance = {
@@ -89,8 +91,31 @@ export function defaultEffect(kind: EffectKind): EffectInstance {
   };
 }
 
-export function normalizeEffect(e: Partial<EffectInstance> & { kind: EffectKind }): EffectInstance {
-  const d = defaultEffect(e.kind);
+const KIND_ALIASES: Record<string, EffectKind> = {
+  RuneSequence: "SigilActivation",
+  TraceChase: "NeonChase",
+  TracePulse: "Pulse",
+  OutlineEnergy: "EnergyFlow",
+  ParticleBurst: "EnergySparks",
+  ParticleFountain: "Embers",
+  OrbitingParticles: "Fireflies",
+  GravityParticles: "GravityWell",
+  ReverseGravity: "Embers",
+  Swarm: "Fireflies",
+  Trail: "Afterglow",
+  BeatFlash: "ThunderFlash",
+  TransientBurst: "Sparks",
+  BassExpansion: "Pulse",
+  FrequencyGradient: "HueShift",
+  SpectrumSweep: "PrismaticLight",
+  AudioRipple: "EnergyRipple",
+  PeakHoldGlow: "Afterglow",
+  RhythmChase: "NeonChase"
+};
+
+export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): EffectInstance {
+  const kind = (KIND_ALIASES[e.kind] || (ALL_EFFECTS.includes(e.kind as EffectKind) ? e.kind : "Pulse")) as EffectKind;
+  const d = defaultEffect(kind);
   return {
     ...d,
     ...e,
