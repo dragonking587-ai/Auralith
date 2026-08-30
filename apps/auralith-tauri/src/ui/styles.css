@@ -39,4 +39,6 @@ canvas#gl { width:100%; height:100%; display:block; background:#050509; }
 .ok { color:#7dffa3; }
 .warn { color:#ffb14a; }
 .errbox { border:1px solid #8a3030; padding:8px; }
+.badge { color:#111; background:#D4AF37; font-size:9px; letter-spacing:.08em; padding:1px 5px; margin-left:6px; }
+.warnbox { border:1px solid #8a6a20; background:#16120a; padding:8px; }
 .hidden { display:none !important; }

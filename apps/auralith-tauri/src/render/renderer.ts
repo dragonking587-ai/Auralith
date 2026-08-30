@@ -471,6 +471,16 @@ void main(){
     float layer = fbm(uv*2.2-t*0.02);
     a = cloud*0.45*m + layer*0.15;
     col = mix(mix(uA,uB,cloud), uC, layer*0.4);
+  } else if (k < 81.5) {
+    float tube = exp(-abs(d-0.42)*(16.0+p1*22.0));
+    float bloom = exp(-abs(d-0.42)*3.2)*0.4;
+    float path = fract(ang/6.2831 - t*(0.25+p0+uMid*0.4));
+    vec3 rb = 0.5+0.5*cos(6.2831*path + vec3(0.0,2.094,4.188));
+    float chase = exp(-abs(fract(path* (1.0+p2*3.0))-0.5)*18.0);
+    float flick = 0.75+0.25*n2(vec2(t*9.0,2.0))*uHigh;
+    a = (tube+bloom+chase*0.35)*flick*m;
+    col = mix(mix(uA,uB,path), rb, 0.55);
+    col = mix(col, uC, tube);
   } else {
     a = exp(-d*2.0)*(0.2+m);
     col = mix(uA,uB,0.5);
@@ -503,7 +513,7 @@ const KIND_INDEX: Record<EffectKind, number> = {
   FrostIce:61,CrystalGrowth:62,IceShimmer:63,FrozenBreath:64,Fireflies:65,
   BioluminescentSpores:66,RuneGlow:67,SigilActivation:68,ShadowTendrils:69,Eclipse:70,
   GravityWell:71,SpatialWarp:72,Kaleidoscope:73,MirrorFracture:74,PixelDissolve:75,
-  ScanlinePulse:76,RgbSplit:77,FilmBurn:78,CelestialStars:79,CosmicNebula:80
+  ScanlinePulse:76,RgbSplit:77,FilmBurn:78,CelestialStars:79,CosmicNebula:80,SmartNeon:81
 };
 export function bandOf(snap: AudioSnapshot, map: string) {
   switch (map) {

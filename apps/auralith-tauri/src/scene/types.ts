@@ -15,7 +15,7 @@ export type EffectKind =
   | "FrostIce" | "CrystalGrowth" | "IceShimmer" | "FrozenBreath" | "Fireflies"
   | "BioluminescentSpores" | "RuneGlow" | "SigilActivation" | "ShadowTendrils" | "Eclipse"
   | "GravityWell" | "SpatialWarp" | "Kaleidoscope" | "MirrorFracture" | "PixelDissolve"
-  | "ScanlinePulse" | "RgbSplit" | "FilmBurn" | "CelestialStars" | "CosmicNebula";
+  | "ScanlinePulse" | "RgbSplit" | "FilmBurn" | "CelestialStars" | "CosmicNebula" | "SmartNeon";
 
 export const ALL_EFFECTS: EffectKind[] = [
   "Pulse","Flicker","LightSurge","Strobe","GlowBloom","BreathingGlow","Afterglow","EchoPulse","WaveSweep","Spotlight",
@@ -61,6 +61,8 @@ export type Region = {
   rotation: number;
   radius: number;
   effects: EffectInstance[];
+  label?: string;
+  experimental?: boolean;
 };
 
 export type Project = {
@@ -114,7 +116,7 @@ const KIND_ALIASES: Record<string, EffectKind> = {
 };
 
 export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): EffectInstance {
-  const kind = (KIND_ALIASES[e.kind] || (ALL_EFFECTS.includes(e.kind as EffectKind) ? e.kind : "Pulse")) as EffectKind;
+  const kind = (KIND_ALIASES[e.kind] || (e.kind === "SmartNeon" || ALL_EFFECTS.includes(e.kind as EffectKind) ? e.kind : "Pulse")) as EffectKind;
   const d = defaultEffect(kind);
   return {
     ...d,
