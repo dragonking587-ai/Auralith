@@ -5,10 +5,11 @@ import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, 
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
+import { BETA_ACCESS_REQUIRED, isBetaApproved, persistBetaApproval, validateBetaCode } from "../scene/betaAccess";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.21";
+const APP_VERSION = "1.0.0-rc.1";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -122,6 +123,11 @@ export function App() {
   const [view, setView] = useState<ViewMode>("Edit");
   const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit">("Edit");
   const [sel, setSel] = useState<string | null>(null);
+  const [betaOk, setBetaOk] = useState(() => !BETA_ACCESS_REQUIRED || isBetaApproved());
+  const [betaInput, setBetaInput] = useState("");
+  const [betaStatus, setBetaStatus] = useState("");
+  const [betaBusy, setBetaBusy] = useState(false);
+  const failCount = useRef(0);
   const [status, setStatus] = useState("Audio STOPPED");
   const [err, setErr] = useState("");
   const [vcam, setVcam] = useState<VcamUi>({ state: "NOT INSTALLED", error: "", installed: false, running: false });
@@ -380,6 +386,62 @@ export function App() {
     pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:arr}) });
   };
 
+  const activateBeta = async () => {
+    if (betaBusy) return;
+    setBetaBusy(true);
+    setBetaStatus("Validating...");
+    try {
+      if (failCount.current >= 8) {
+        await new Promise((r) => setTimeout(r, 2500));
+      } else if (failCount.current >= 3) {
+        await new Promise((r) => setTimeout(r, 800));
+      }
+      const res = await validateBetaCode(betaInput);
+      setBetaInput("");
+      if (res.ok) {
+        persistBetaApproval();
+        setBetaStatus("Access Granted");
+        setBetaOk(true);
+      } else if (res.reason === "format") {
+        failCount.current += 1;
+        setBetaStatus("Code format not recognized");
+      } else {
+        failCount.current += 1;
+        setBetaStatus("Invalid Beta Code");
+      }
+    } catch {
+      setBetaStatus("Beta access could not be validated");
+    } finally {
+      setBetaBusy(false);
+    }
+  };
+
+  if (!betaOk) {
+    return (
+      <div className="beta-gate">
+        <div className="beta-card">
+          <h1>AURALITH REBORN</h1>
+          <h2>PRIVATE BETA / RELEASE CANDIDATE</h2>
+          <p>This build is currently available for invited beta testers.</p>
+          <label>Beta Access Code
+            <input
+              type="password"
+              autoComplete="off"
+              value={betaInput}
+              onChange={(e) => setBetaInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") void activateBeta(); }}
+              placeholder="AUR-BETA-XXXXX-XXXXX-XXXXX"
+            />
+          </label>
+          <button disabled={betaBusy} onClick={() => void activateBeta()}>Activate Beta Access</button>
+          <p className="muted">Enter the beta access code provided by the Auralith developer.</p>
+          {betaStatus && <p className="beta-status">{betaStatus}{betaStatus==="Invalid Beta Code" ? ". Check the code and try again." : ""}</p>}
+          <button className="ghost" onClick={() => { try { window.close(); } catch {} }}>Exit</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app">
       <div className={`top ${clean ? "hidden" : ""}`}>
@@ -453,7 +515,8 @@ export function App() {
                 {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
               <h3>EXPERIMENTAL TOOLS</h3>
-              <button onClick={()=>setNeonOpen(true)}>Smart Word Trace <span className="badge">EXPERIMENTAL</span></button>
+              <button disabled title="Temporarily disabled">Smart Word Trace <span className="badge">EXPERIMENTAL — Temporarily Disabled</span></button>
+              <p className="muted">Detection accuracy is still being improved. This feature will return in a future update.</p>
               {neonWarn && neonOpen && (
                 <div className="warnbox">
                   <strong>SMART NEON DETECT — EXPERIMENTAL</strong>

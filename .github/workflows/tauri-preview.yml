@@ -30,8 +30,8 @@ jobs:
           if ($v -ne $pkg) { throw "VERSION ($v) != package.json ($pkg)" }
           if (-not $v) { throw "empty VERSION" }
           echo "version=$v" >> $env:GITHUB_OUTPUT
-          echo "tag=reborn-v$v" >> $env:GITHUB_OUTPUT
-          echo "file=Auralith-Reborn-Preview-$v-x64-Setup.exe" >> $env:GITHUB_OUTPUT
+          echo "tag=v1.0.0-rc.1" >> $env:GITHUB_OUTPUT
+          echo "file=Auralith-Reborn-1.0.0-RC1-Beta-x64-Setup.exe" >> $env:GITHUB_OUTPUT
           echo "REBORN_VERSION=$v"
       - name: Install frontend
         run: npm install
@@ -65,7 +65,7 @@ jobs:
           $dest = "dist-install/$name"
           Copy-Item $exe.FullName $dest
           $hash = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
-          "Auralith-Reborn-Preview-$v-x64-Setup.exe  $hash" | Set-Content dist-install/SHA256SUMS.txt
+          "$name  $hash" | Set-Content dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List FullName,Length
           Write-Host "SHA256 $hash"
       - uses: actions/upload-artifact@v4
@@ -76,7 +76,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          name: Auralith Reborn Preview — ${{ steps.ver.outputs.version }}
+          name: Auralith Reborn 1.0 RC1 — Invite-Code Beta
           target_commitish: tauri/auralith-reborn
           prerelease: true
           fail_on_unmatched_files: true
@@ -84,13 +84,39 @@ jobs:
             apps/auralith-tauri/dist-install/${{ steps.ver.outputs.file }}
             apps/auralith-tauri/dist-install/SHA256SUMS.txt
           body: |
-            AURALITH REBORN PREVIEW — ${{ steps.ver.outputs.version }}
+            # Auralith Reborn 1.0 RC1 — Invite-Code Beta
 
-            WINDOWS DOWNLOAD
-            ${{ steps.ver.outputs.file }}
+            This is a Release Candidate beta build.
+            The installer is publicly downloadable, but access to the application currently requires a Beta Access Code provided by the Auralith developer.
 
-            Platform: Windows x64
+            ## WINDOWS SMARTSCREEN NOTICE
+
+            Windows may show "Windows protected your PC" because this beta does not yet have an established Windows code-signing reputation.
+
+            If downloaded from this official Auralith GitHub Release:
+
+            More info → Run anyway
+
+            Do not disable Windows security features.
+
+            ## Installing on Windows
+
+            1. Download the Auralith Reborn installer from THIS official Auralith GitHub Release.
+            2. Double-click the downloaded installer.
+            3. Windows may display: "Windows protected your PC"
+            4. If you downloaded the installer from this official Auralith GitHub Release: click "More info", confirm it is the Auralith Reborn installer, then click "Run anyway".
+            5. Continue through the installer normally.
+            6. Launch Auralith Reborn.
+            7. Enter the Beta Access Code provided to you by the Auralith developer.
+            8. After successful activation, Auralith should remember the approval on that installation.
+
+            IMPORTANT:
+            Do NOT disable Windows SmartScreen.
+            Do NOT disable Windows Defender.
+            Do NOT use "Run anyway" for copies obtained from unknown third-party websites or unofficial sources.
+
+            Only install Auralith Reborn from the official Auralith GitHub repository/release.
+
+            Installer: ${{ steps.ver.outputs.file }}
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
-
-            This is a prerelease of Auralith Reborn. It does not replace native Auralith.

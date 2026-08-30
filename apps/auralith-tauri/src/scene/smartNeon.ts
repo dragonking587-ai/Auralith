@@ -1,3 +1,4 @@
+export const SMART_WORD_TRACE_ENABLED = false;
 export type Point = { x: number; y: number };
 
 export type LetterTrace = {
@@ -177,7 +178,7 @@ function centerline(contourPts: Point[]) {
   return out;
 }
 
-export async function detectWordTraces(
+async function detectWordTracesImpl(
   img: HTMLImageElement,
   sceneW: number,
   sceneH: number,
@@ -278,4 +279,10 @@ export function rasterizeWordMask(word: WordCandidate, sceneW: number, sceneH: n
     ctx.fill("evenodd");
   }
   return c;
+}
+
+
+export async function detectWordTraces(...args: Parameters<typeof detectWordTracesImpl>) {
+  if (!SMART_WORD_TRACE_ENABLED) return [] as WordCandidate[];
+  return detectWordTracesImpl(...args);
 }
