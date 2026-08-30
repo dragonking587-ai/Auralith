@@ -7,7 +7,7 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "2.0.0-alpha.17";
+const APP_VERSION = "2.0.0-alpha.18";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -126,6 +126,13 @@ export function App() {
   const [vcamBusy, setVcamBusy] = useState(false);
   const [updateMsg, setUpdateMsg] = useState("");
   const [updateBusy, setUpdateBusy] = useState(false);
+  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
+  const [openFx, setOpenFx] = useState<string | null>(null);
+  const [fxSub, setFxSub] = useState<"basic"|"color"|"audio"|"motion">("basic");
+  const [fxQuery, setFxQuery] = useState("");
+  const [picker, setPicker] = useState(false);
+  const [oneOpen, setOneOpen] = useState(true);
+  const [showErrDetails, setShowErrDetails] = useState(false);
   const vcamLive = useRef(false);
   const [history, setHistory] = useState<Project[]>([]);
   const [redo, setRedo] = useState<Project[]>([]);
@@ -280,13 +287,40 @@ export function App() {
 
   const selected = project.regions.find((r) => r.id === sel);
   const clean = view === "CleanCapture";
+  const snap = audio.snapshot;
+  const filteredFx = ALL_EFFECTS.filter((k) => !fxQuery || k.toLowerCase().includes(fxQuery.toLowerCase()));
+  const patchFx = (id: string, patch: Record<string, unknown>) => {
+    setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===id?{...x, ...patch}:x)}) });
+  };
+  const moveFx = (id: string, dir: -1|1) => {
+    if (!selected) return;
+    const arr=[...selected.effects];
+    const i=arr.findIndex((x)=>x.id===id);
+    const j=i+dir;
+    if (i<0||j<0||j>=arr.length) return;
+    const tmp=arr[i]!; arr[i]=arr[j]!; arr[j]=tmp;
+    pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:arr}) });
+  };
 
   return (
     <div className="app">
       <div className={`top ${clean ? "hidden" : ""}`}>
         <span className="brand">AURALITH</span>
+        <span className="grp">PROJECT</span>
         <button onClick={() => document.getElementById("file")?.click()}>Load Image</button>
         <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
+        <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
+        <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
+        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
+        <span className="grp">EDIT</span>
+        <button className={tool==="Trace"?"on":""} onClick={() => setTool("Trace")}>Trace</button>
+        <button className={tool==="Stamp"?"on":""} onClick={() => setTool("Stamp")}>Stamp</button>
+        <button className={tool==="Emitter"?"on":""} onClick={() => setTool("Emitter")}>Emitter</button>
+        <button onClick={() => setView("Edit")}>Edit</button>
+        <button onClick={undo}>Undo</button>
+        <button onClick={redoAct}>Redo</button>
+        <button onClick={() => { if (!sel) return; pushHist({ ...project, regions: project.regions.filter((r) => r.id !== sel) }); setSel(null); }}>Delete Region</button>
+        <span className="grp">VIEW</span>
         <select value={project.fit} onChange={(e) => setProject({ ...project, fit: e.target.value as Project["fit"] })}>
           <option>Fit</option><option>Fill</option><option>Stretch</option><option>Center</option>
         </select>
@@ -300,45 +334,10 @@ export function App() {
           <option value="1080x1920">1080×1920</option>
           <option value="1440x2560">1440×2560</option>
         </select>
-        <button onClick={() => setTool("Trace")}>Trace</button>
-        <button onClick={() => setTool("Stamp")}>Stamp</button>
-        <button onClick={() => setTool("Emitter")}>Emitter</button>
-        <button onClick={() => setView("Edit")}>Edit</button>
+        <label className="chk"><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Overlays</label>
+        <span className="grp">OUTPUT</span>
         <button onClick={() => setView("Preview")}>Preview</button>
-        <button className="gold" onClick={() => setView("CleanCapture")}>CLEAN CAPTURE</button>
-        <button onClick={undo}>Undo</button>
-        <button onClick={redoAct}>Redo</button>
-        <button onClick={() => { if (!sel) return; pushHist({ ...project, regions: project.regions.filter((r) => r.id !== sel) }); setSel(null); }}>Delete Region</button>
-        <label><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Show overlays</label>
-        <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
-        <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
-        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
-        <button onClick={async () => { try { await audio.startDemo(); setErr(""); } catch (e) { setErr(String(e)); } }}>Demo Audio</button>
-        <button onClick={async () => { try { await audio.startMic(); setErr(""); } catch (e) { setErr(String(e)); } }}>Microphone</button>
-        <button onClick={async () => { try { await audio.startSystemAudio(); setErr(""); } catch (e) { setErr(String(e)); } }}>System / Shared Audio</button>
-        <button onClick={() => audio.stop()}>Stop Audio</button>
-        <button disabled={updateBusy} onClick={async () => {
-          if (updateBusy) return;
-          setUpdateBusy(true);
-          setUpdateMsg("Checking for updates…");
-          try {
-            const res = await fetch(UPDATE_API);
-            if (!res.ok) throw new Error(`Update source HTTP ${res.status}`);
-            const list = await res.json() as { tag_name?: string; html_url?: string; prerelease?: boolean }[];
-            const tags = list.map((r) => r.tag_name || "").filter((t) => t.startsWith("reborn-v"));
-            const latest = tags[0] || "";
-            const latestVer = latest.replace(/^reborn-v/, "");
-            if (!latest) setUpdateMsg(`Up to date (no Reborn tags). Installed ${APP_VERSION}`);
-            else if (latestVer === APP_VERSION || latest.endsWith(APP_VERSION)) setUpdateMsg(`Up to date. Installed ${APP_VERSION}`);
-            else setUpdateMsg(`Update available: ${latest} (installed ${APP_VERSION}). Download from GitHub Releases.`);
-          } catch (e) {
-            setUpdateMsg("Update check failed: " + String(e));
-          } finally {
-            setUpdateBusy(false);
-          }
-        }}>Check for Updates</button>
-        <span>{status}</span>
-        {updateMsg && <span> {updateMsg}</span>}
+        <button className="gold" onClick={() => setView("CleanCapture")}>Clean Capture</button>
       </div>
       <div className={`stage ${clean ? "clean" : ""}`}>
         <div className="canvas-wrap" ref={wrapRef} onClick={onCanvasClick}>
@@ -356,154 +355,229 @@ export function App() {
               </svg>
             </div>
           )}
+          {!clean && (
+            <div className="statusstrip">{project.width}×{project.height} · {view} · Audio {audio.status} · {selected?selected.effects.length:0} effects</div>
+          )}
         </div>
         <aside className={`side ${clean ? "hidden" : ""}`}>
-          <h3>VIRTUAL CAMERA</h3>
-          <div className="meters">{`Device: Auralith Reborn Camera\nStatus: ${vcam.state}${vcam.error ? `\n${vcam.error}` : ""}\n1920×1080 YUY2 / BGRA bridge`}</div>
-          <button disabled={vcamBusy || (vcam.installed && !/ERROR|NOT INSTALLED/i.test(vcam.state))} onClick={async ()=>{
-            console.log("UI_VCAM_INSTALL_CLICK");
-            if (vcamBusy) return;
-            setVcamBusy(true);
-            setVcam((s) => ({ ...s, state: "INSTALLING" }));
-            try {
-              const r = await invoke("vcam_install");
-              console.log("UI_VCAM_INSTALL_OK", r);
-              const st = parseVcam(await invoke("vcam_status"));
-              setVcam({ ...st, state: st.installed || /READY|LIVE/i.test(st.state) ? "READY" : (st.state || "READY") });
-              setErr("");
-            } catch (e) {
-              console.error("UI_VCAM_INSTALL_ERR", e);
-              const msg = String(e);
-              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: false, running: false });
-              setErr(msg);
-            } finally { setVcamBusy(false); }
-          }}>Install Virtual Camera</button>
-          <button disabled={vcamBusy || vcam.running || !(/READY|STOPPED/i.test(vcam.state) || vcam.installed)} onClick={async ()=>{
-            console.log("UI_VCAM_START_CLICK");
-            if (vcamBusy) return;
-            setVcamBusy(true);
-            setVcam((s) => ({ ...s, state: "STARTING" }));
-            try {
-              await invoke("vcam_start");
-              vcamLive.current = true;
-              const st = parseVcam(await invoke("vcam_status"));
-              setVcam({ ...st, state: "LIVE", running: true });
-              setErr("");
-            } catch (e) {
-              console.error("UI_VCAM_START_ERR", e);
-              const msg = String(e);
-              vcamLive.current = false;
-              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
-              setErr(msg);
-            } finally { setVcamBusy(false); }
-          }}>Start Virtual Camera</button>
-          <button disabled={vcamBusy || !(vcam.running || /LIVE|STARTING/i.test(vcam.state))} onClick={async ()=>{
-            console.log("UI_VCAM_STOP_CLICK");
-            if (vcamBusy) return;
-            setVcamBusy(true);
-            setVcam((s) => ({ ...s, state: "STOPPING" }));
-            try {
-              vcamLive.current = false;
-              await invoke("vcam_stop");
-              const st = parseVcam(await invoke("vcam_status"));
-              setVcam({ ...st, state: "STOPPED", running: false });
-              setErr("");
-            } catch (e) {
-              console.error("UI_VCAM_STOP_ERR", e);
-              const msg = String(e);
-              setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
-              setErr(msg);
-            } finally { setVcamBusy(false); }
-          }}>Stop Virtual Camera</button>
-          <h3>AUDIO</h3>
-          <div className="meters">{status}{"\n"}{err}</div>
-          <h3>MASTERS</h3>
-          <label>Intensity <input type="range" min={0} max={2} step={0.01} value={project.masters.intensity} onChange={(e)=>setProject({...project, masters:{...project.masters, intensity:Number(e.target.value)}})} /></label>
-          <label>Brightness <input type="range" min={0} max={2} step={0.01} value={project.masters.brightness} onChange={(e)=>setProject({...project, masters:{...project.masters, brightness:Number(e.target.value)}})} /></label>
-          <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
-            {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
-          </select></label>
-          <h3>EFFECT STACK</h3>
-          {selected ? selected.effects.map((ef) => (
-            <div key={ef.id}>
-              <label><input type="checkbox" checked={ef.enabled} onChange={(e)=>{
-                const on = e.target.checked;
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,enabled:on}:x)}) });
-              }} /> Enabled</label>
-              <select value={ef.kind} onChange={(e) => {
-                const kind = e.target.value as EffectKind;
-                pushHist({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,kind}:x)}) });
-              }}>
-                {ALL_EFFECTS.map((k) => <option key={k} value={k}>{k}</option>)}
-              </select>
-              <label>Intensity {ef.intensity.toFixed(2)} <input type="range" min={0} max={2} step={0.01} value={ef.intensity} onChange={(e) => {
-                const v = Number(e.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,intensity:v}:x)}) });
-              }} /></label>
-              <label>Opacity <input type="range" min={0} max={1} step={0.01} value={ef.opacity} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,opacity:v}:x)}) });
-              }} /></label>
-              <label>Speed <input type="range" min={0.05} max={4} step={0.01} value={ef.speed} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,speed:v}:x)}) });
-              }} /></label>
-              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p0:v}:x)}) });
-              }} /></label>
-              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p1:v}:x)}) });
-              }} /></label>
-              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,p2:v}:x)}) });
-              }} /></label>
-              <label>Primary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(ev)=>{
-                const v=ev.target.value;
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color:v}:x)}) });
-              }} /></label>
-              <label>Secondary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(ev)=>{
-                const v=ev.target.value;
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color2:v}:x)}) });
-              }} /></label>
-              <label>Highlight <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(ev)=>{
-                const v=ev.target.value;
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,color3:v}:x)}) });
-              }} /></label>
-              <label>Preset <select value={ef.preset || "Default"} onChange={(ev)=>{
-                const name = ev.target.value;
-                const spec = VORTEX_PRESETS.find((p)=>p.name===name);
-                const patch = spec ? spec.apply(ef.kind) : { preset: name };
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x, ...patch}:x)}) });
-              }}>
-                <option>Default</option>
-                {VORTEX_PRESETS.map((p)=><option key={p.name}>{p.name}</option>)}
+          <div className="tabs">
+            {(["effects","audio","output","settings"] as const).map((id)=>(
+              <button key={id} className={tab===id?"tab on":"tab"} onClick={()=>setTab(id)}>{id.toUpperCase()}</button>
+            ))}
+          </div>
+
+          {tab==="effects" && (
+            <div className="pane">
+              <h3>MASTERS</h3>
+              <label>Intensity <input type="range" min={0} max={2} step={0.01} value={project.masters.intensity} onChange={(e)=>setProject({...project, masters:{...project.masters, intensity:Number(e.target.value)}})} /></label>
+              <label>Brightness <input type="range" min={0} max={2} step={0.01} value={project.masters.brightness} onChange={(e)=>setProject({...project, masters:{...project.masters, brightness:Number(e.target.value)}})} /></label>
+              <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
+                {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
-              <label>Audio Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(ev)=>{
-                const v=Number(ev.target.value);
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,audioInfluence:v}:x)}) });
-              }} /></label>
-              <select value={ef.audio} onChange={(e) => {
-                const audioMap = e.target.value as typeof ef.audio;
-                setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===ef.id?{...x,audio:audioMap}:x)}) });
-              }}>
-                {["Manual","Raw","Bass","Low","Mid","High","FullMix","Beat","Transient"].map((a)=><option key={a}>{a}</option>)}
-              </select>
+              {selected ? (
+                <>
+                  <button className="gold wide" onClick={()=>setPicker((v)=>!v)}>+ Add Effect</button>
+                  {picker && (
+                    <div className="picker">
+                      <input placeholder="Search effects…" value={fxQuery} onChange={(e)=>setFxQuery(e.target.value)} />
+                      <div className="picker-list">
+                        {filteredFx.map((k,i)=>(
+                          <button key={k} className="pick" onClick={()=>{
+                            pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, defaultEffect(k)]}) });
+                            setPicker(false); setFxQuery("");
+                          }}>{String(ALL_EFFECTS.indexOf(k)+1).padStart(2,"0")} {k}</button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {selected.effects.map((ef) => {
+                    const open = openFx===ef.id;
+                    return (
+                      <div key={ef.id} className="acc">
+                        <div className="acc-h" onClick={()=>setOpenFx(open?null:(oneOpen?ef.id:ef.id))}>
+                          <span className="chev">{open?"▴":"▾"}</span>
+                          <strong>{ef.kind}</strong>
+                          <label className="mini" onClick={(e)=>e.stopPropagation()}><input type="checkbox" checked={ef.enabled} onChange={(e)=>patchFx(ef.id,{enabled:e.target.checked})} /> ON</label>
+                          <span className="sum">{ef.audio}{ef.preset && ef.preset!=="Default" ? " · "+ef.preset : ""}</span>
+                        </div>
+                        {open && (
+                          <div className="acc-b">
+                            <div className="subtabs">
+                              {(["basic","color","audio","motion"] as const).map((s)=>(
+                                <button key={s} className={fxSub===s?"on":""} onClick={()=>setFxSub(s)}>{s.toUpperCase()}</button>
+                              ))}
+                            </div>
+                            {fxSub==="basic" && <>
+                              <label>Intensity {ef.intensity.toFixed(2)} <input type="range" min={0} max={2} step={0.01} value={ef.intensity} onChange={(e)=>patchFx(ef.id,{intensity:Number(e.target.value)})} /></label>
+                              <label>Opacity <input type="range" min={0} max={1} step={0.01} value={ef.opacity} onChange={(e)=>patchFx(ef.id,{opacity:Number(e.target.value)})} /></label>
+                              <label>Speed <input type="range" min={0.05} max={4} step={0.01} value={ef.speed} onChange={(e)=>patchFx(ef.id,{speed:Number(e.target.value)})} /></label>
+                              <label>Kind <select value={ef.kind} onChange={(e)=>pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:r.effects.map((x)=>x.id===ef.id?{...x,kind:e.target.value as EffectKind}:x)}) })}>
+                                {ALL_EFFECTS.map((k)=><option key={k} value={k}>{k}</option>)}
+                              </select></label>
+                            </>}
+                            {fxSub==="color" && <>
+                              <label>Primary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(e)=>patchFx(ef.id,{color:e.target.value})} /></label>
+                              <label>Secondary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(e)=>patchFx(ef.id,{color2:e.target.value})} /></label>
+                              <label>Highlight <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(e)=>patchFx(ef.id,{color3:e.target.value})} /></label>
+                              <label>Preset <select value={ef.preset || "Default"} onChange={(e)=>{
+                                const spec = VORTEX_PRESETS.find((p)=>p.name===e.target.value);
+                                const patch = spec ? spec.apply(ef.kind) : { preset: e.target.value };
+                                patchFx(ef.id, patch as Record<string, unknown>);
+                              }}>
+                                <option>Default</option>
+                                {VORTEX_PRESETS.map((p)=><option key={p.name}>{p.name}</option>)}
+                              </select></label>
+                            </>}
+                            {fxSub==="audio" && <>
+                              <label>Source <select value={ef.audio} onChange={(e)=>patchFx(ef.id,{audio:e.target.value})}>
+                                {["Manual","Raw","Bass","Low","Mid","High","FullMix","Beat","Transient"].map((a)=><option key={a}>{a}</option>)}
+                              </select></label>
+                              <label>Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(e)=>patchFx(ef.id,{audioInfluence:Number(e.target.value)})} /></label>
+                            </>}
+                            {fxSub==="motion" && <>
+                              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(e)=>patchFx(ef.id,{p0:Number(e.target.value)})} /></label>
+                              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(e)=>patchFx(ef.id,{p1:Number(e.target.value)})} /></label>
+                              <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(e)=>patchFx(ef.id,{p2:Number(e.target.value)})} /></label>
+                            </>}
+                            <div className="row">
+                              <button onClick={()=>moveFx(ef.id,-1)}>Up</button>
+                              <button onClick={()=>moveFx(ef.id,1)}>Down</button>
+                              <button onClick={()=>pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, { ...ef, id: crypto.randomUUID() }]}) })}>Duplicate</button>
+                              <button onClick={()=>pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:r.effects.map((x)=>x.id===ef.id?defaultEffect(ef.kind):x)}) })}>Reset</button>
+                              <button className="danger" onClick={()=>pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:r.effects.filter((x)=>x.id!==ef.id)}) })}>Delete</button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </>
+              ) : <p>Click the canvas to place a {tool}.</p>}
             </div>
-          )) : <p>Click the canvas to place a {tool}.</p>}
-          {selected && <button onClick={() => pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, defaultEffect("Pulse")]}) })}>Add Effect</button>}
-          {selected && selected.effects[0] && <button onClick={() => {
-            const kind = selected.effects[0]!.kind;
-            pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects: r.effects.map((x,i)=> i===0?defaultEffect(kind):x)}) });
-          }}>Reset First Effect</button>}
-          {selected && <button onClick={() => {
-            const copy = selected.effects[0];
-            if (!copy) return;
-            pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, { ...copy, id: crypto.randomUUID() }]}) });
-          }}>Duplicate Effect</button>}
-          <p>F11 Clean Capture · ESC Edit · 80 effects registered · markers never disable effects</p>
+          )}
+
+          {tab==="audio" && (
+            <div className="pane">
+              <h3>CAPTURE</h3>
+              <button onClick={async () => { try { await audio.startDemo(); setErr(""); } catch (e) { setErr(String(e)); } }}>Demo Audio</button>
+              <button onClick={async () => { try { await audio.startMic(); setErr(""); } catch (e) { setErr(String(e)); } }}>Microphone</button>
+              <button onClick={async () => { try { await audio.startSystemAudio(); setErr(""); } catch (e) { setErr(String(e)); } }}>System / Shared Audio</button>
+              <button onClick={() => audio.stop()}>Stop Audio</button>
+              <p className={/ERROR/i.test(audio.status)?"warn":"ok"}>Status: {audio.status}</p>
+              <h3>BANDS</h3>
+              {(["raw","bass","low","mid","high"] as const).map((k)=>(
+                <div key={k} className="meter"><span>{k.toUpperCase()}</span><i style={{width:`${Math.min(100, snap[k]*100)}%`}} /><b>{snap[k].toFixed(2)}</b></div>
+              ))}
+              <p>Beat {snap.beat.toFixed(2)} · Transient {snap.transient.toFixed(2)}</p>
+            </div>
+          )}
+
+          {tab==="output" && (
+            <div className="pane">
+              <h3>CLEAN OUTPUT</h3>
+              <button className="gold" onClick={() => setView("CleanCapture")}>Open Clean Capture</button>
+              <button onClick={() => setView("Edit")}>Close Clean Capture</button>
+              <p>{project.width}×{project.height} · F11 / ESC</p>
+              <h3>VIRTUAL CAMERA</h3>
+              <p>Device: Auralith Reborn Camera</p>
+              <p className={/ERROR/i.test(vcam.state)?"warn":"ok"}>Status: {vcam.state}</p>
+              {vcam.error && <p className="warn">{vcam.error}</p>}
+              <button disabled={vcamBusy || (vcam.installed && !/ERROR|NOT INSTALLED/i.test(vcam.state))} onClick={async ()=>{
+                console.log("UI_VCAM_INSTALL_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "INSTALLING" }));
+                try {
+                  const r = await invoke("vcam_install");
+                  console.log("UI_VCAM_INSTALL_OK", r);
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: st.installed || /READY|LIVE/i.test(st.state) ? "READY" : (st.state || "READY") });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_INSTALL_ERR", e);
+                  const msg = String(e);
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: false, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Install Virtual Camera</button>
+              <button disabled={vcamBusy || vcam.running || !(/READY|STOPPED/i.test(vcam.state) || vcam.installed)} onClick={async ()=>{
+                console.log("UI_VCAM_START_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "STARTING" }));
+                try {
+                  await invoke("vcam_start");
+                  vcamLive.current = true;
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: "LIVE", running: true });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_START_ERR", e);
+                  const msg = String(e);
+                  vcamLive.current = false;
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Start Virtual Camera</button>
+              <button disabled={vcamBusy || !(vcam.running || /LIVE|STARTING/i.test(vcam.state))} onClick={async ()=>{
+                console.log("UI_VCAM_STOP_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "STOPPING" }));
+                try {
+                  vcamLive.current = false;
+                  await invoke("vcam_stop");
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: "STOPPED", running: false });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_STOP_ERR", e);
+                  const msg = String(e);
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Stop Virtual Camera</button>
+            </div>
+          )}
+
+          {tab==="settings" && (
+            <div className="pane">
+              <h3>UI</h3>
+              <label className="chk"><input type="checkbox" checked={oneOpen} onChange={(e)=>setOneOpen(e.target.checked)} /> One effect expanded at a time</label>
+              <h3>UPDATES</h3>
+              <button disabled={updateBusy} onClick={async () => {
+                if (updateBusy) return;
+                setUpdateBusy(true);
+                setUpdateMsg("Checking for updates…");
+                try {
+                  const res = await fetch(UPDATE_API);
+                  if (!res.ok) throw new Error(`Update source HTTP ${res.status}`);
+                  const list = await res.json() as { tag_name?: string; html_url?: string; prerelease?: boolean }[];
+                  const tags = list.map((r) => r.tag_name || "").filter((t) => t.startsWith("reborn-v"));
+                  const latest = tags[0] || "";
+                  const latestVer = latest.replace(/^reborn-v/, "");
+                  if (!latest) setUpdateMsg(`Up to date (no Reborn tags). Installed ${APP_VERSION}`);
+                  else if (latestVer === APP_VERSION || latest.endsWith(APP_VERSION)) setUpdateMsg(`Up to date. Installed ${APP_VERSION}`);
+                  else setUpdateMsg(`Update available: ${latest} (installed ${APP_VERSION}). Download from GitHub Releases.`);
+                } catch (e) {
+                  setUpdateMsg("Update check failed: " + String(e));
+                } finally {
+                  setUpdateBusy(false);
+                }
+              }}>Check for Updates</button>
+              {updateMsg && <p>{updateMsg}</p>}
+              <h3>ABOUT</h3>
+              <p>Auralith Reborn {APP_VERSION}</p>
+              <p>80 effects registered</p>
+              {err && (
+                <div className="errbox">
+                  <p>Renderer ⚠ {err.split("\n")[0]}</p>
+                  <button onClick={()=>setShowErrDetails((v)=>!v)}>{showErrDetails?"Hide":"View"} Details</button>
+                  {showErrDetails && <pre>{err}</pre>}
+                </div>
+              )}
+            </div>
+          )}
         </aside>
       </div>
     </div>
