@@ -14,7 +14,7 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.7";
+const APP_VERSION = "1.0.0-rc.8";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -577,17 +577,26 @@ export function App() {
         if (gen !== loadGen.current) { URL.revokeObjectURL(url); return; }
         console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
         try {
+          if (!img.naturalWidth || !img.naturalHeight) throw new Error("Decoded image has empty dimensions.");
           imgRef.current = img;
-          invalidateEmbed();
-          setBackdrop(img);
+          glRef.current?.setBackdrop(img);
           setProject((p) => {
             if (p.backdropDataUrl) URL.revokeObjectURL(p.backdropDataUrl);
             return { ...p, backdropDataUrl: url };
           });
+          try {
+            invalidateEmbed();
+            setAiPreview(null);
+            setAiPrompts([]);
+            setAiCands([]);
+            setAltIdx(0);
+          } catch (aiErr) {
+            console.warn("[ImageLoad] AI cache invalidate ignored", aiErr);
+          }
           console.log("[ImageLoad] STATE_UPDATED RENDER_INVALIDATED IMAGE_VISIBLE");
         } catch (e) {
           console.error("[ImageLoad] STATE_UPDATE_FAILED", e);
-          setErr(String(e));
+          setErr("Could not load image.\nFile: "+file.name+"\nReason: "+String(e));
         }
       };
       img.onerror = () => {
@@ -624,7 +633,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.7",
+      tag: "v1.0.0-rc.8",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
