@@ -98,7 +98,7 @@ export function enhancedSegment(
   const meanL = seedL.reduce((a,b)=>a+b,0)/seedL.length;
   for (const s of seeds) { const i=s.y*w+s.x; mask[i]=1; q.push(s.x,s.y); }
   let qi = 0;
-  const tol = 28;
+  const tol = 18;
   while (qi < q.length) {
     const x = q[qi++]!, y = q[qi++]!;
     for (const [dx,dy] of [[1,0],[-1,0],[0,1],[0,-1],[1,1],[-1,1],[1,-1],[-1,-1]]) {
@@ -134,6 +134,31 @@ export function enhancedSegment(
   return { points: simple.length>=3?simple:pts, closed: true, mask, w, h, n };
 }
 
+export type Scope = "tight" | "normal" | "broad";
+export type EngineOpts = {
+  requireNeural?: boolean;
+  scope?: Scope;
+  hardObject?: boolean;
+};
+
+export function maskAreaRatio(mask: Float32Array) {
+  let n = 0;
+  for (let i = 0; i < mask.length; i++) if (mask[i]! > 0) n++;
+  return n / Math.max(1, mask.length);
+}
+
+export function pickTightMask(masks: { mask: Float32Array; quality: number }[], scope: Scope) {
+  if (!masks.length) return 0;
+  if (scope !== "tight") return 0;
+  let best = 0, bestScore = -1e9;
+  masks.forEach((m, i) => {
+    const area = maskAreaRatio(m.mask);
+    const score = m.quality - (area > 0.18 ? (area - 0.18) * 4 : 0);
+    if (score > bestScore) { bestScore = score; best = i; }
+  });
+  return best;
+}
+
 export async function runEngine(
   engine: AiEngine,
   img: HTMLImageElement, sceneW: number, sceneH: number,
@@ -141,9 +166,12 @@ export async function runEngine(
   seed: { x:number;y:number;w?:number;h?:number;path?:Pt[] },
   prompts: Prompt[],
   sensitivity: number,
-  onStatus?: (s: string) => void
+  onStatus?: (s: string) => void,
+  opts: EngineOpts = {}
 ) {
-  const wantNeural = engine === "neural" || engine === "auto";
+  const requireNeural = !!opts.requireNeural || engine === "neural";
+  const scope = opts.scope || "tight";
+  const wantNeural = engine === "neural" || engine === "auto" || requireNeural;
   if (wantNeural && await modelsInstalled()) {
     try {
       const embed = await encodeImage(img, onStatus);
@@ -161,23 +189,31 @@ export async function runEngine(
       if (!nPrompts.length) throw new Error("No neural prompts");
       onStatus?.("Decoding mask…");
       const masks = await decodeMasks(embed, nPrompts);
-      const best = masks[0];
-      if (!best) throw new Error("Decoder returned no masks");
+      if (!masks.length) throw new Error("Decoder returned no masks");
+      const idx = pickTightMask(masks, scope);
+      const best = masks[idx]!;
+      const spill = maskAreaRatio(best.mask) > 0.22 && mode === "click";
       const pts = maskToScenePoints(best.mask, best.w, best.h, embed, sceneW, sceneH);
       if (pts) {
         return {
           points: pts, closed: true, engineUsed: "neural" as const,
-          neuralMasks: masks, neuralIndex: 0, quality: best.quality,
+          neuralMasks: masks, neuralIndex: idx, quality: best.quality,
+          modelId: "sam2-hiera-tiny-onnx", device: "CPU/WASM",
+          qualityMode: "fast",
+          suspicious: spill,
+          provenance: "Enhanced Neural Vision — SAM 2 Hiera Tiny",
         };
       }
+      throw new Error("Neural mask produced no contour");
     } catch (err) {
-      if (engine === "neural") throw err;
-      onStatus?.("Neural failed, using Enhanced Local: " + String(err));
+      if (requireNeural) throw err;
+      onStatus?.("Enhanced Neural Vision is unavailable. Using Enhanced Local Segmenter. " + String(err));
     }
-  } else if (engine === "neural") {
-    throw new Error("NEURAL_MODEL_MISSING");
+  } else if (requireNeural) {
+    throw new Error("Enhanced Neural Vision failed. Neural model is not installed or could not run.");
   }
-  const useEnhanced = engine === "enhanced" || engine === "auto" || engine === "neural";
+  if (requireNeural) throw new Error("Require Neural Engine is on. No heuristic mask will be generated.");
+  const useEnhanced = engine === "enhanced" || engine === "auto";
   if (useEnhanced) {
     const extra: Prompt[] = [...prompts];
     if (mode === "click") extra.push({ x: seed.x, y: seed.y, positive: true });
