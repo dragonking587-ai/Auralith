@@ -1,6 +1,7 @@
 export type FitMode = "Fit" | "Fill" | "Stretch" | "Center";
 export type ViewMode = "Edit" | "Preview" | "CleanCapture";
-export type RegionKind = "Trace" | "Stamp" | "Emitter";
+export type RegionKind = "Trace" | "Stamp" | "Emitter" | "Shape" | "Prop";
+export type ShapeKind = "circle" | "ellipse" | "rect" | "roundrect" | "triangle" | "line" | "ring" | "polygon" | "diamond";
 export type AudioMap = "Manual" | "Raw" | "Bass" | "Low" | "Mid" | "High" | "FullMix" | "Beat" | "Transient";
 
 export type EffectKind =
@@ -53,6 +54,15 @@ export type EffectInstance = {
   geomMode?: "point" | "path" | "mask";
   applyMode?: "inside" | "boundary" | "outside";
   boundaryWidth?: number;
+  fxW?: number;
+  fxH?: number;
+  fxScaleX?: number;
+  fxScaleY?: number;
+  expansion?: number;
+  offsetX?: number;
+  offsetY?: number;
+  spread?: number;
+  feather?: number;
 };
 
 export type Region = {
@@ -68,6 +78,18 @@ export type Region = {
   experimental?: boolean;
   pathClosed?: boolean;
   pathLength?: number;
+  shape?: ShapeKind;
+  width?: number;
+  height?: number;
+  flipX?: boolean;
+  flipY?: boolean;
+  cornerRadius?: number;
+  innerRadius?: number;
+  sides?: number;
+  propDataUrl?: string;
+  propVisible?: boolean;
+  alphaThreshold?: number;
+  assetName?: string;
 };
 
 export type Project = {

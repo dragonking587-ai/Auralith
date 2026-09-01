@@ -688,14 +688,17 @@ export class GlRenderer {
     gl.disable(gl.BLEND);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number) {
+  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number, viewCss?: { x: number; y: number; w: number; h: number }) {
     const gl = this.gl;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(2, Math.floor(cssW * dpr)), h = Math.max(2, Math.floor(cssH * dpr));
     if (this.canvas.width !== w || this.canvas.height !== h) { this.canvas.width = w; this.canvas.height = h; }
     gl.viewport(0, 0, w, h);
     gl.clearColor(0.02, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT);
-    const vp = sceneViewport(w, h, project.width, project.height, project.fit);
+    const base = viewCss
+      ? { x: viewCss.x * dpr, y: viewCss.y * dpr, w: viewCss.w * dpr, h: viewCss.h * dpr }
+      : sceneViewport(w, h, project.width, project.height, project.fit);
+    const vp = base;
     gl.enable(gl.SCISSOR_TEST);
     const yGL = Math.max(0, Math.floor(h - vp.y - vp.h));
     gl.scissor(Math.max(0,Math.floor(vp.x)), yGL, Math.max(1,Math.floor(vp.w)), Math.max(1,Math.floor(vp.h)));
@@ -710,11 +713,11 @@ export class GlRenderer {
     const t = performance.now() / 1000;
     gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
     for (const r of project.regions) {
-      const ox = vp.x + (r.x / project.width) * vp.w;
-      const oy = vp.y + (1 - r.y / project.height) * vp.h;
-      const rad = Math.max(20, r.radius * (vp.w / project.width));
       for (const e of r.effects) {
         if (!e.enabled) continue;
+        const ox = vp.x + ((r.x + (e.offsetX || 0)) / project.width) * vp.w;
+        const oy = vp.y + (1 - (r.y + (e.offsetY || 0)) / project.height) * vp.h;
+        const rad = Math.max(8, (r.radius + (e.expansion || 0) + (e.spread || 0)) * (vp.w / project.width) * Math.max(0.05, e.fxScaleX || e.scale || r.sx || 1));
         const audio = e.audio === "Manual" ? 1 : bandOf(snap, e.audio);
         const mod = e.audio === "Manual" ? e.intensity : e.intensity * (1 - e.audioInfluence + e.audioInfluence * audio);
         const c = hex(e.color), c2 = hex(e.color2);

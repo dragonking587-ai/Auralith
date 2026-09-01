@@ -14,7 +14,7 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.12";
+const APP_VERSION = "1.0.0-rc.13";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -125,7 +125,7 @@ export function App() {
   const glRef = useRef<GlRenderer | null>(null);
   const [project, setProject] = useState<Project>(newProject());
   const [view, setView] = useState<ViewMode>("Edit");
-  const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit">("Edit");
+  const [tool, setTool] = useState<"Trace" | "Stamp" | "Emitter" | "Edit" | "Shape" | "Prop">("Edit");
   const [viewZoom, setViewZoom] = useState<number | "fit">("fit");
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [selPt, setSelPt] = useState<number | null>(null);
@@ -226,7 +226,10 @@ export function App() {
     const loop = () => {
       const wrap = wrapRef.current;
       try {
-        if (wrap && glRef.current) glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight);
+        if (wrap && glRef.current) {
+          const vp = currentVp(wrap.getBoundingClientRect());
+          glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight, vp);
+        }
       } catch (e) {
         console.error("APP_BOOT_FAILED stage=RENDER_FRAME error=" + e);
       }
@@ -460,22 +463,39 @@ export function App() {
       return;
     }
     if (toolRef.current === "Edit") return;
-    if (toolRef.current === "Trace") {
-      const cur = projectRef.current;
-      const active = selRef.current ? cur.regions.find((r)=>r.id===selRef.current && r.kind==="Trace") : null;
-      if (active) {
-        const pts = [...active.points, { x: s.x, y: s.y }];
-        const len = pathLength(pts, !!active.pathClosed).total;
-        pushHist({ ...cur, regions: cur.regions.map((r)=> r.id!==active.id ? r : { ...r, points: pts, x: pts[0]!.x, y: pts[0]!.y, pathLength: len }) });
-        setSelPt(pts.length-1);
-        return;
-      }
+    if (toolRef.current === "Prop") {
+      const input = document.createElement("input");
+      input.type = "file";
+      input.accept = "image/png,image/webp";
+      input.onchange = async () => {
+        const file = input.files?.[0]; if (!file) return;
+        const url = URL.createObjectURL(file);
+        const img = new Image();
+        img.onload = () => {
+          const region: Region = {
+            id: crypto.randomUUID(), kind: "Prop", points: [{ x: s.x, y: s.y }],
+            x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: Math.max(img.naturalWidth, img.naturalHeight) * 0.25,
+            width: img.naturalWidth, height: img.naturalHeight,
+            effects: [defaultEffect("NeonGlow")], pathClosed: true,
+            propDataUrl: url, propVisible: true, assetName: file.name, alphaThreshold: 0.15,
+            label: file.name
+          };
+          pushHist({ ...projectRef.current, regions: [...projectRef.current.regions, region] });
+          setSel(region.id);
+        };
+        img.src = url;
+      };
+      input.click();
+      return;
     }
-    const kind = toolRef.current === "Trace" || toolRef.current === "Stamp" || toolRef.current === "Emitter" ? toolRef.current : "Emitter";
+    const kind = toolRef.current === "Shape" ? "Shape" : toolRef.current === "Stamp" || toolRef.current === "Emitter" ? toolRef.current : "Emitter";
     const region: Region = {
       id: crypto.randomUUID(), kind, points: [{ x: s.x, y: s.y }],
-      x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: 80,
-      effects: [defaultEffect("GlowBloom")], pathClosed: false, pathLength: 0
+      x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: kind==="Shape" ? 180 : 80,
+      width: kind==="Shape" ? 360 : 80, height: kind==="Shape" ? 360 : 80,
+      shape: kind==="Shape" ? "rect" : undefined,
+      effects: [defaultEffect("GlowBloom")], pathClosed: kind==="Shape", pathLength: 0,
+      label: kind==="Shape" ? "Rectangle" : kind
     };
     pushHist({ ...projectRef.current, regions: [...projectRef.current.regions, region] });
     setSel(region.id);
@@ -643,7 +663,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.12",
+      tag: "v1.0.0-rc.13",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -764,7 +784,8 @@ export function App() {
         <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
         <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
-        <button className={tool==="Trace"?"on":""} title="Draw or edit a trace path" onClick={() => setTool("Trace")}>Trace</button>
+        <button className={tool==="Shape"?"on":""} title="Add a shape target" onClick={() => setTool("Shape")}>Shape</button>
+        <button className={tool==="Prop"?"on":""} title="Import a PNG/WebP prop" onClick={() => setTool("Prop")}>Prop</button>
         <button className={tool==="Stamp"?"on":""} title="Place or move a stamp target" onClick={() => setTool("Stamp")}>Stamp</button>
         <button className={tool==="Emitter"?"on":""} title="Place or move an effect emitter" onClick={() => setTool("Emitter")}>Emitter</button>
         <button className={tool==="Edit"?"on":""} title="Select and move existing objects" onClick={() => setTool("Edit")}>Edit</button>
@@ -821,6 +842,14 @@ export function App() {
                       {cs.map((c,i)=>(
                         <circle key={i} cx={c.x} cy={c.y} r={r.id===sel && selPt===i ? 6 : 5} fill={r.id===sel && selPt===i ? "#fff3a0" : r.id===sel?"#D4AF37":"#7ad0ff"} />
                       ))}
+                      {(r.kind==="Shape" || r.kind==="Prop") && (() => {
+                        const c = sceneToCanvas(r.x, r.y, vp, project.width, project.height);
+                        const hw = ((r.width || r.radius*2) / project.width) * vp.w * 0.5 * (r.sx||1);
+                        const hh = ((r.height || r.radius*2) / project.height) * vp.h * 0.5 * (r.sy||1);
+                        const sh = r.shape || "rect";
+                        if (sh==="circle" || sh==="ellipse") return <ellipse cx={c.x} cy={c.y} rx={Math.abs(hw)} ry={Math.abs(hh)} fill="none" stroke={r.id===sel?"#D4AF37":"#9ad"} strokeWidth={2} />;
+                        return <rect x={c.x-hw} y={c.y-hh} width={Math.abs(hw)*2} height={Math.abs(hh)*2} fill="none" stroke={r.id===sel?"#D4AF37":"#9ad"} strokeWidth={2} rx={sh==="roundrect"?8:0} />;
+                      })()}
                     </g>
                   );
                 })}
@@ -847,6 +876,34 @@ export function App() {
           {tab==="effects" && (
             <div className="pane">
               <h3>MASTERS</h3>
+              {selected && (selected.kind==="Shape" || selected.kind==="Prop") && (
+                <div className="acc on">
+                  <h3>TARGET</h3>
+                  <p className="muted">{selected.kind} · {selected.shape || selected.assetName || selected.label}</p>
+                  {selected.kind==="Shape" && (
+                    <label>Shape <select value={selected.shape||"rect"} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, shape:e.target.value as any, label:e.target.value})})}>
+                      <option value="circle">Circle</option>
+                      <option value="ellipse">Ellipse</option>
+                      <option value="rect">Rectangle</option>
+                      <option value="roundrect">Rounded Rectangle</option>
+                      <option value="triangle">Triangle</option>
+                      <option value="line">Line</option>
+                      <option value="ring">Ring</option>
+                      <option value="polygon">Polygon</option>
+                      <option value="diamond">Diamond</option>
+                    </select></label>
+                  )}
+                  <label>Width <input type="number" value={Math.round(selected.width||selected.radius*2)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, width:Number(e.target.value), radius:Number(e.target.value)/2})})} /></label>
+                  <label>Height <input type="number" value={Math.round(selected.height||selected.radius*2)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, height:Number(e.target.value)})})} /></label>
+                  <label>Rotation <input type="range" min={-180} max={180} value={selected.rotation||0} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, rotation:Number(e.target.value)})})} /></label>
+                  {selected.kind==="Prop" && (
+                    <>
+                      <label className="chk"><input type="checkbox" checked={selected.propVisible!==false} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, propVisible:e.target.checked})})} /> Prop Visible</label>
+                      <p className="muted">{selected.propVisible===false ? "Effect Target Only" : "Visible"}</p>
+                    </>
+                  )}
+                </div>
+              )}
               {selected && selected.kind==="Trace" && (
                 <div className="acc on">
                   <h3>TRACE</h3>
@@ -905,7 +962,7 @@ export function App() {
                 {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
               <h3>EXPERIMENTAL TOOLS</h3>
-              <button disabled title="Temporarily disabled">Smart Word Trace <span className="badge">EXPERIMENTAL — Temporarily Disabled</span></button>
+              {false && <button disabled>Smart Word Trace</button>}
               <p className="muted">Detection accuracy is still being improved. This feature will return in a future update.</p>
               {neonWarn && neonOpen && (
                 <div className="warnbox">
@@ -1036,6 +1093,11 @@ export function App() {
                                 <option value="outside">Outside</option>
                               </select></label>
                               <label>Boundary Width <input type="range" min={0.05} max={1.5} step={0.01} value={ef.boundaryWidth??0.35} onChange={(e)=>patchFx(ef.id,{boundaryWidth:Number(e.target.value)})} /></label>
+                              <label>Effect Scale <input type="range" min={0.1} max={8} step={0.05} value={ef.fxScaleX??ef.scale??1} onChange={(e)=>patchFx(ef.id,{fxScaleX:Number(e.target.value), fxScaleY:Number(e.target.value)})} /></label>
+                              <label>Expansion <input type="range" min={0} max={2000} step={1} value={ef.expansion??0} onChange={(e)=>patchFx(ef.id,{expansion:Number(e.target.value)})} /></label>
+                              <label>Spread <input type="range" min={0} max={2000} step={1} value={ef.spread??0} onChange={(e)=>patchFx(ef.id,{spread:Number(e.target.value)})} /></label>
+                              <label>Offset X <input type="range" min={-800} max={800} step={1} value={ef.offsetX??0} onChange={(e)=>patchFx(ef.id,{offsetX:Number(e.target.value)})} /></label>
+                              <label>Offset Y <input type="range" min={-800} max={800} step={1} value={ef.offsetY??0} onChange={(e)=>patchFx(ef.id,{offsetY:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(e)=>patchFx(ef.id,{p0:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(e)=>patchFx(ef.id,{p1:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(e)=>patchFx(ef.id,{p2:Number(e.target.value)})} /></label>
