@@ -1,6 +1,7 @@
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectKind, Project } from "../scene/types";
 import { sceneViewport } from "../scene/transform";
+import { buildPathField, fieldKey, regionGeomMode } from "../scene/pathSdf";
 
 const VS = `attribute vec2 a; void main(){ gl_Position=vec4(a,0.0,1.0); }`;
 const FS = `
@@ -11,6 +12,8 @@ uniform vec2 uOrigin; uniform float uRadius;
 uniform float uP0; uniform float uP1; uniform float uP2;
 uniform float uQ; uniform float uBass; uniform float uMid; uniform float uHigh; uniform float uBeat;
 uniform sampler2D uMask; uniform float uUseMask;
+uniform sampler2D uSdf; uniform float uUseSdf; uniform float uApply; uniform float uBoundW; uniform float uPathT;
+uniform vec2 uVpXY; uniform vec2 uVpWH;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
 float fbm(vec2 p){ float v=0.0,a=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); return v; }
@@ -19,6 +22,18 @@ void main(){
   vec2 uv = gl_FragCoord.xy/uRes;
   vec2 p = (gl_FragCoord.xy - uOrigin)/max(uRadius*(0.35+uP1), 8.0);
   float d = length(p);
+  float along = 0.0;
+  if (uUseSdf > 0.5) {
+    vec2 css = vec2(gl_FragCoord.x, uRes.y - gl_FragCoord.y);
+    vec2 suv = (css - uVpXY) / max(uVpWH, vec2(1.0));
+    vec4 f = texture2D(uSdf, suv);
+    float sd = (f.r - 0.5) * 2.0;
+    along = f.g;
+    if (uApply < 0.5) d = max(sd, 0.0) * 8.0 + (1.0 - f.b) * 8.0;
+    else if (uApply < 1.5) d = abs(sd) * (10.0 / max(uBoundW, 0.04));
+    else d = max(-sd, 0.0) * 8.0 + f.b * 8.0;
+    p = vec2(along * 2.0 - 1.0, sd * 4.0);
+  }
   float ang = atan(p.y,p.x);
   float t = uTime;
   float k = uKind;
@@ -118,9 +133,9 @@ void main(){
     a = (spikes*exp(-d*1.1)+exp(-d*6.0))*burst*m;
     col = mix(uA,uB,spikes);
   } else if (k < 16.5) {
-    float path = abs(d-0.55);
+    float path = uUseSdf>0.5 ? d : abs(d-0.55);
     float segs = 6.0+floor(p2*10.0);
-    float flow = fract(ang/6.2831*segs - t*(0.35+p0+uBeat*0.6)+fbm(p*2.0)*uMid);
+    float flow = uUseSdf>0.5 ? fract(along - t*(0.35+p0+uBeat*0.6)) : fract(ang/6.2831*segs - t*(0.35+p0+uBeat*0.6)+fbm(p*2.0)*uMid);
     float coreLine = exp(-path*(10.0+p1*16.0));
     float pulse = exp(-abs(flow-0.5)*(18.0+p1*10.0));
     a = coreLine*(0.35+pulse)*m;
@@ -538,6 +553,8 @@ export class GlRenderer {
   private maskTex: WebGLTexture | null = null;
   private hasMask = false;
   private hasBackdrop = false;
+  private sdfTex: WebGLTexture | null = null;
+  private sdfKey = "";
   fps = 0;
   lastW = 0;
   lastH = 0;
@@ -676,6 +693,36 @@ export class GlRenderer {
         gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
         gl.uniform1i(gl.getUniformLocation(this.prog, "uMask"), 1);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uUseMask"), (this.hasMask && e.kind==="SmartNeon") ? 1.0 : 0.0);
+        const geom = (e as any).geomMode || regionGeomMode(r);
+        const apply = (e as any).applyMode || "boundary";
+        const useSdf = r.kind === "Trace" && r.points.length >= 2 && geom !== "point";
+        gl.uniform2f(gl.getUniformLocation(this.prog, "uVpXY"), vp.x, vp.y);
+        gl.uniform2f(gl.getUniformLocation(this.prog, "uVpWH"), vp.w, vp.h);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uApply"), apply === "inside" ? 0 : apply === "outside" ? 2 : 1);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uBoundW"), Number((e as any).boundaryWidth ?? 0.35));
+        if (useSdf) {
+          const key = fieldKey(r, project.width, project.height);
+          if (!this.sdfTex) this.sdfTex = gl.createTexture();
+          if (this.sdfKey !== key) {
+            const field = buildPathField(r.points, !!r.pathClosed || geom === "mask", project.width, project.height, 256);
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, this.sdfTex);
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, field.res, field.res, 0, gl.RGBA, gl.UNSIGNED_BYTE, field.data);
+            this.sdfKey = key;
+          } else {
+            gl.activeTexture(gl.TEXTURE2);
+            gl.bindTexture(gl.TEXTURE_2D, this.sdfTex);
+          }
+          gl.uniform1i(gl.getUniformLocation(this.prog, "uSdf"), 2);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseSdf"), 1);
+        } else {
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseSdf"), 0);
+        }
         gl.activeTexture(gl.TEXTURE0);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), KIND_INDEX[e.kind] ?? 0);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), e.opacity);

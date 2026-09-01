@@ -14,7 +14,7 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.9";
+const APP_VERSION = "1.0.0-rc.10";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -643,7 +643,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.9",
+      tag: "v1.0.0-rc.10",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -1025,6 +1025,17 @@ export function App() {
                               <label>Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(e)=>patchFx(ef.id,{audioInfluence:Number(e.target.value)})} /></label>
                             </>}
                             {fxSub==="motion" && <>
+                              <label>Target Geometry <select value={ef.geomMode || (selected?.kind==="Trace" && selected.pathClosed ? "mask" : selected?.kind==="Trace" ? "path" : "point")} onChange={(e)=>patchFx(ef.id,{geomMode:e.target.value})}>
+                                <option value="point">Point</option>
+                                <option value="path">Path</option>
+                                <option value="mask">Mask</option>
+                              </select></label>
+                              <label>Application <select value={ef.applyMode || "boundary"} onChange={(e)=>patchFx(ef.id,{applyMode:e.target.value})}>
+                                <option value="inside">Inside</option>
+                                <option value="boundary">Boundary</option>
+                                <option value="outside">Outside</option>
+                              </select></label>
+                              <label>Boundary Width <input type="range" min={0.05} max={1.5} step={0.01} value={ef.boundaryWidth??0.35} onChange={(e)=>patchFx(ef.id,{boundaryWidth:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(e)=>patchFx(ef.id,{p0:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(e)=>patchFx(ef.id,{p1:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(e)=>patchFx(ef.id,{p2:Number(e.target.value)})} /></label>

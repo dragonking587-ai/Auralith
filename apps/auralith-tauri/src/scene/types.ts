@@ -50,6 +50,9 @@ export type EffectInstance = {
   p1?: number;
   p2?: number;
   preset?: string;
+  geomMode?: "point" | "path" | "mask";
+  applyMode?: "inside" | "boundary" | "outside";
+  boundaryWidth?: number;
 };
 
 export type Region = {
