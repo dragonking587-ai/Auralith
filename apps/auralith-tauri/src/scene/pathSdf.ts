@@ -24,8 +24,68 @@ function pointInPoly(px: number, py: number, pts: { x: number; y: number }[]) {
 
 export function regionGeomMode(r: Region, fallback?: GeomMode): GeomMode {
   if (fallback) return fallback;
+  if (r.kind === "Prop" || r.kind === "Shape") return "mask";
   if (r.kind === "Trace" && r.points.length >= 2) return r.pathClosed ? "mask" : "path";
   return "point";
+}
+
+export function buildPropAlphaField(
+  pixels: Uint8ClampedArray,
+  imgW: number,
+  imgH: number,
+  region: Region,
+  sceneW: number,
+  sceneH: number,
+  res = 256
+) {
+  const data = new Uint8Array(res * res * 4);
+  const pw = Math.max(1, region.width || region.radius * 2);
+  const ph = Math.max(1, region.height || region.radius * 2);
+  const x0 = region.x - pw / 2;
+  const y0 = region.y - ph / 2;
+  const thresh = Math.max(1, Math.min(254, Math.round((region.alphaThreshold ?? 0.15) * 255)));
+  const occ = new Uint8Array(res * res);
+  for (let y = 0; y < res; y++) {
+    for (let x = 0; x < res; x++) {
+      const sx = (x + 0.5) / res * sceneW;
+      const sy = (y + 0.5) / res * sceneH;
+      const u = (sx - x0) / pw;
+      const v = (sy - y0) / ph;
+      let inside = 0;
+      if (u >= 0 && v >= 0 && u < 1 && v < 1) {
+        const ix = Math.min(imgW - 1, Math.max(0, Math.floor(u * imgW)));
+        const iy = Math.min(imgH - 1, Math.max(0, Math.floor(v * imgH)));
+        const a = pixels[(iy * imgW + ix) * 4 + 3] || 0;
+        inside = a >= thresh ? 1 : 0;
+      }
+      occ[y * res + x] = inside;
+    }
+  }
+  const maxDist = Math.max(sceneW, sceneH) * 0.35;
+  const cell = Math.max(sceneW, sceneH) / res;
+  const rad = 18;
+  for (let y = 0; y < res; y++) {
+    for (let x = 0; x < res; x++) {
+      const inside = occ[y * res + x] === 1;
+      let best = rad + 1;
+      for (let oy = -rad; oy <= rad && best > 1; oy++) {
+        const yy = y + oy; if (yy < 0 || yy >= res) continue;
+        for (let ox = -rad; ox <= rad; ox++) {
+          const xx = x + ox; if (xx < 0 || xx >= res) continue;
+          if ((occ[yy * res + xx] === 1) !== inside) {
+            const d = Math.hypot(ox, oy);
+            if (d < best) best = d;
+          }
+        }
+      }
+      const distPx = best * cell;
+      const signed = inside ? -distPx : distPx;
+      const rch = Math.max(0, Math.min(255, Math.round((signed / maxDist * 0.5 + 0.5) * 255)));
+      const i = (y * res + x) * 4;
+      data[i] = rch; data[i + 1] = 0; data[i + 2] = inside ? 255 : 0; data[i + 3] = 255;
+    }
+  }
+  return { data, res, maxDist };
 }
 
 export function buildPathField(
@@ -76,5 +136,5 @@ export function buildPathField(
 
 export function fieldKey(r: Region, w: number, h: number) {
   const pts = r.points.map((p) => `${p.x|0},${p.y|0}`).join(";");
-  return `${r.id}|${r.pathClosed ? 1 : 0}|${w}x${h}|${pts}`;
+  return `${r.id}|${r.kind}|${r.pathClosed ? 1 : 0}|${w}x${h}|${r.x|0},${r.y|0},${r.width|0},${r.height|0}|${r.alphaThreshold||0}|${pts}`;
 }

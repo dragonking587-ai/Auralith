@@ -1,7 +1,8 @@
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectKind, Project } from "../scene/types";
 import { sceneViewport } from "../scene/transform";
-import { buildPathField, fieldKey, regionGeomMode } from "../scene/pathSdf";
+import { buildPathField, buildPropAlphaField, fieldKey, regionGeomMode } from "../scene/pathSdf";
+import type { Region } from "../scene/types";
 
 const VS = `attribute vec2 a; void main(){ gl_Position=vec4(a,0.0,1.0); }`;
 const FS = `
@@ -597,6 +598,8 @@ export class GlRenderer {
   private hasBackdrop = false;
   private sdfTex: WebGLTexture | null = null;
   private sdfKey = "";
+  private propTex = new Map<string, WebGLTexture>();
+  private propPix = new Map<string, { data: Uint8ClampedArray; w: number; h: number }>();
   fps = 0;
   lastW = 0;
   lastH = 0;
@@ -647,6 +650,31 @@ export class GlRenderer {
     console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
     console.log("[ImageLoad] STATE_UPDATED backdrop=texture");
   }
+  registerProp(id: string, img: HTMLImageElement) {
+    const gl = this.gl;
+    let tex = this.propTex.get(id);
+    if (!tex) { tex = gl.createTexture()!; this.propTex.set(id, tex); }
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, img);
+    try {
+      const c = document.createElement("canvas");
+      c.width = img.naturalWidth || img.width;
+      c.height = img.naturalHeight || img.height;
+      const ctx = c.getContext("2d");
+      if (ctx && c.width > 0) {
+        ctx.drawImage(img, 0, 0);
+        const idata = ctx.getImageData(0, 0, c.width, c.height);
+        this.propPix.set(id, { data: idata.data, w: c.width, h: c.height });
+      }
+    } catch (e) {
+      console.warn("[Prop] pixel read failed", e);
+    }
+  }
   setNeonMask(src: HTMLCanvasElement | null) {
     const gl = this.gl;
     if (!src) { this.hasMask = false; return; }
@@ -688,7 +716,38 @@ export class GlRenderer {
     gl.disable(gl.BLEND);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number, viewCss?: { x: number; y: number; w: number; h: number }) {
+  private drawPropRaster(w: number, h: number, vp: { x: number; y: number; w: number; h: number }, project: Project, r: Region) {
+    const tex = this.propTex.get(r.id);
+    if (!tex) return;
+    const gl = this.gl;
+    const pw = Math.max(1, r.width || r.radius * 2);
+    const ph = Math.max(1, r.height || r.radius * 2);
+    const sx = vp.x + ((r.x - pw / 2) / project.width) * vp.w;
+    const sy = vp.y + ((r.y - ph / 2) / project.height) * vp.h;
+    const sw = (pw / project.width) * vp.w;
+    const sh = (ph / project.height) * vp.h;
+    const yGL = h - sy - sh;
+    const x0 = (sx / w) * 2 - 1;
+    const x1 = ((sx + sw) / w) * 2 - 1;
+    const y0 = (yGL / h) * 2 - 1;
+    const y1 = ((yGL + sh) / h) * 2 - 1;
+    const data = new Float32Array([x0, y0, 0, 0, x1, y0, 1, 0, x0, y1, 0, 1, x1, y1, 1, 1]);
+    gl.useProgram(this.bgProg);
+    gl.bindBuffer(gl.ARRAY_BUFFER, this.bgBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, data, gl.DYNAMIC_DRAW);
+    const a = gl.getAttribLocation(this.bgProg, "a");
+    const u = gl.getAttribLocation(this.bgProg, "u");
+    gl.enableVertexAttribArray(a);
+    gl.vertexAttribPointer(a, 2, gl.FLOAT, false, 16, 0);
+    gl.enableVertexAttribArray(u);
+    gl.vertexAttribPointer(u, 2, gl.FLOAT, false, 16, 8);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.uniform1i(gl.getUniformLocation(this.bgProg, "tex"), 0);
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+  }
     const gl = this.gl;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(2, Math.floor(cssW * dpr)), h = Math.max(2, Math.floor(cssH * dpr));
@@ -705,6 +764,9 @@ export class GlRenderer {
     gl.clearColor(0.05, 0.05, 0.07, 1); gl.clear(gl.COLOR_BUFFER_BIT);
     gl.disable(gl.SCISSOR_TEST);
     this.drawBackdrop(w, h, vp);
+    for (const r of project.regions) {
+      if (r.kind === "Prop" && r.propVisible !== false && r.propDataUrl) this.drawPropRaster(w, h, vp, project, r);
+    }
     gl.useProgram(this.prog);
     gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
     const loc = gl.getAttribLocation(this.prog, "a");
@@ -738,9 +800,9 @@ export class GlRenderer {
         gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
         gl.uniform1i(gl.getUniformLocation(this.prog, "uMask"), 1);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uUseMask"), (this.hasMask && e.kind==="SmartNeon") ? 1.0 : 0.0);
-        const geom = (e as any).geomMode || regionGeomMode(r);
-        const apply = (e as any).applyMode || "boundary";
-        const useSdf = r.kind === "Trace" && r.points.length >= 2 && geom !== "point";
+        const geom = e.geomMode || regionGeomMode(r);
+        const apply = e.applyMode || (r.kind === "Prop" ? "boundary" : "boundary");
+        const useSdf = geom !== "point" && (r.kind === "Trace" && r.points.length >= 2 || r.kind === "Prop" || r.kind === "Shape");
         gl.uniform2f(gl.getUniformLocation(this.prog, "uVpXY"), vp.x, vp.y);
         gl.uniform2f(gl.getUniformLocation(this.prog, "uVpWH"), vp.w, vp.h);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uApply"), apply === "inside" ? 0 : apply === "outside" ? 2 : 1);
@@ -749,7 +811,32 @@ export class GlRenderer {
           const key = fieldKey(r, project.width, project.height);
           if (!this.sdfTex) this.sdfTex = gl.createTexture();
           if (this.sdfKey !== key) {
-            const field = buildPathField(r.points, !!r.pathClosed || geom === "mask", project.width, project.height, 256);
+            let field: { data: Uint8Array; res: number };
+            if (r.kind === "Prop") {
+              const pix = this.propPix.get(r.id);
+              field = pix
+                ? buildPropAlphaField(pix.data, pix.w, pix.h, r, project.width, project.height, 256)
+                : buildPathField(
+                    [
+                      { x: r.x - (r.width || 80) / 2, y: r.y - (r.height || 80) / 2 },
+                      { x: r.x + (r.width || 80) / 2, y: r.y - (r.height || 80) / 2 },
+                      { x: r.x + (r.width || 80) / 2, y: r.y + (r.height || 80) / 2 },
+                      { x: r.x - (r.width || 80) / 2, y: r.y + (r.height || 80) / 2 },
+                    ],
+                    true,
+                    project.width,
+                    project.height,
+                    256
+                  );
+            } else if (r.kind === "Shape") {
+              const hw = (r.width || r.radius * 2) / 2, hh = (r.height || r.radius * 2) / 2;
+              field = buildPathField(
+                [{x:r.x-hw,y:r.y-hh},{x:r.x+hw,y:r.y-hh},{x:r.x+hw,y:r.y+hh},{x:r.x-hw,y:r.y+hh}],
+                true, project.width, project.height, 256
+              );
+            } else {
+              field = buildPathField(r.points, !!r.pathClosed || geom === "mask", project.width, project.height, 256);
+            }
             gl.activeTexture(gl.TEXTURE2);
             gl.bindTexture(gl.TEXTURE_2D, this.sdfTex);
             gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);

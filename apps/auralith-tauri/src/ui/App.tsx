@@ -14,7 +14,7 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.13";
+const APP_VERSION = "1.0.0-rc.14";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -185,7 +185,7 @@ export function App() {
   const [updateDetails, setUpdateDetails] = useState("");
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
-  const [tab, setTab] = useState<"effects"|"audio"|"output"|"ai"|"settings">("effects");
+  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
   const [openFx, setOpenFx] = useState<string | null>(null);
   const [fxSub, setFxSub] = useState<"basic"|"color"|"audio"|"motion">("basic");
   const [fxQuery, setFxQuery] = useState("");
@@ -211,6 +211,16 @@ export function App() {
   selRef.current = sel;
 
   useEffect(() => {
+    for (const r of project.regions) {
+      if (r.kind === "Prop" && r.propDataUrl) {
+        const im = new Image();
+        const id = r.id;
+        im.onload = () => { try { glRef.current?.registerProp(id, im); } catch {} };
+        im.src = r.propDataUrl;
+      }
+    }
+  }, [project.regions.map((r) => r.id + (r.propDataUrl || "")).join("|")]);
+  useEffect(() => {
     console.log("APP_COMPONENT_BEGIN");
     if (!canvasRef.current) return;
     let id = 0;
@@ -218,6 +228,13 @@ export function App() {
       console.log("RENDERER_INIT_BEGIN");
       glRef.current = new GlRenderer(canvasRef.current);
       console.log("RENDERER_INIT_OK APP_READY");
+      for (const r of projectRef.current.regions) {
+        if (r.kind === "Prop" && r.propDataUrl) {
+          const im = new Image();
+          im.onload = () => { try { glRef.current?.registerProp(r.id, im); } catch {} };
+          im.src = r.propDataUrl;
+        }
+      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       console.error("APP_BOOT_FAILED stage=RENDERER error=" + msg);
@@ -469,17 +486,30 @@ export function App() {
       input.accept = "image/png,image/webp";
       input.onchange = async () => {
         const file = input.files?.[0]; if (!file) return;
-        const url = URL.createObjectURL(file);
+        const url = await new Promise<string>((resolve) => {
+          const fr = new FileReader();
+          fr.onload = () => resolve(String(fr.result || ""));
+          fr.readAsDataURL(file);
+        });
         const img = new Image();
         img.onload = () => {
+          const maxSide = Math.max(img.naturalWidth, img.naturalHeight) || 256;
+          const fit = Math.min(projectRef.current.width * 0.45, projectRef.current.height * 0.45, maxSide);
+          const scale = fit / maxSide;
+          const w = img.naturalWidth * scale;
+          const h = img.naturalHeight * scale;
+          const fx = defaultEffect("NeonGlow");
+          fx.geomMode = "mask";
+          fx.applyMode = "boundary";
           const region: Region = {
             id: crypto.randomUUID(), kind: "Prop", points: [{ x: s.x, y: s.y }],
-            x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: Math.max(img.naturalWidth, img.naturalHeight) * 0.25,
-            width: img.naturalWidth, height: img.naturalHeight,
-            effects: [defaultEffect("NeonGlow")], pathClosed: true,
+            x: s.x, y: s.y, sx: 1, sy: 1, rotation: 0, radius: Math.max(w, h) / 2,
+            width: w, height: h,
+            effects: [fx], pathClosed: true,
             propDataUrl: url, propVisible: true, assetName: file.name, alphaThreshold: 0.15,
-            label: file.name
+            label: file.name.replace(/\.[^.]+$/, "")
           };
+          try { glRef.current?.registerProp(region.id, img); } catch {}
           pushHist({ ...projectRef.current, regions: [...projectRef.current.regions, region] });
           setSel(region.id);
         };
@@ -663,7 +693,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.13",
+      tag: "v1.0.0-rc.14",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -868,7 +898,7 @@ export function App() {
         </div>
         <aside className={`side ${clean ? "hidden" : ""}`}>
           <div className="tabs">
-            {(["effects","audio","output","ai","settings"] as const).map((id)=>(
+            {(["effects","audio","output","settings"] as const).map((id)=>(
               <button key={id} className={tab===id?"tab on":"tab"} onClick={()=>setTab(id)}>{id.toUpperCase()}</button>
             ))}
           </div>
@@ -896,10 +926,17 @@ export function App() {
                   <label>Width <input type="number" value={Math.round(selected.width||selected.radius*2)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, width:Number(e.target.value), radius:Number(e.target.value)/2})})} /></label>
                   <label>Height <input type="number" value={Math.round(selected.height||selected.radius*2)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, height:Number(e.target.value)})})} /></label>
                   <label>Rotation <input type="range" min={-180} max={180} value={selected.rotation||0} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, rotation:Number(e.target.value)})})} /></label>
+                  <label>Position X <input type="number" value={Math.round(selected.x)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, x:Number(e.target.value)})})} /></label>
+                  <label>Position Y <input type="number" value={Math.round(selected.y)} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, y:Number(e.target.value)})})} /></label>
                   {selected.kind==="Prop" && (
                     <>
-                      <label className="chk"><input type="checkbox" checked={selected.propVisible!==false} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, propVisible:e.target.checked})})} /> Prop Visible</label>
-                      <p className="muted">{selected.propVisible===false ? "Effect Target Only" : "Visible"}</p>
+                      <label>Prop Visibility
+                        <select value={selected.propVisible===false?"target":"visible"} onChange={(e)=>pushHist({...project, regions: project.regions.map(r=>r.id!==sel?r:{...r, propVisible:e.target.value!=="target"})})}>
+                          <option value="visible">Visible</option>
+                          <option value="target">Effect Target Only</option>
+                        </select>
+                      </label>
+                      <p className="muted">Target Geometry: Prop Alpha</p>
                     </>
                   )}
                 </div>
@@ -961,9 +998,7 @@ export function App() {
               <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
                 {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
-              <h3>EXPERIMENTAL TOOLS</h3>
-              {false && <button disabled>Smart Word Trace</button>}
-              <p className="muted">Detection accuracy is still being improved. This feature will return in a future update.</p>
+              {false && <h3>EXPERIMENTAL TOOLS</h3>}
               {neonWarn && neonOpen && (
                 <div className="warnbox">
                   <strong>SMART NEON DETECT — EXPERIMENTAL</strong>
@@ -1082,10 +1117,10 @@ export function App() {
                               <label>Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(e)=>patchFx(ef.id,{audioInfluence:Number(e.target.value)})} /></label>
                             </>}
                             {fxSub==="motion" && <>
-                              <label>Target Geometry <select value={ef.geomMode || (selected?.kind==="Trace" && selected.pathClosed ? "mask" : selected?.kind==="Trace" ? "path" : "point")} onChange={(e)=>patchFx(ef.id,{geomMode:e.target.value})}>
+                              <label>Target Geometry <select value={ef.geomMode || (selected?.kind==="Prop" || selected?.kind==="Shape" ? "mask" : selected?.kind==="Trace" && selected.pathClosed ? "mask" : selected?.kind==="Trace" ? "path" : "point")} onChange={(e)=>patchFx(ef.id,{geomMode:e.target.value})}>
                                 <option value="point">Point</option>
                                 <option value="path">Path</option>
-                                <option value="mask">Mask</option>
+                                <option value="mask">{selected?.kind==="Prop" ? "Prop Alpha" : "Mask"}</option>
                               </select></label>
                               <label>Application <select value={ef.applyMode || "boundary"} onChange={(e)=>patchFx(ef.id,{applyMode:e.target.value})}>
                                 <option value="inside">Inside</option>
@@ -1204,7 +1239,7 @@ export function App() {
           )}
 
 
-          {tab==="ai" && (
+          {false && tab==="ai" && (
             <div className="pane">
               <h3>AI PHASE ONE <span className="badge">EXPERIMENTAL</span></h3>
               <p>Phase 1.2C: Maximum Accuracy Object Isolation</p>
@@ -1364,18 +1399,11 @@ export function App() {
 
           {tab==="settings" && (
             <div className="pane">
-              <h3>AI</h3>
-              <label className="chk"><input type="checkbox" checked={aiEnabled} onChange={(e)=>{ setAiEnabled(e.target.checked); localStorage.setItem("auralith.aiEnabled", e.target.checked?"1":"0"); }} /> Enable Experimental AI</label>
-              <label>AI Engine
-                <select value={aiEngine} onChange={(e)=>{ const v=e.target.value as AiEngine; setAiEngine(v); localStorage.setItem("auralith.aiEngine", v); }}>
-                  <option value="auto">Auto</option>
-                  <option value="lightweight">Lightweight Local Vision</option>
-                  <option value="enhanced">Enhanced Local Segmenter</option>
-                  <option value="neural">Enhanced Neural Vision — Experimental</option>
-                </select>
-              </label>
-              <p className="muted">Lightweight + Enhanced Local need no download. Enhanced Neural Vision downloads SAM 2 Hiera Tiny ONNX ({((NEURAL_MODEL.encoder.bytes+NEURAL_MODEL.decoder.bytes)/1048576).toFixed(0)} MB, {NEURAL_MODEL.license}) only after you press Download Model. Images stay on this computer. SHA-256 is verified.</p>
-              {!neuralReady && (
+              {false && <h3>AI</h3>}
+              {false && <label className="chk"><input type="checkbox" checked={aiEnabled} onChange={(e)=>{ setAiEnabled(e.target.checked); localStorage.setItem("auralith.aiEnabled", e.target.checked?"1":"0"); }} /> Enable Experimental AI</label>}
+              {false && <label>AI Engine</label>}
+              {false && <p className="muted">AI models removed from this build.</p>}
+              {false && !neuralReady && (
                 <div>
                   <p>Enhanced Neural Vision — Experimental</p>
                   <p className="muted">Model: {NEURAL_MODEL.family}. Encoder { (NEURAL_MODEL.encoder.bytes/1048576).toFixed(1) } MB · Decoder { (NEURAL_MODEL.decoder.bytes/1048576).toFixed(1) } MB. Stored in this app cache. SHA-256 encoder {NEURAL_MODEL.encoder.sha256.slice(0,12)}…</p>
