@@ -17,6 +17,17 @@ uniform vec2 uVpXY; uniform vec2 uVpWH;
 float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float n2(vec2 p){ vec2 i=floor(p),f=fract(p); float a=hash(i),b=hash(i+vec2(1,0)),c=hash(i+vec2(0,1)),d=hash(i+vec2(1,1)); vec2 u=f*f*(3.0-2.0*f); return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y; }
 float fbm(vec2 p){ float v=0.0,a=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); p=p*2.03; a*=0.5; v+=a*n2(p); return v; }
+float fbmQ(vec2 p, float q){
+  float v=0.0,a=0.5; int oct = int(clamp(q,0.0,3.0))+2;
+  for(int i=0;i<6;i++){ if(i>=oct) break; v+=a*n2(p); p=p*2.07+vec2(1.7,9.2); a*=0.5; }
+  return v;
+}
+vec2 warp(vec2 p, float t, float amp){
+  float n1 = fbm(p*1.1 + vec2(t*0.17, -t*0.11));
+  float n2b = fbm(p*1.3 + vec2(-t*0.13, t*0.19) + 17.0);
+  return p + amp*vec2(n1-0.5, n2b-0.5);
+}
+float envAR(float x, float atk, float rel){ return smoothstep(0.0, max(atk,0.02), x) * (1.0-smoothstep(1.0-max(rel,0.02), 1.0, x)); }
 vec3 hueShift(vec3 c, float h){ return mix(c, vec3(c.g, c.b, c.r), clamp(abs(h)*2.0, 0.0, 1.0)); }
 void main(){
   vec2 uv = gl_FragCoord.xy/uRes;
@@ -67,9 +78,11 @@ void main(){
     a = exp(-d*1.8)*on*m*(0.7+p2);
     col = mix(uA,uB,step(0.5,fract(t*rate*0.5)));
   } else if (k < 5.5) {
-    float g1 = exp(-d*1.1); float g2 = exp(-d*0.45); float g3 = exp(-d*0.18);
-    a = (g1*0.7+g2*0.35+g3*0.15)*(0.3+m)*p0;
-    col = mix(uA,uB,smoothstep(0.0,1.2,d));
+    float core = exp(-d*(2.4+p1*2.0));
+    float midb = exp(-d*(0.85+p2));
+    float spill = exp(-d*(0.22+0.08*p0));
+    a = (core*0.95 + midb*0.42 + spill*0.16)*(0.28+m)*p0;
+    col = mix(mix(uC,uA,core), uB, smoothstep(0.15,1.1,d));
   } else if (k < 6.5) {
     float br = 0.5+0.5*sin(t*6.2831*(0.06+p0*0.5));
     float inh = smoothstep(-0.2,1.0,sin(t*(0.4+p0)));
@@ -242,35 +255,64 @@ void main(){
     a = (core+glow)*len*m;
     col = mix(uA, uC, core);
   } else if (k < 31.5) {
-    float base = exp(-abs(p.x)*(3.0+p1*6.0)/(0.15+max(0.05,0.55-p.y)));
-    float height = smoothstep(0.95+p0*0.3,-0.15,p.y);
-    float tongue = 0.6+0.4*n2(vec2(p.x*8.0, p.y*3.0 - t*(1.4+uMid)));
-    float flame = base*height*tongue;
-    flame *= step(p.y, 0.85+p0*0.2);
-    a = flame*m;
-    col = mix(mix(uB,uA,clamp(-p.y,0.0,1.0)), uC, exp(-abs(p.x)*8.0)*height);
+    float bassW = 1.0 + uBass*0.55*m;
+    float bassH = 0.55 + p0*0.55 + uBass*0.45*m + uBeat*0.18*m;
+    float wind = (p2-0.5)*0.55 + uMid*0.12;
+    float y = p.y + 0.72;
+    float x = p.x - y*y*wind*0.35;
+    float hMax = max(bassH, 0.28);
+    float srcW = (0.16 + p1*0.28) * bassW;
+    float taper = mix(1.0, 0.18, clamp(y/hMax,0.0,1.0));
+    vec2 fl = warp(vec2(x*2.4, y*1.6 - t*(0.55+uMid*0.35)), t, 0.22+uMid*0.18);
+    float bodyN = fbmQ(fl*1.15 + vec2(0.0,-t*0.85), uQ);
+    float tongueN = fbmQ(fl*2.4 + vec2(t*0.15,-t*1.25), uQ);
+    float edgeN = n2(fl*7.0 + vec2(0.0,-t*(2.2+uHigh*3.0)));
+    float envY = smoothstep(-0.04, 0.08, y) * (1.0 - smoothstep(hMax*0.62, hMax, y));
+    float rad = srcW * taper * (0.85 + bodyN*0.35 + tongueN*0.28);
+    float body = exp(-abs(x)/(rad+0.02)) * envY;
+    float tongues = pow(max(tongueN,0.0), mix(2.4,1.1,uMid)) * envY * (1.0-smoothstep(hMax*0.5, hMax, y));
+    float core = exp(-abs(x)/(srcW*0.38+0.01)) * smoothstep(0.0,0.12,y) * (1.0-smoothstep(hMax*0.18, hMax*0.42, y));
+    float flicker = 0.92 + 0.08*edgeN*uHigh;
+    float flame = clamp(body*0.85 + tongues*0.55 + core*0.7, 0.0, 2.0) * flicker;
+    flame *= 1.0 + uBeat*0.35;
+    a = flame * m * (0.55+p0*0.35);
+    float temp = clamp(core*1.3 + body*(1.0-y/hMax) - tongues*0.15, 0.0, 1.0);
+    col = mix(uC, mix(uB, uA, temp), clamp(flame,0.0,1.0));
+    col = mix(col, uA, core*0.65);
   } else if (k < 32.5) {
-    float id = hash(floor(p*12.0+vec2(0.0, floor(t*(0.4+p0)))));
-    float rise = fract(id + t*(0.12+p1*0.3));
-    float ember = step(0.78, hash(floor(p*10.0)))*exp(-abs(p.x)*6.0)*exp(-abs(p.y+0.6-rise*1.6)*8.0);
-    a = ember*m*(1.0-rise);
-    col = mix(uA, uB, rise);
+    float id = hash(floor(p*vec2(9.0,6.0)+vec2(2.1, floor(t*(0.18+p0*0.2)))));
+    float life = fract(id + t*(0.08+p1*0.16) + uBeat*0.04);
+    float rise = life * (0.9+p0*0.5);
+    vec2 ep = vec2((id-0.5)*(0.55+p2*0.4)*life, -0.55 + rise);
+    float sz = mix(0.035, 0.09, hash(vec2(id,2.2)));
+    float ember = exp(-length(p-ep)/sz) * step(0.62, hash(vec2(id,7.7)));
+    ember *= (1.0-smoothstep(0.72,1.0,life)) * (1.0 + step(0.85,uBeat)*0.8);
+    a = ember*m;
+    col = mix(uA, uB, life);
   } else if (k < 33.5) {
-    float id = hash(floor(p*18.0));
-    float life = fract(id*3.1 + t*(1.4+p0+uBeat));
-    vec2 dir = vec2(id-0.5, 0.35+id*0.4);
-    float sp = exp(-length(p-dir*life* (0.6+p1))*18.0);
-    a = sp*m*(1.0-life);
-    col = mix(uC, uB, life);
+    float id = hash(floor(p*22.0 + 4.0));
+    float life = fract(id*2.7 + t*(1.6+p0+uHigh*1.4+uBeat));
+    vec2 vel = vec2((id-0.5)*(1.1+p1), 0.55+id*0.7);
+    vec2 sp = vel*life*0.85;
+    float trail = exp(-abs(dot(p-sp, normalize(vel+1e-4)))*28.0) * exp(-length(p-sp)*10.0);
+    float spark = exp(-length(p-sp)*26.0) + trail*0.45;
+    a = spark*m*(1.0-life)*step(0.55,id);
+    col = mix(uC, uA, 1.0-life);
   } else if (k < 34.5) {
-    float heat = exp(-d*(0.8+p1))* (0.3+fbm(p*2.0+vec2(0.0,t*(0.4+p0))));
-    a = heat*0.35*m;
-    col = mix(uA, uC, heat);
+    float above = smoothstep(-0.1, 0.55, p.y);
+    float field = fbmQ(warp(p*2.2, t*(0.4+p0), 0.3), uQ);
+    float heat = exp(-d*(0.55+p1)) * above * (0.25+field);
+    a = heat*0.28*m;
+    col = mix(uA, uC, field);
   } else if (k < 35.5) {
-    float sm = fbm(p*(0.8+p0)+vec2(t*0.05, t*0.03));
-    float fog = smoothstep(0.25,0.75,sm)*exp(-abs(p.y)* (0.4+p1));
-    a = fog*m*0.55;
-    col = mix(uA, uB, sm);
+    vec2 sw = warp(p*vec2(0.7,0.9) + vec2(t*0.04*(p2-0.5), -t*(0.08+p0*0.12)), t*0.2, 0.35);
+    float billow = fbmQ(sw*0.9, uQ);
+    float wisp = fbmQ(sw*2.6 + 8.0, uQ);
+    float rise = smoothstep(-0.8, 0.9, p.y);
+    float smoke = mix(billow, wisp, 0.35+rise*0.4);
+    smoke = smoothstep(0.28, 0.72, smoke) * (1.0-smoothstep(0.55, 1.15, rise)) * (0.35+p1);
+    a = smoke*m*0.62;
+    col = mix(uA, uB, wisp);
   } else if (k < 36.5) {
     float mist = fbm(vec2(uv.x*1.4+t*(0.04+p0), uv.y*0.6));
     a = mist*0.22*m*(0.4+p1);

@@ -14,7 +14,7 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.10";
+const APP_VERSION = "1.0.0-rc.12";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -643,7 +643,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.10",
+      tag: "v1.0.0-rc.12",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
