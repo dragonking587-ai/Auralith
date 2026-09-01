@@ -8,8 +8,12 @@
  */
 import { assistedTrace, analyzeCandidates, type AiCandidate } from "./localVision";
 import { rdp, type Pt } from "./traceMath";
+import {
+  modelsInstalled, encodeImage, decodeMasks, maskToScenePoints,
+  type NeuralPrompt,
+} from "./neuralSam";
 
-export type AiEngine = "auto" | "lightweight" | "enhanced";
+export type AiEngine = "auto" | "lightweight" | "enhanced" | "neural";
 export const ENHANCED_MODEL = {
   id: "sam2.1-hiera-tiny",
   version: "2.1",
@@ -20,10 +24,12 @@ export const ENHANCED_MODEL = {
   sha256: "", // filled when a redistributable ONNX is published to the Auralith release
 };
 
-export function engineLabel(e: AiEngine, enhancedReady: boolean) {
+export function engineLabel(e: AiEngine, neuralReady: boolean) {
   if (e === "lightweight") return "Lightweight Local Vision";
-  if (e === "enhanced") return enhancedReady ? "Enhanced AI Vision" : "Enhanced (model not installed — using Enhanced Local Segmenter)";
-  return enhancedReady ? "Auto (Enhanced)" : "Auto (Lightweight / Enhanced Local)";
+  if (e === "enhanced") return "Enhanced Local Segmenter";
+  if (e === "neural") return neuralReady ? "Enhanced Neural Vision" : "Enhanced Neural Vision (model not installed)";
+  if (neuralReady) return "Auto (Enhanced Neural)";
+  return "Auto (Enhanced Local / Lightweight)";
 }
 
 export async function sha256Hex(buf: ArrayBuffer) {
@@ -134,9 +140,44 @@ export async function runEngine(
   mode: "click"|"box"|"brush",
   seed: { x:number;y:number;w?:number;h?:number;path?:Pt[] },
   prompts: Prompt[],
-  sensitivity: number
+  sensitivity: number,
+  onStatus?: (s: string) => void
 ) {
-  const useEnhanced = engine === "enhanced" || engine === "auto";
+  const wantNeural = engine === "neural" || engine === "auto";
+  if (wantNeural && await modelsInstalled()) {
+    try {
+      const embed = await encodeImage(img, onStatus);
+      const nPrompts: NeuralPrompt[] = [];
+      prompts.forEach((p) => nPrompts.push({ x: p.x / sceneW * img.naturalWidth, y: p.y / sceneH * img.naturalHeight, label: p.positive ? 1 : 0 }));
+      if (mode === "click") nPrompts.push({ x: seed.x / sceneW * img.naturalWidth, y: seed.y / sceneH * img.naturalHeight, label: 1 });
+      if (mode === "box" && seed.w && seed.h) {
+        nPrompts.push({ x: seed.x / sceneW * img.naturalWidth, y: seed.y / sceneH * img.naturalHeight, label: 2 });
+        nPrompts.push({ x: (seed.x + seed.w) / sceneW * img.naturalWidth, y: (seed.y + seed.h) / sceneH * img.naturalHeight, label: 3 });
+      }
+      if (mode === "brush" && seed.path) {
+        const step = Math.max(1, Math.floor(seed.path.length / 8));
+        seed.path.forEach((p, i) => { if (i % step === 0) nPrompts.push({ x: p.x / sceneW * img.naturalWidth, y: p.y / sceneH * img.naturalHeight, label: 1 }); });
+      }
+      if (!nPrompts.length) throw new Error("No neural prompts");
+      onStatus?.("Decoding mask…");
+      const masks = await decodeMasks(embed, nPrompts);
+      const best = masks[0];
+      if (!best) throw new Error("Decoder returned no masks");
+      const pts = maskToScenePoints(best.mask, best.w, best.h, embed, sceneW, sceneH);
+      if (pts) {
+        return {
+          points: pts, closed: true, engineUsed: "neural" as const,
+          neuralMasks: masks, neuralIndex: 0, quality: best.quality,
+        };
+      }
+    } catch (err) {
+      if (engine === "neural") throw err;
+      onStatus?.("Neural failed, using Enhanced Local: " + String(err));
+    }
+  } else if (engine === "neural") {
+    throw new Error("NEURAL_MODEL_MISSING");
+  }
+  const useEnhanced = engine === "enhanced" || engine === "auto" || engine === "neural";
   if (useEnhanced) {
     const extra: Prompt[] = [...prompts];
     if (mode === "click") extra.push({ x: seed.x, y: seed.y, positive: true });

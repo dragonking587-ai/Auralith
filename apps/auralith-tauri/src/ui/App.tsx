@@ -7,13 +7,14 @@ import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform"
 import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
 import { assistedTrace, analyzeCandidates, foregroundMask, estimateDepth, invertDepth, type AiCandidate } from "../scene/localVision";
 import { runEngine, enhancedCandidates, engineLabel, ENHANCED_MODEL, type AiEngine, type Prompt } from "../scene/enhancedVision";
+import { NEURAL_MODEL, modelsInstalled, downloadVerified, invalidateEmbed } from "../scene/neuralSam";
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.6";
+const APP_VERSION = "1.0.0-rc.7";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -147,7 +148,11 @@ export function App() {
   const [aiPrompts, setAiPrompts] = useState<Prompt[]>([]);
   const [refineMode, setRefineMode] = useState<"include"|"exclude"|null>(null);
   const [lastEngineUsed, setLastEngineUsed] = useState("");
+  const [neuralReady, setNeuralReady] = useState(false);
+  const [dlMsg, setDlMsg] = useState("");
+  const [altIdx, setAltIdx] = useState(0);
   const [maskTool, setMaskTool] = useState<"add"|"remove"|"lassoAdd"|"lassoRemove"|"">("");
+  useEffect(() => { void modelsInstalled().then(setNeuralReady); }, []);
   const brushRef = useRef<{x:number;y:number}[]>([]);
   const spaceRef = useRef(false);
   const viewZoomRef = useRef<number | "fit">("fit");
@@ -380,9 +385,16 @@ export function App() {
     if (!img) { setAiMsg("Load an image first."); return; }
     setAiBusy(true); setAiMsg("Analyzing selection...");
     try {
-      const res = await runEngine(aiEngine, img, projectRef.current.width, projectRef.current.height, mode, seed, aiPrompts, aiSens);
-      if (!res) setAiMsg("Could not create a reliable suggestion. [Retry] [Use Lightweight Vision] [Manual Trace]");
-      else { setAiPreview(res); setLastEngineUsed(res.engineUsed); setAiMsg("Preview ready ("+res.engineUsed+"). Accept to create a normal Trace."); }
+      const res = await runEngine(aiEngine, img, projectRef.current.width, projectRef.current.height, mode, seed, aiPrompts, aiSens, setAiMsg);
+      if (!res) setAiMsg("Could not create a reliable suggestion. [Retry] [Use Enhanced Local] [Use Lightweight] [Manual Trace]");
+      else {
+        setAiPreview(res);
+        setLastEngineUsed(res.engineUsed);
+        setAltIdx(0);
+        const q = (res as any).quality;
+        const n = (res as any).neuralMasks?.length;
+        setAiMsg("Preview ready ("+res.engineUsed+")" + (n ? ` · Result 1 of ${n}` : "") + (q!=null ? ` · Mask Quality: ${Number(q).toFixed(2)}` : "") + ". Accept to create a normal Trace.");
+      }
     } catch (err) { setAiMsg("AI failed: "+String(err)); }
     finally { setAiBusy(false); }
   };
@@ -566,7 +578,8 @@ export function App() {
         console.log("[ImageLoad] DECODE_OK", img.naturalWidth, "x", img.naturalHeight);
         try {
           imgRef.current = img;
-          glRef.current?.setBackdrop(img);
+          invalidateEmbed();
+          setBackdrop(img);
           setProject((p) => {
             if (p.backdropDataUrl) URL.revokeObjectURL(p.backdropDataUrl);
             return { ...p, backdropDataUrl: url };
@@ -611,7 +624,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.6",
+      tag: "v1.0.0-rc.7",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -1103,7 +1116,7 @@ export function App() {
             <div className="pane">
               <h3>AI PHASE ONE <span className="badge">EXPERIMENTAL</span></h3>
               <p>Phase 1.2: Enhanced Vision</p>
-              <p className="muted">Engine: {engineLabel(aiEngine, false)}{lastEngineUsed ? " · last result: "+lastEngineUsed : ""}</p>
+              <p className="muted">Engine: {engineLabel(aiEngine, neuralReady)}{lastEngineUsed ? " · last result: "+lastEngineUsed : ""}</p>
               {aiWarn && (
                 <div className="warnbox">
                   <strong>AI PHASE ONE — EXPERIMENTAL</strong>
@@ -1126,6 +1139,18 @@ export function App() {
               <div className="row">
                 <button disabled={!aiEnabled} className={refineMode==="include"?"on":""} onClick={()=>setRefineMode("include")}>+ Include</button>
                 <button disabled={!aiEnabled} className={refineMode==="exclude"?"on":""} onClick={()=>setRefineMode("exclude")}>- Exclude</button>
+                <button disabled={!aiEnabled} onClick={()=>setAiPrompts((ps)=>ps.slice(0,-1))}>Undo Prompt</button>
+                <button disabled={!aiEnabled} onClick={()=>setAiPrompts([])}>Clear Refinement</button>
+                <button disabled={!aiEnabled || !(aiPreview as any)?.neuralMasks} onClick={()=>{
+                  const masks=(aiPreview as any)?.neuralMasks; if(!masks?.length) return;
+                  const i=(altIdx+masks.length-1)%masks.length; setAltIdx(i);
+                  setAiMsg(`Result ${i+1} of ${masks.length} · Mask Quality: ${Number(masks[i].quality).toFixed(2)}`);
+                }}>Previous Result</button>
+                <button disabled={!aiEnabled || !(aiPreview as any)?.neuralMasks} onClick={()=>{
+                  const masks=(aiPreview as any)?.neuralMasks; if(!masks?.length) return;
+                  const i=(altIdx+1)%masks.length; setAltIdx(i);
+                  setAiMsg(`Result ${i+1} of ${masks.length} · Mask Quality: ${Number(masks[i].quality).toFixed(2)}`);
+                }}>Next Result</button>
               </div>
               <h3>SMART MASK</h3>
               <div className="row">
@@ -1230,10 +1255,31 @@ export function App() {
                 <select value={aiEngine} onChange={(e)=>{ const v=e.target.value as AiEngine; setAiEngine(v); localStorage.setItem("auralith.aiEngine", v); }}>
                   <option value="auto">Auto</option>
                   <option value="lightweight">Lightweight Local Vision</option>
-                  <option value="enhanced">Enhanced AI Vision — Experimental</option>
+                  <option value="enhanced">Enhanced Local Segmenter</option>
+                  <option value="neural">Enhanced Neural Vision — Experimental</option>
                 </select>
               </label>
-              <p className="muted">Lightweight: no download, fast heuristic. Enhanced: multi-scale local segmenter + optional SAM 2.1 Tiny install ({ENHANCED_MODEL.downloadHintMb} MB, {ENHANCED_MODEL.license}). Images stay on this computer. Models are never downloaded silently.</p>
+              <p className="muted">Lightweight + Enhanced Local need no download. Enhanced Neural Vision downloads SAM 2 Hiera Tiny ONNX ({((NEURAL_MODEL.encoder.bytes+NEURAL_MODEL.decoder.bytes)/1048576).toFixed(0)} MB, {NEURAL_MODEL.license}) only after you press Download Model. Images stay on this computer. SHA-256 is verified.</p>
+              {!neuralReady && (
+                <div>
+                  <p>Enhanced Neural Vision — Experimental</p>
+                  <p className="muted">Model: {NEURAL_MODEL.family}. Encoder { (NEURAL_MODEL.encoder.bytes/1048576).toFixed(1) } MB · Decoder { (NEURAL_MODEL.decoder.bytes/1048576).toFixed(1) } MB. Stored in this app cache. SHA-256 encoder {NEURAL_MODEL.encoder.sha256.slice(0,12)}…</p>
+                  <div className="row">
+                    <button onClick={async ()=>{
+                      try {
+                        setDlMsg("Downloading encoder…");
+                        await downloadVerified(NEURAL_MODEL.encoder, (p)=>setDlMsg(`${p.file} ${p.pct}%`));
+                        setDlMsg("Downloading decoder…");
+                        await downloadVerified(NEURAL_MODEL.decoder, (p)=>setDlMsg(`${p.file} ${p.pct}%`));
+                        setNeuralReady(await modelsInstalled());
+                        setDlMsg(neuralReady || true ? "Model installed and checksum verified." : "Install incomplete");
+                      } catch (err) { setDlMsg("Download failed: "+String(err)); }
+                    }}>Download Model</button>
+                    <button onClick={()=>{ setAiEngine("enhanced"); localStorage.setItem("auralith.aiEngine","enhanced"); }}>Use Enhanced Local</button>
+                  </div>
+                  {dlMsg && <p className="muted">{dlMsg}</p>}
+                </div>
+              )}
               <h3>UI</h3>
               <label className="chk"><input type="checkbox" checked={traceDebug} onChange={(e)=>setTraceDebug(e.target.checked)} /> Trace debug</label>
               <label className="chk"><input type="checkbox" checked={showGrid} onChange={(e)=>setShowGrid(e.target.checked)} /> Pixel grid (editor)</label>
