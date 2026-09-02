@@ -1,4 +1,5 @@
 mod vcam;
+mod poll_server;
 
 #[cfg(windows)]
 mod capture {
@@ -61,12 +62,17 @@ pub fn run() {
         .plugin(tauri_plugin_fs::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .manage(std::sync::Arc::new(poll_server::PollServer::default()))
         .invoke_handler(tauri::generate_handler![
             vcam::vcam_status,
             vcam::vcam_install,
             vcam::vcam_start,
             vcam::vcam_stop,
-            vcam::vcam_push_frame
+            vcam::vcam_push_frame,
+            poll_server::poll_server_status,
+            poll_server::poll_server_start,
+            poll_server::poll_server_set_hub,
+            poll_server::poll_open_local
         ])
         .setup(|app| {
             #[cfg(windows)]

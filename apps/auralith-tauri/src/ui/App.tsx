@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
@@ -18,7 +19,7 @@ import {
 } from "../scene/poll";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.15";
+const APP_VERSION = "1.0.0-rc.16";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -193,6 +194,7 @@ export function App() {
   const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
   const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
   const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
+  const [viewer, setViewer] = useState({ state: "STOPPED", port: 0, local_url: "", lan_url: "", lan_ip: "", health: "STOPPED", error: "", msg: "" });
   const pollVotes = useRef(new Map<string, PollOption>());
   const pollRtRef = useRef(pollRt); pollRtRef.current = pollRt;
   const pollCfgRef = useRef(pollCfg); pollCfgRef.current = pollCfg;
@@ -366,7 +368,13 @@ export function App() {
     pollCfgRef.current = cfg;
     setProject((p) => ({ ...p, poll: persistablePoll(cfg) }));
   };
-  const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); };
+  const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); syncViewerHub(pollCfgRef.current, rt); };
+  const syncViewerHub = (cfg = pollCfgRef.current, rt = pollRtRef.current) => {
+    invoke("poll_server_set_hub", { hub: {
+      running_poll: rt.running, question: cfg.question, red_label: cfg.redLabel, green_label: cfg.greenLabel,
+      red: rt.red, green: rt.green, round_id: rt.roundId
+    } }).catch(() => {});
+  };
   useEffect(() => {
     const onVote = (e: StorageEvent) => {
       if (e.key !== POLL_BUS + ".vote" || !e.newValue) return;
@@ -378,6 +386,12 @@ export function App() {
         if (res.accepted) applyRt(res.rt);
       } catch {}
     };
+    const unlistenP = listen<{ option: string; viewerId: string }>("poll-vote", (ev) => {
+      const msg = ev.payload || { option: "red", viewerId: "lan" };
+      const res = applyVote(pollRtRef.current, pollCfgRef.current, pollVotes.current, String(msg.viewerId || "lan"), msg.option === "green" ? "green" : "red");
+      pollVotes.current = res.votes;
+      if (res.accepted) applyRt(res.rt);
+    }).catch(() => undefined);
     window.addEventListener("storage", onVote);
     const t = setInterval(() => {
       try {
@@ -389,7 +403,7 @@ export function App() {
         onVote(new StorageEvent("storage", { key: POLL_BUS + ".vote", newValue: raw }));
       } catch {}
     }, 250);
-    return () => { window.removeEventListener("storage", onVote); clearInterval(t); };
+    return () => { window.removeEventListener("storage", onVote); clearInterval(t); unlistenP.then((fn) => fn && fn()).catch(()=>{}); };
   }, []);
   const undo = () => setHistory((h) => {
     if (!h.length) return h;
@@ -743,7 +757,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.15",
+      tag: "v1.0.0-rc.16",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -1328,10 +1342,43 @@ export function App() {
               </div>
               <div className="row">
                 <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); }}>Reset Poll</button>
-                <button onClick={()=>{ navigator.clipboard.writeText(location.origin + location.pathname + "#vote").catch(()=>{}); }}>Copy Viewer Link</button>
+                <button onClick={()=>{ navigator.clipboard.writeText(viewer.lan_url || viewer.local_url || "").catch(()=>{}); }}>Copy Viewer Link</button>
+              </div>
+              <h4>VIEWER CONNECTION</h4>
+              <p>Server: {viewer.state} · Health: {viewer.health} · Port: {viewer.port || "—"}</p>
+              {viewer.error && <p className="warn">{viewer.error}</p>}
+              {viewer.msg && <p>{viewer.msg}</p>}
+              <p>Local: {viewer.local_url || "—"}</p>
+              <p>LAN: {viewer.lan_url || "—"}</p>
+              <div className="row">
+                <button onClick={async ()=>{
+                  console.log("[Poll] Open Viewer Page clicked");
+                  setViewer((s)=>({...s, msg:"Opening viewer page...", state: s.state==="RUNNING"?s.state:"STARTING"}));
+                  try {
+                    syncViewerHub();
+                    const st: any = await invoke("poll_open_local");
+                    console.log("[Poll] poll_open_local", st);
+                    setViewer({ ...st, msg: "Viewer page opened." });
+                  } catch (e) {
+                    const msg = String(e);
+                    console.error("[Poll] open failed", msg);
+                    setViewer((s)=>({...s, state:"ERROR", health:"ERROR", error: msg, msg:"Could not open viewer page. Reason: "+msg}));
+                  }
+                }}>Open Local Viewer</button>
+                <button onClick={()=>viewer.local_url && navigator.clipboard.writeText(viewer.local_url).catch(()=>{})}>Copy Local</button>
+                <button onClick={()=>viewer.lan_url && navigator.clipboard.writeText(viewer.lan_url).catch(()=>{})}>Copy LAN Link</button>
               </div>
               <div className="row">
-                <button onClick={()=>window.open(location.pathname + "#vote", "auralith-vote", "width=420,height=640")}>Open Viewer Window</button>
+                <button onClick={async ()=>{
+                  setViewer((s)=>({...s, msg:"Starting viewer server..."}));
+                  try {
+                    const st: any = await invoke("poll_server_start");
+                    setViewer({ ...st, msg: st.state==="RUNNING" ? "Viewer server running." : st.state });
+                    syncViewerHub();
+                  } catch (e) {
+                    setViewer((s)=>({...s, state:"ERROR", error:String(e), msg:"Viewer server unavailable: "+String(e)}));
+                  }
+                }}>Start Viewer Server</button>
                 <button onClick={()=>{
                   const res = applyVote(pollRt, pollCfg, pollVotes.current, "host-test-red", "red");
                   pollVotes.current = res.votes; applyRt(res.rt);

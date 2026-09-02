@@ -22,3 +22,23 @@ commands.allow = ["vcam_stop"]
 identifier = "allow-vcam-push-frame"
 description = "Push a clean frame into shared memory"
 commands.allow = ["vcam_push_frame"]
+
+[[permission]]
+identifier = "allow-poll-server-status"
+description = "Query poll viewer server status"
+commands.allow = ["poll_server_status"]
+
+[[permission]]
+identifier = "allow-poll-server-start"
+description = "Start poll viewer HTTP server"
+commands.allow = ["poll_server_start"]
+
+[[permission]]
+identifier = "allow-poll-server-set-hub"
+description = "Update poll viewer public state"
+commands.allow = ["poll_server_set_hub"]
+
+[[permission]]
+identifier = "allow-poll-open-local"
+description = "Start viewer server and open local poll page"
+commands.allow = ["poll_open_local"]
