@@ -748,6 +748,7 @@ export class GlRenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
+  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number, viewCss?: { x: number; y: number; w: number; h: number }, colorOverrides?: Record<string, string>) {
     const gl = this.gl;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(2, Math.floor(cssW * dpr)), h = Math.max(2, Math.floor(cssH * dpr));
@@ -782,7 +783,7 @@ export class GlRenderer {
         const rad = Math.max(8, (r.radius + (e.expansion || 0) + (e.spread || 0)) * (vp.w / project.width) * Math.max(0.05, e.fxScaleX || e.scale || r.sx || 1));
         const audio = e.audio === "Manual" ? 1 : bandOf(snap, e.audio);
         const mod = e.audio === "Manual" ? e.intensity : e.intensity * (1 - e.audioInfluence + e.audioInfluence * audio);
-        const c = hex(e.color), c2 = hex(e.color2);
+        const c = hex(colorOverrides?.[e.id] || e.color), c2 = hex(e.color2);
         gl.uniform2f(gl.getUniformLocation(this.prog, "uRes"), w, h);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uTime"), t * e.speed * project.masters.motion);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uMod"), mod * project.masters.intensity);

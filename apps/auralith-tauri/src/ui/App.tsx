@@ -12,9 +12,14 @@ import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scen
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
 import { GlRenderer } from "../render/renderer";
+import {
+  applyVote, clearVotes, defaultPollConfig, defaultPollRuntime, effectIndex, endPoll,
+  persistablePoll, resetPoll, restoreEffects, startPoll, type PollConfig, type PollOption, type PollRuntime
+} from "../scene/poll";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.14";
+const APP_VERSION = "1.0.0-rc.15";
+const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
   Portal: ["Portal Radius", "Rim Width", "Inner Swirl"],
@@ -186,6 +191,11 @@ export function App() {
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
   const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
+  const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
+  const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
+  const pollVotes = useRef(new Map<string, PollOption>());
+  const pollRtRef = useRef(pollRt); pollRtRef.current = pollRt;
+  const pollCfgRef = useRef(pollCfg); pollCfgRef.current = pollCfg;
   const [openFx, setOpenFx] = useState<string | null>(null);
   const [fxSub, setFxSub] = useState<"basic"|"color"|"audio"|"motion">("basic");
   const [fxQuery, setFxQuery] = useState("");
@@ -245,7 +255,9 @@ export function App() {
       try {
         if (wrap && glRef.current) {
           const vp = currentVp(wrap.getBoundingClientRect());
-          glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight, vp);
+          const ov: Record<string, string> = {};
+          if (pollRtRef.current.overrideId && pollRtRef.current.overrideColor) ov[pollRtRef.current.overrideId] = pollRtRef.current.overrideColor;
+          glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight, vp, ov);
         }
       } catch (e) {
         console.error("APP_BOOT_FAILED stage=RENDER_FRAME error=" + e);
@@ -341,6 +353,44 @@ export function App() {
     setRedo([]);
     setProject(next);
   };
+  const publishPoll = (cfg: PollConfig, rt: PollRuntime) => {
+    try {
+      localStorage.setItem(POLL_BUS, JSON.stringify({
+        question: cfg.question, redLabel: cfg.redLabel, greenLabel: cfg.greenLabel,
+        red: rt.red, green: rt.green, running: rt.running, roundId: rt.roundId
+      }));
+    } catch {}
+  };
+  const setPollAndProject = (cfg: PollConfig) => {
+    setPollCfg(cfg);
+    pollCfgRef.current = cfg;
+    setProject((p) => ({ ...p, poll: persistablePoll(cfg) }));
+  };
+  const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); };
+  useEffect(() => {
+    const onVote = (e: StorageEvent) => {
+      if (e.key !== POLL_BUS + ".vote" || !e.newValue) return;
+      try {
+        const msg = JSON.parse(e.newValue);
+        if (msg.type !== "vote") return;
+        const res = applyVote(pollRtRef.current, pollCfgRef.current, pollVotes.current, String(msg.viewerId||"anon"), msg.option === "green" ? "green" : "red");
+        pollVotes.current = res.votes;
+        if (res.accepted) applyRt(res.rt);
+      } catch {}
+    };
+    window.addEventListener("storage", onVote);
+    const t = setInterval(() => {
+      try {
+        const raw = localStorage.getItem(POLL_BUS + ".vote");
+        if (!raw) return;
+        const msg = JSON.parse(raw);
+        if (!msg.ts || msg.ts === (onVote as any)._ts) return;
+        (onVote as any)._ts = msg.ts;
+        onVote(new StorageEvent("storage", { key: POLL_BUS + ".vote", newValue: raw }));
+      } catch {}
+    }, 250);
+    return () => { window.removeEventListener("storage", onVote); clearInterval(t); };
+  }, []);
   const undo = () => setHistory((h) => {
     if (!h.length) return h;
     const prev = h[h.length - 1]!;
@@ -693,7 +743,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.14",
+      tag: "v1.0.0-rc.15",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -812,7 +862,7 @@ export function App() {
         <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
         <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
         <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
-        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p);} catch(err){ setErr(String(err)); } }} />
+        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p); setPollCfg(p.poll || defaultPollConfig()); setPollRt(defaultPollRuntime()); pollVotes.current = new Map(); } catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
         <button className={tool==="Shape"?"on":""} title="Add a shape target" onClick={() => setTool("Shape")}>Shape</button>
         <button className={tool==="Prop"?"on":""} title="Import a PNG/WebP prop" onClick={() => setTool("Prop")}>Prop</button>
@@ -892,6 +942,52 @@ export function App() {
               </svg>
             </div>
           )}
+          {wrapRef.current && (() => {
+            const wrap = wrapRef.current!.getBoundingClientRect();
+            const vp = currentVp(wrap);
+            const d = pollCfg.display;
+            const pos = sceneToCanvas(d.x, d.y, vp, project.width, project.height);
+            const tot = pollRt.red + pollRt.green;
+            const rp = tot ? Math.round(pollRt.red / tot * 100) : 0;
+            const gp = tot ? Math.round(pollRt.green / tot * 100) : 0;
+            const w = (d.w / project.width) * vp.w * d.scale;
+            return (
+              <div className="poll-hud" style={{
+                position: "absolute", left: pos.x, top: pos.y, width: w, opacity: d.opacity,
+                background: `rgba(18,12,8,${d.bgOpacity})`, color: d.textColor, padding: d.pad,
+                borderRadius: d.radius, border: d.border ? `${d.borderW}px solid #d4af37` : "none",
+                textAlign: d.align, fontSize: d.fontSize, pointerEvents: clean ? "none" : "auto",
+                fontFamily: "Georgia, serif"
+              }} onPointerDown={(e) => {
+                if (clean) return;
+                e.stopPropagation();
+                const start = sceneFromEvent(e);
+                const ox = d.x, oy = d.y;
+                const move = (ev: PointerEvent) => {
+                  const s = sceneFromEvent(ev);
+                  setPollAndProject({ ...pollCfgRef.current, display: { ...pollCfgRef.current.display, x: ox + (s.x - start.x), y: oy + (s.y - start.y) } });
+                };
+                const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+                window.addEventListener("pointermove", move);
+                window.addEventListener("pointerup", up);
+              }}>
+                {d.showQuestion && <div style={{ letterSpacing: 1, marginBottom: 8 }}>{pollCfg.question}</div>}
+                <div style={{ display: "flex", gap: 16, justifyContent: d.align === "center" ? "center" : d.align === "right" ? "flex-end" : "flex-start" }}>
+                  <div>
+                    <div style={{ color: d.redAccent, fontWeight: 700 }}>{pollCfg.redLabel}{d.showLeader && pollRt.leader==="red" ? " ●" : ""}</div>
+                    {d.showCounts && <div>{pollRt.red}</div>}
+                    {d.showPct && <div>{rp}%</div>}
+                  </div>
+                  <div>
+                    <div style={{ color: d.greenAccent, fontWeight: 700 }}>{pollCfg.greenLabel}{d.showLeader && pollRt.leader==="green" ? " ●" : ""}</div>
+                    {d.showCounts && <div>{pollRt.green}</div>}
+                    {d.showPct && <div>{gp}%</div>}
+                  </div>
+                </div>
+                {d.showTotal && <div style={{ marginTop: 6, opacity: 0.75 }}>Total {tot}</div>}
+              </div>
+            );
+          })()}
           {!clean && (
             <div className="statusstrip">{project.width}×{project.height} · {view} · Audio {audio.status} · {selected?selected.effects.length:0} effects</div>
           )}
@@ -1176,6 +1272,82 @@ export function App() {
               <button className="gold" onClick={() => setView("CleanCapture")}>Open Clean Capture</button>
               <button onClick={() => setView("Edit")}>Close Clean Capture</button>
               <p>{project.width}×{project.height} · F11 / ESC</p>
+              <h3>AUDIENCE POLLS <span className="badge">TEST / LAN</span></h3>
+              <p className="muted">Temporary color overrides only. Base effect colors are never overwritten. Viewer page is same-machine TEST / LAN MODE — no public internet relay.</p>
+              <label>Question <input value={pollCfg.question} onChange={(e)=>setPollAndProject({...pollCfg, question:e.target.value})} /></label>
+              {(() => {
+                const list = effectIndex(project);
+                const ids = new Set(list.map((x)=>x.id));
+                const missR = pollCfg.redEffectId && !ids.has(pollCfg.redEffectId);
+                const missG = pollCfg.greenEffectId && !ids.has(pollCfg.greenEffectId);
+                return (
+                  <>
+                    <label>RED maps to
+                      <select value={pollCfg.redEffectId} onChange={(e)=>setPollAndProject({...pollCfg, redEffectId:e.target.value})}>
+                        <option value="">Select effect…</option>
+                        {list.map((x)=><option key={x.id} value={x.id}>{x.label}</option>)}
+                      </select>
+                    </label>
+                    {missR && <p className="warn">Missing Effect</p>}
+                    <label>GREEN maps to
+                      <select value={pollCfg.greenEffectId} onChange={(e)=>setPollAndProject({...pollCfg, greenEffectId:e.target.value})}>
+                        <option value="">Select effect…</option>
+                        {list.map((x)=><option key={"g"+x.id} value={x.id}>{x.label}</option>)}
+                      </select>
+                    </label>
+                    {missG && <p className="warn">Missing Effect</p>}
+                  </>
+                );
+              })()}
+              <label>Reaction
+                <select value={pollCfg.reaction} onChange={(e)=>setPollAndProject({...pollCfg, reaction:e.target.value as any})}>
+                  <option value="live">Live Leader</option>
+                  <option value="winnerEnd">Winner On End</option>
+                </select>
+              </label>
+              <label>Tie
+                <select value={pollCfg.tie} onChange={(e)=>setPollAndProject({...pollCfg, tie:e.target.value as any})}>
+                  <option value="keep">Keep Previous Leader</option>
+                  <option value="none">No Override</option>
+                </select>
+              </label>
+              <label>On End
+                <select value={pollCfg.onEnd} onChange={(e)=>setPollAndProject({...pollCfg, onEnd:e.target.value as any})}>
+                  <option value="restore">Restore Original Effect Colors</option>
+                  <option value="hold">Keep Winner Override Until Cleared</option>
+                </select>
+              </label>
+              <p>RED {pollRt.red} · GREEN {pollRt.green} · {pollRt.running ? "LIVE" : "STOPPED"} · leader {pollRt.leader || "none"}</p>
+              <div className="row">
+                <button onClick={()=>applyRt(startPoll(pollRt, pollCfg))}>Start Poll</button>
+                <button onClick={()=>applyRt(endPoll(pollRt, pollCfg))}>End Poll</button>
+              </div>
+              <div className="row">
+                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(clearVotes(pollRt, pollCfg)); }}>Clear Votes</button>
+                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRt, pollCfg))); }}>Clear Votes + Restore Effects</button>
+              </div>
+              <div className="row">
+                <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); }}>Reset Poll</button>
+                <button onClick={()=>{ navigator.clipboard.writeText(location.origin + location.pathname + "#vote").catch(()=>{}); }}>Copy Viewer Link</button>
+              </div>
+              <div className="row">
+                <button onClick={()=>window.open(location.pathname + "#vote", "auralith-vote", "width=420,height=640")}>Open Viewer Window</button>
+                <button onClick={()=>{
+                  const res = applyVote(pollRt, pollCfg, pollVotes.current, "host-test-red", "red");
+                  pollVotes.current = res.votes; applyRt(res.rt);
+                }}>Test RED vote</button>
+                <button onClick={()=>{
+                  const res = applyVote(pollRt, pollCfg, pollVotes.current, "host-test-green", "green");
+                  pollVotes.current = res.votes; applyRt(res.rt);
+                }}>Test GREEN vote</button>
+              </div>
+              <label>Display X <input type="number" value={Math.round(pollCfg.display.x)} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, x:Number(e.target.value)}})} /></label>
+              <label>Display Y <input type="number" value={Math.round(pollCfg.display.y)} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, y:Number(e.target.value)}})} /></label>
+              <label className="chk"><input type="checkbox" checked={pollCfg.display.showQuestion} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showQuestion:e.target.checked}})} /> Question</label>
+              <label className="chk"><input type="checkbox" checked={pollCfg.display.showCounts} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showCounts:e.target.checked}})} /> Raw Counts</label>
+              <label className="chk"><input type="checkbox" checked={pollCfg.display.showPct} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showPct:e.target.checked}})} /> Percentages</label>
+              <label className="chk"><input type="checkbox" checked={pollCfg.display.showTotal} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showTotal:e.target.checked}})} /> Total</label>
+              <label className="chk"><input type="checkbox" checked={pollCfg.display.showLeader} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showLeader:e.target.checked}})} /> Leader Indicator</label>
               <h3>VIRTUAL CAMERA</h3>
               <p>Device: Auralith Reborn Camera</p>
               <p className={/ERROR/i.test(vcam.state)?"warn":"ok"}>Status: {vcam.state}</p>

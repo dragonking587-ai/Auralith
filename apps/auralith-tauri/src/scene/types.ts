@@ -104,6 +104,7 @@ export type Project = {
   showMarkers: boolean;
   depthDataUrl?: string;
   aiMeta?: { model: string; version: string };
+  poll?: import("./poll").PollConfig;
 };
 
 export function newProject(): Project {
