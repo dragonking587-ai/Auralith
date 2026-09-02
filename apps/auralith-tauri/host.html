@@ -1,0 +1,30 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AUDIENCE POLL — HOST</title>
+    <style>
+      html,body,#root{margin:0;min-height:100%;background:#120c08;color:#f4e4b0;font:16px Georgia,serif}
+      #boot{padding:20px}
+      #boot.ok{display:none}
+      button{background:#2a2114;color:#f4e4b0;border:1px solid #d4af37;border-radius:8px;padding:8px 12px;margin:4px}
+    </style>
+  </head>
+  <body>
+    <div id="boot">
+      <p>AUDIENCE POLL — HOST</p>
+      <p id="boot-msg">Opening host controls…</p>
+    </div>
+    <div id="root"></div>
+    <script>
+      window.addEventListener("error", function (e) {
+        var el = document.getElementById("boot-msg");
+        if (el) el.textContent = "Host window error: " + (e.message || "unknown");
+        var b = document.getElementById("boot");
+        if (b) b.classList.remove("ok");
+      });
+    </script>
+    <script type="module" src="/src/host.tsx"></script>
+  </body>
+</html>

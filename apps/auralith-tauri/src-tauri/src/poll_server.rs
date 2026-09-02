@@ -160,7 +160,7 @@ pub fn poll_detach_host(app: AppHandle) -> Result<(), String> {
         let _ = w.set_focus();
         return Ok(());
     }
-    WebviewWindowBuilder::new(&app, "poll-host", WebviewUrl::App("index.html#host".into()))
+    WebviewWindowBuilder::new(&app, "poll-host", WebviewUrl::App("host.html".into()))
         .title("AUDIENCE POLL — HOST")
         .inner_size(440.0, 760.0)
         .min_inner_size(360.0, 480.0)
