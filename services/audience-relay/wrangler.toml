@@ -1,0 +1,19 @@
+name = "auralith-audience-relay"
+main = "src/index.ts"
+compatibility_date = "2024-10-01"
+
+# Set these in the Cloudflare dashboard / wrangler secret. Do not commit secrets.
+# ALLOWED_ORIGINS = "https://vote.example.com"
+
+[vars]
+RELAY_ENV = "development"
+ROOM_TTL_MS = "7200000"
+HOST_GRACE_MS = "300000"
+
+[[durable_objects.bindings]]
+name = "ROOM"
+class_name = "PollRoom"
+
+[[migrations]]
+tag = "v1"
+new_classes = ["PollRoom"]

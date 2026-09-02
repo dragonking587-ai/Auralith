@@ -7,6 +7,7 @@ type Snap = {
   running: boolean; question: string; redLabel: string; greenLabel: string;
   red: number; green: number; leader: string; redMap: string; greenMap: string;
   viewer: { state: string; local_url: string; lan_url: string; port: number; health: string };
+  relay?: { status: string; error: string; room: string; url: string; mode: string };
 };
 
 export function HostPage() {
@@ -41,7 +42,15 @@ export function HostPage() {
         <button onClick={() => cmd("reset")}>Reset Poll</button>
       </div>
       <h3>VIEWER CONNECTION</h3>
-      <p>Server: {s.viewer.state} · Health: {s.viewer.health} · Port: {s.viewer.port || "—"}</p>
+      <p>Mode: {s.relay?.mode || "lan"}</p>
+      {s.relay?.mode === "public" && (
+        <>
+          <p>Relay: {s.relay.status}{s.relay.error ? " · " + s.relay.error : ""}</p>
+          <p>Room: {s.relay.room || "—"}</p>
+          <p>Public URL: {s.relay.url || "—"}</p>
+        </>
+      )}
+      <p>Local server: {s.viewer.state} · Health: {s.viewer.health} · Port: {s.viewer.port || "—"}</p>
       <p>Local: {s.viewer.local_url || "—"}</p>
       <p>LAN: {s.viewer.lan_url || "—"}</p>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>

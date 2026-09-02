@@ -15,11 +15,13 @@ import { semverNewer, formatBytes, persistPending, takePending, autosaveProject 
 import { GlRenderer } from "../render/renderer";
 import {
   applyVote, clearVotes, defaultPollConfig, defaultPollRuntime, effectIndex, endPoll,
-  persistablePoll, resetPoll, restoreEffects, startPoll, type PollConfig, type PollOption, type PollRuntime
+  persistablePoll, resetPoll, restoreEffects, startPoll, applyOverride, resolveLeader,
+  type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
+import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.17";
+const APP_VERSION = "1.0.0-rc.18";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -195,6 +197,15 @@ export function App() {
   const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
   const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
   const [viewer, setViewer] = useState({ state: "STOPPED", port: 0, local_url: "", lan_url: "", lan_ip: "", health: "STOPPED", error: "", msg: "" });
+  const [viewerMode, setViewerMode] = useState<"lan"|"public">(() => (localStorage.getItem("auralith.viewerMode") as any) || "lan");
+  const [relayUrl, setRelayUrl] = useState(defaultRelayUrl);
+  const [relayStatus, setRelayStatus] = useState<RelayStatus>("IDLE");
+  const [relayErr, setRelayErr] = useState("");
+  const [relayRoom, setRelayRoom] = useState("");
+  const [relayViewer, setRelayViewer] = useState("");
+  const [showQr, setShowQr] = useState(false);
+  const relayRef = useRef(new PollRelayTransport());
+  const viewerModeRef = useRef(viewerMode); viewerModeRef.current = viewerMode;
   const pollVotes = useRef(new Map<string, PollOption>());
   const pollRtRef = useRef(pollRt); pollRtRef.current = pollRt;
   const pollCfgRef = useRef(pollCfg); pollCfgRef.current = pollCfg;
@@ -377,8 +388,29 @@ export function App() {
     emit("poll-sync", {
       running: rt.running, question: cfg.question, redLabel: cfg.redLabel, greenLabel: cfg.greenLabel,
       red: rt.red, green: rt.green, leader: rt.leader || "", redMap, greenMap,
-      viewer
+      viewer,
+      relay: { status: relayStatus, error: relayErr, room: relayRoom, url: relayViewer, mode: viewerMode }
     }).catch(()=>{});
+  };
+  const applyRelaySnapshot = (s: RelayPublicState) => {
+    const cfg = pollCfgRef.current;
+    const prev = pollRtRef.current;
+    const next = resolveLeader({
+      ...prev,
+      running: !!s.running_poll,
+      roundId: s.round_id || prev.roundId,
+      red: s.red || 0,
+      green: s.green || 0
+    }, cfg);
+    applyRt(next);
+  };
+  const relayAction = (action: string) => {
+    if (viewerModeRef.current === "public") relayRef.current.sendHost(action, {
+      question: pollCfgRef.current.question,
+      redLabel: pollCfgRef.current.redLabel,
+      greenLabel: pollCfgRef.current.greenLabel,
+      allowChange: pollCfgRef.current.allowChange
+    });
   };
   const syncViewerHub = (cfg = pollCfgRef.current, rt = pollRtRef.current) => {
     invoke("poll_server_set_hub", { hub: {
@@ -402,11 +434,11 @@ export function App() {
       const cfg = pollCfgRef.current;
       const rt = pollRtRef.current;
       if (action === "sync") { publishHostSync(rt); return; }
-      if (action === "start") applyRt(startPoll(rt, cfg));
-      else if (action === "end") applyRt(endPoll(rt, cfg));
-      else if (action === "clear") { pollVotes.current = new Map(); applyRt(clearVotes(rt, cfg)); }
-      else if (action === "restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(rt, cfg))); }
-      else if (action === "reset") { const n = resetPoll(cfg); pollVotes.current = n.votes; applyRt(n.rt); }
+      if (action === "start") { applyRt(startPoll(rt, cfg)); relayAction("startPoll"); }
+      else if (action === "end") { applyRt(endPoll(rt, cfg)); relayAction("endPoll"); }
+      else if (action === "clear") { pollVotes.current = new Map(); applyRt(clearVotes(rt, cfg)); relayAction("clearVotes"); }
+      else if (action === "restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(rt, cfg))); relayAction("clearVotes"); }
+      else if (action === "reset") { const n = resetPoll(cfg); pollVotes.current = n.votes; applyRt(n.rt); relayAction("resetRound"); }
       else if (action === "open-viewer") {
         invoke("poll_open_local").then((st: any) => setViewer({ ...st, msg: "Viewer page opened." })).catch((e)=>setViewer((s)=>({...s, msg: String(e)})));
       }
@@ -782,7 +814,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.17",
+      tag: "v1.0.0-rc.18",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -1024,7 +1056,9 @@ export function App() {
                   </div>
                 </div>
                 {d.showTotal && <div style={{ marginTop: 6, opacity: 0.75 }}>Total {tot}</div>}
-                <div style={{ marginTop: 8, fontSize: Math.max(12, d.fontSize * 0.7), opacity: 0.8 }}>Vote on your phone</div>
+                <div style={{ marginTop: 8, fontSize: Math.max(12, d.fontSize * 0.7), opacity: 0.8 }}>
+                  Vote on your phone{relayRoom ? " · " + relayRoom : ""}
+                </div>
               </div>
             );
           })()}
@@ -1359,15 +1393,15 @@ export function App() {
               </label>
               <p>RED {pollRt.red} · GREEN {pollRt.green} · {pollRt.running ? "LIVE" : "STOPPED"} · leader {pollRt.leader || "none"}</p>
               <div className="row">
-                <button onClick={()=>applyRt(startPoll(pollRt, pollCfg))}>Start Poll</button>
-                <button onClick={()=>applyRt(endPoll(pollRt, pollCfg))}>End Poll</button>
+                <button onClick={()=>{ applyRt(startPoll(pollRt, pollCfg)); relayAction("startPoll"); }}>Start Poll</button>
+                <button onClick={()=>{ applyRt(endPoll(pollRt, pollCfg)); relayAction("endPoll"); }}>End Poll</button>
               </div>
               <div className="row">
-                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(clearVotes(pollRt, pollCfg)); }}>Clear Votes</button>
-                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRt, pollCfg))); }}>Clear Votes + Restore Effects</button>
+                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(clearVotes(pollRt, pollCfg)); relayAction("clearVotes"); }}>Clear Votes</button>
+                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRt, pollCfg))); relayAction("clearVotes"); }}>Clear Votes + Restore Effects</button>
               </div>
               <div className="row">
-                <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); }}>Reset Poll</button>
+                <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); relayAction("resetRound"); }}>Reset Poll</button>
                 <button onClick={()=>{ navigator.clipboard.writeText(viewer.lan_url || viewer.local_url || "").catch(()=>{}); }}>Copy Viewer Link</button>
               </div>
               <div className="row">
@@ -1376,7 +1410,47 @@ export function App() {
                   catch (e) { setViewer((s)=>({...s, msg: "Could not detach host controls: "+String(e)})); }
                 }}>Detach Host Controls</button>
               </div>
-              <h4>VIEWER CONNECTION</h4>
+              <h4>VIEWER CONNECTION MODE</h4>
+              <div className="row">
+                <button className={viewerMode==="lan"?"on":""} onClick={()=>{ setViewerMode("lan"); localStorage.setItem("auralith.viewerMode","lan"); relayRef.current.disconnect(); setRelayStatus("IDLE"); }}>Local / LAN Test</button>
+                <button className={viewerMode==="public"?"on":""} onClick={()=>{ setViewerMode("public"); localStorage.setItem("auralith.viewerMode","public"); }}>Public Relay</button>
+              </div>
+              {viewerMode==="public" && (
+                <>
+                  <p>Public Relay is Development / Not Deployed until you set a live HTTPS Worker URL. Worldwide is not claimed from local code.</p>
+                  <label>Relay URL
+                    <input value={relayUrl} onChange={(e)=>{ setRelayUrl(e.target.value); localStorage.setItem("auralith.relayUrl", e.target.value); }} placeholder="https://your-worker.workers.dev" />
+                  </label>
+                  <p>Relay: {relayStatus}{relayErr ? " · "+relayErr : ""}</p>
+                  <p>Room: {relayRoom || "—"}</p>
+                  <p>Viewer URL: {relayViewer || "—"}</p>
+                  <div className="row">
+                    <button onClick={async ()=>{
+                      try {
+                        relayRef.current.onStatus = (s, err) => { setRelayStatus(s); setRelayErr(err); };
+                        relayRef.current.onState = (st) => applyRelaySnapshot(st);
+                        const sess = await relayRef.current.connectHost(relayUrl, {
+                          question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
+                        });
+                        setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl);
+                        relayAction("updatePollMetadata");
+                      } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
+                    }}>Start Public Poll</button>
+                    <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>
+                    <button onClick={()=>setShowQr((v)=>!v)}>Show QR</button>
+                    <button onClick={()=>{ if (relayViewer) window.open(relayViewer, "_blank"); }}>Open Viewer Page</button>
+                  </div>
+                  {showQr && (
+                    <div className="card">
+                      <p>Public viewer URL only — host token is never encoded.</p>
+                      <p style={{ wordBreak: "break-all" }}>{relayViewer || "Start public poll first"}</p>
+                      <p>{relayRoom}</p>
+                      <p>Printable QR bitmap is shown after you deploy the Worker; copy the HTTPS URL for now.</p>
+                    </div>
+                  )}
+                </>
+              )}
+              <h4>LOCAL / LAN SERVER</h4>
               <p>Server: {viewer.state} · Health: {viewer.health} · Port: {viewer.port || "—"}</p>
               {viewer.error && <p className="warn">{viewer.error}</p>}
               {viewer.msg && <p>{viewer.msg}</p>}

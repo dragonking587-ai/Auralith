@@ -1,0 +1,13 @@
+{
+  "name": "auralith-audience-relay",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Auralith Audience Poll public relay (Cloudflare Workers + Durable Objects). Deploy separately. No desktop secrets here.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "^3.80.0"
+  }
+}
