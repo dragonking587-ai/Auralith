@@ -2,6 +2,7 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import { App } from "./ui/App";
 import { ViewerPage } from "./ui/ViewerPage";
+import { HostPage } from "./ui/HostPage";
 import "./ui/styles.css";
 
 console.log("REACT_ROOT_FOUND");
@@ -11,8 +12,9 @@ const bootMsg = document.getElementById("boot-msg");
 try {
   if (!rootEl) throw new Error("root element missing");
   console.log("REACT_MOUNT_BEGIN");
-  const vote = /(#vote|#viewer)/i.test(location.hash);
-  createRoot(rootEl).render(vote ? <ViewerPage /> : <App />);
+  const hash = location.hash || "";
+  const page = /(#vote|#viewer)/i.test(hash) ? <ViewerPage /> : /#host/i.test(hash) ? <HostPage /> : <App />;
+  createRoot(rootEl).render(page);
   console.log("REACT_MOUNT_OK");
   if (boot) boot.classList.add("ok");
 } catch (e) {

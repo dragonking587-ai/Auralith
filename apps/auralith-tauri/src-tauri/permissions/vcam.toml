@@ -42,3 +42,8 @@ commands.allow = ["poll_server_set_hub"]
 identifier = "allow-poll-open-local"
 description = "Start viewer server and open local poll page"
 commands.allow = ["poll_open_local"]
+
+[[permission]]
+identifier = "allow-poll-detach-host"
+description = "Open detached host poll control window"
+commands.allow = ["poll_detach_host"]

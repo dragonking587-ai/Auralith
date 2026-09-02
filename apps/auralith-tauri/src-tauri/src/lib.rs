@@ -72,7 +72,8 @@ pub fn run() {
             poll_server::poll_server_status,
             poll_server::poll_server_start,
             poll_server::poll_server_set_hub,
-            poll_server::poll_open_local
+            poll_server::poll_open_local,
+            poll_server::poll_detach_host
         ])
         .setup(|app| {
             #[cfg(windows)]

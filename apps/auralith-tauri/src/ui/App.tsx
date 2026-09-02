@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
+import { emit, listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
@@ -19,7 +19,7 @@ import {
 } from "../scene/poll";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.16";
+const APP_VERSION = "1.0.0-rc.17";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -368,7 +368,18 @@ export function App() {
     pollCfgRef.current = cfg;
     setProject((p) => ({ ...p, poll: persistablePoll(cfg) }));
   };
-  const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); syncViewerHub(pollCfgRef.current, rt); };
+  const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); syncViewerHub(pollCfgRef.current, rt); publishHostSync(rt); };
+  const publishHostSync = (rt = pollRtRef.current) => {
+    const cfg = pollCfgRef.current;
+    const list = effectIndex(projectRef.current);
+    const redMap = list.find((x)=>x.id===cfg.redEffectId)?.label || cfg.redEffectId || "";
+    const greenMap = list.find((x)=>x.id===cfg.greenEffectId)?.label || cfg.greenEffectId || "";
+    emit("poll-sync", {
+      running: rt.running, question: cfg.question, redLabel: cfg.redLabel, greenLabel: cfg.greenLabel,
+      red: rt.red, green: rt.green, leader: rt.leader || "", redMap, greenMap,
+      viewer
+    }).catch(()=>{});
+  };
   const syncViewerHub = (cfg = pollCfgRef.current, rt = pollRtRef.current) => {
     invoke("poll_server_set_hub", { hub: {
       running_poll: rt.running, question: cfg.question, red_label: cfg.redLabel, green_label: cfg.greenLabel,
@@ -386,6 +397,20 @@ export function App() {
         if (res.accepted) applyRt(res.rt);
       } catch {}
     };
+    const unlistenC = listen<{ action: string }>("poll-cmd", (ev) => {
+      const action = ev.payload?.action;
+      const cfg = pollCfgRef.current;
+      const rt = pollRtRef.current;
+      if (action === "sync") { publishHostSync(rt); return; }
+      if (action === "start") applyRt(startPoll(rt, cfg));
+      else if (action === "end") applyRt(endPoll(rt, cfg));
+      else if (action === "clear") { pollVotes.current = new Map(); applyRt(clearVotes(rt, cfg)); }
+      else if (action === "restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(rt, cfg))); }
+      else if (action === "reset") { const n = resetPoll(cfg); pollVotes.current = n.votes; applyRt(n.rt); }
+      else if (action === "open-viewer") {
+        invoke("poll_open_local").then((st: any) => setViewer({ ...st, msg: "Viewer page opened." })).catch((e)=>setViewer((s)=>({...s, msg: String(e)})));
+      }
+    }).catch(()=>undefined);
     const unlistenP = listen<{ option: string; viewerId: string }>("poll-vote", (ev) => {
       const msg = ev.payload || { option: "red", viewerId: "lan" };
       const res = applyVote(pollRtRef.current, pollCfgRef.current, pollVotes.current, String(msg.viewerId || "lan"), msg.option === "green" ? "green" : "red");
@@ -403,7 +428,7 @@ export function App() {
         onVote(new StorageEvent("storage", { key: POLL_BUS + ".vote", newValue: raw }));
       } catch {}
     }, 250);
-    return () => { window.removeEventListener("storage", onVote); clearInterval(t); unlistenP.then((fn) => fn && fn()).catch(()=>{}); };
+    return () => { window.removeEventListener("storage", onVote); clearInterval(t); unlistenP.then((fn) => fn && fn()).catch(()=>{}); unlistenC.then((fn)=>fn && fn()).catch(()=>{}); };
   }, []);
   const undo = () => setHistory((h) => {
     if (!h.length) return h;
@@ -757,7 +782,7 @@ export function App() {
     const effects = project.regions.flatMap((r)=>r.effects.filter((e)=>e.enabled).map((e)=>e.kind)).join(", ") || "(none)";
     return {
       version: APP_VERSION,
-      tag: "v1.0.0-rc.16",
+      tag: "v1.0.0-rc.17",
       userAgent: navigator.userAgent,
       screen: `${window.screen.width}x${window.screen.height} @${window.devicePixelRatio}`,
       renderer: glRef.current ? "WebGL2" : "pending",
@@ -999,6 +1024,7 @@ export function App() {
                   </div>
                 </div>
                 {d.showTotal && <div style={{ marginTop: 6, opacity: 0.75 }}>Total {tot}</div>}
+                <div style={{ marginTop: 8, fontSize: Math.max(12, d.fontSize * 0.7), opacity: 0.8 }}>Vote on your phone</div>
               </div>
             );
           })()}
@@ -1343,6 +1369,12 @@ export function App() {
               <div className="row">
                 <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); }}>Reset Poll</button>
                 <button onClick={()=>{ navigator.clipboard.writeText(viewer.lan_url || viewer.local_url || "").catch(()=>{}); }}>Copy Viewer Link</button>
+              </div>
+              <div className="row">
+                <button onClick={async ()=>{
+                  try { await invoke("poll_detach_host"); publishHostSync(); }
+                  catch (e) { setViewer((s)=>({...s, msg: "Could not detach host controls: "+String(e)})); }
+                }}>Detach Host Controls</button>
               </div>
               <h4>VIEWER CONNECTION</h4>
               <p>Server: {viewer.state} · Health: {viewer.health} · Port: {viewer.port || "—"}</p>

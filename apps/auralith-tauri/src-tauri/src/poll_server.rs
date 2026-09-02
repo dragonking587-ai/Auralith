@@ -4,7 +4,7 @@ use std::net::{TcpListener, TcpStream};
 use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
-use tauri::{AppHandle, Emitter, State};
+use tauri::{AppHandle, Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
 
 #[derive(Clone, Serialize)]
 pub struct ServerStatus {
@@ -97,14 +97,26 @@ fn http_opt(stream: &mut TcpStream) {
 
 fn poll_html() -> String {
     r#"<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Auralith Poll</title>
-<style>body{margin:0;min-height:100vh;background:#120c08;color:#f4e4b0;font-family:Georgia,serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:24px}button{min-width:140px;padding:18px 22px;border:0;border-radius:10px;font-size:22px;color:#fff}#r{background:#e23a3a}#g{background:#2fbf5a}p{opacity:.75}</style></head>
+<style>
+body{margin:0;min-height:100vh;background:#120c08;color:#f4e4b0;font-family:Georgia,serif;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px}
+button{min-width:120px;min-height:48px;padding:14px 18px;border:0;border-radius:12px;font-size:18px;color:#fff}
+#r{background:#e23a3a}#g{background:#2fbf5a}p{opacity:.8}
+.bubble{width:min(360px,92vw);background:rgba(18,12,8,.88);border:1px solid #d4af37;border-radius:22px;padding:16px;box-shadow:0 8px 24px #0008}
+.modes{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.modes button{background:#2a2114;color:#f4e4b0;min-width:auto;font-size:13px}
+body.mini{justify-content:flex-end;padding:12px}
+body.mini .full-only{display:none}
+</style></head>
 <body>
-<p>AURALITH · TEST / LAN MODE</p>
+<p class="full-only">AURALITH · TEST / LAN MODE · compact web page, not a system overlay</p>
+<div class="modes"><button id="full">Full Page</button><button id="mini">Mini Bubble</button></div>
+<div id="card">
 <h1 id="q">Waiting for host...</h1>
 <p id="st">No active poll.</p>
-<div><button id="r">RED</button> <button id="g">GREEN</button></div>
+<div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap"><button id="r">RED</button> <button id="g">GREEN</button></div>
 <p id="msg"></p>
 <p id="tally"></p>
+</div>
 <script>
 const host = location.host;
 async function state(){
@@ -127,10 +139,36 @@ async function vote(option){
 }
 document.getElementById('r').onclick=()=>vote('red');
 document.getElementById('g').onclick=()=>vote('green');
+function applyMode(m){
+  const mini = m==='bubble' || m==='mini';
+  document.body.classList.toggle('mini', mini);
+  document.getElementById('card').classList.toggle('bubble', mini);
+  localStorage.setItem('amode', mini?'mini':'full');
+}
+document.getElementById('full').onclick=()=>applyMode('full');
+document.getElementById('mini').onclick=()=>applyMode('mini');
+applyMode(new URLSearchParams(location.search).get('mode') || localStorage.getItem('amode') || 'full');
 state();
 setInterval(state, 400);
-try{ const es = new EventSource('/events'); es.onmessage=()=>state(); }catch(e){}
+try{ const es = new EventSource((location.protocol==='https:'?'https:':'http:')+'//'+location.host+'/events'); es.onmessage=()=>state(); }catch(e){}
 </script></body></html>"#.into()
+}
+
+#[tauri::command]
+pub fn poll_detach_host(app: AppHandle) -> Result<(), String> {
+    if let Some(w) = app.get_webview_window("poll-host") {
+        let _ = w.set_focus();
+        return Ok(());
+    }
+    WebviewWindowBuilder::new(&app, "poll-host", WebviewUrl::App("index.html#host".into()))
+        .title("AUDIENCE POLL — HOST")
+        .inner_size(440.0, 760.0)
+        .min_inner_size(360.0, 480.0)
+        .resizable(true)
+        .visible(true)
+        .build()
+        .map_err(|e| e.to_string())?;
+    Ok(())
 }
 
 fn handle(mut stream: TcpStream, state: Arc<PollServer>, app: AppHandle) {
