@@ -29,7 +29,7 @@ import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.31";
+const APP_VERSION = "1.0.0-rc.32";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -413,12 +413,23 @@ export function App() {
   const applyRelaySnapshot = (s: RelayPublicState) => {
     const cfg = pollCfgRef.current;
     const prev = pollRtRef.current;
+    const snapVotes = (s.red || 0) + (s.green || 0);
+    const localCleared = prev.red === 0 && prev.green === 0 && !prev.leader && !prev.overrideColor;
+    if (snapVotes > 0 && localCleared && s.round_id && prev.roundId && s.round_id !== prev.roundId) {
+      return;
+    }
+    const incomingVer = Number(s.state_version || 0);
+    const prevVer = Number((prev as any).stateVersion || 0);
+    if (incomingVer && prevVer && incomingVer < prevVer) return;
     const next = resolveLeader({
       ...prev,
-      running: !!s.running_poll,
+      running: s.running_poll != null ? !!s.running_poll : prev.running,
       roundId: s.round_id || prev.roundId,
       red: s.red || 0,
-      green: s.green || 0
+      green: s.green || 0,
+      leader: snapVotes === 0 ? null : prev.leader,
+      overrideId: snapVotes === 0 ? null : prev.overrideId,
+      overrideColor: snapVotes === 0 ? null : prev.overrideColor
     }, cfg);
     applyRt(next);
   };
@@ -1571,9 +1582,9 @@ export function App() {
                             const p = ev.params || {};
                             if (c === "poll_start") applyRt(startPoll(pollRtRef.current, pollCfgRef.current));
                             else if (c === "poll_end") applyRt(endPoll(pollRtRef.current, pollCfgRef.current));
-                            else if (c === "poll_clear") { pollVotes.current = new Map(); applyRt(clearVotes(pollRtRef.current, pollCfgRef.current)); }
-                            else if (c === "poll_reset") { const n = resetPoll(pollCfgRef.current); pollVotes.current = n.votes; applyRt(n.rt); }
-                            else if (c === "poll_clear_restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRtRef.current, pollCfgRef.current))); }
+                            else if (c === "poll_clear") { pollVotes.current = new Map(); applyRt(clearVotes(pollRtRef.current)); relayAction("clearVotes"); }
+                            else if (c === "poll_reset") { const n = resetPoll(pollCfgRef.current); pollVotes.current = n.votes; applyRt(n.rt); relayAction("resetRound"); }
+                            else if (c === "poll_clear_restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRtRef.current))); relayAction("clearVotes"); }
                             else if (c === "poll_set_question") setPollAndProject({ ...pollCfgRef.current, question: String(p.question || "") });
                             else if (c === "poll_set_red_label") setPollAndProject({ ...pollCfgRef.current, redLabel: String(p.label || p.redLabel || "RED") });
                             else if (c === "poll_set_green_label") setPollAndProject({ ...pollCfgRef.current, greenLabel: String(p.label || p.greenLabel || "GREEN") });

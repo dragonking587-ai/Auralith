@@ -77,7 +77,11 @@ function refreshCool(){
 }
 function apply(s){
   if(!s || s.type && s.type!=="state" && !s.room) return;
-  round = s.round_id || round;
+  if (s.round_id && s.round_id !== round) {
+    round = s.round_id;
+    const msg = document.getElementById("msg");
+    if (msg) msg.textContent = "New round — vote again";
+  } else if (s.round_id) round = s.round_id;
   document.getElementById("q").textContent = s.question || "Which color?";
   document.getElementById("r").textContent = s.red_label || "RED";
   document.getElementById("g").textContent = s.green_label || "GREEN";

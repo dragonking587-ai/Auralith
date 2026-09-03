@@ -30,6 +30,7 @@ type Room = {
   red: number;
   green: number;
   votes: Map<string, Vote>;
+  stateVersion: number;
   hostSeen: number;
   created: number;
   hosts: Set<WebSocket>;
@@ -111,8 +112,11 @@ function publicState(r: Room) {
     green_label: r.greenLabel,
     running_poll: r.running,
     round_id: r.roundId,
+    state_version: r.stateVersion || 0,
     red: r.red,
     green: r.green,
+    leader: r.red === r.green ? null : (r.red > r.green ? "red" : "green"),
+    winner: null,
     host_online: Date.now() - r.hostSeen < 20_000,
     status: r.running ? "LIVE" : "WAITING",
     reactions_enabled: r.reactionsEnabled,
@@ -190,7 +194,10 @@ function applyHost(room: Room, body: any) {
   if (action === "clearVotes" || action === "resetRound") {
     room.red = 0; room.green = 0; room.votes = new Map();
     room.roundId = "r-" + Date.now().toString(36);
+    room.stateVersion = (room.stateVersion || 0) + 1;
     if (action === "resetRound") room.running = false;
+  } else if (action) {
+    room.stateVersion = (room.stateVersion || 0) + 1;
   }
   if (action === "updatePollMetadata") {
     if (body.question) room.question = String(body.question).slice(0, 160);
@@ -313,6 +320,7 @@ const server = http.createServer(async (req, res) => {
       red: 0,
       green: 0,
       votes: new Map(),
+      stateVersion: 1,
       hostSeen: Date.now(),
       created: Date.now(),
       hosts: new Set(),
@@ -370,6 +378,7 @@ const server = http.createServer(async (req, res) => {
         room = {
           code: claim.name, hostToken: claim.hostToken, question: "Which color?", redLabel: "RED", greenLabel: "GREEN",
           allowChange: true, running: false, roundId: "r-1", red: 0, green: 0, votes: new Map(),
+          stateVersion: 1,
           hostSeen: 0, created: claim.claimedAt, hosts: new Set(), views: new Set(),
           reactionsEnabled: true, allowedReactions: DEFAULT_REACTIONS.map((r)=>({...r})),
           viewerCooldownMs: 5000, globalCooldownMs: 1000, lastReactionAt: 0,

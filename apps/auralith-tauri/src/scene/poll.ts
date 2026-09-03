@@ -92,8 +92,10 @@ export function applyVote(
   cfg: PollConfig,
   votes: Map<string, PollOption>,
   viewerId: string,
-  option: PollOption
+  option: PollOption,
+  voteRoundId?: string
 ): { rt: PollRuntime; votes: Map<string, PollOption>; accepted: boolean } {
+  if (voteRoundId && rt.roundId && voteRoundId !== rt.roundId) return { rt, votes, accepted: false };
   if (!rt.running) return { rt, votes, accepted: false };
   const prev = votes.get(viewerId);
   if (prev && !cfg.allowChange) return { rt, votes, accepted: false };
@@ -109,12 +111,16 @@ export function applyVote(
 }
 
 export function resolveLeader(rt: PollRuntime, cfg: PollConfig): PollRuntime {
-  let leader = rt.leader;
+  const total = (rt.red || 0) + (rt.green || 0);
+  let leader: PollOption | null = null;
+  if (total <= 0) {
+    return { ...rt, leader: null, overrideId: null, overrideColor: null };
+  }
   if (rt.red > rt.green) leader = "red";
   else if (rt.green > rt.red) leader = "green";
-  else if (cfg.tie === "none") leader = null;
+  else leader = cfg.tie === "keep" ? rt.leader : null;
   const live = cfg.reaction === "live" && rt.running;
-  if (!live) return { ...rt, leader };
+  if (!live) return { ...rt, leader, overrideId: null, overrideColor: null };
   return applyOverride({ ...rt, leader }, cfg);
 }
 
@@ -126,10 +132,16 @@ export function applyOverride(rt: PollRuntime, cfg: PollConfig): PollRuntime {
   return { ...rt, overrideId: id || null, overrideColor: id ? color : null };
 }
 
-export function clearVotes(rt: PollRuntime, cfg: PollConfig): PollRuntime {
-  const next = { ...rt, roundId: newRound(), red: 0, green: 0, leader: cfg.tie === "keep" ? rt.leader : null };
-  if (cfg.reaction === "live") return applyOverride(next, cfg);
-  return { ...next, overrideId: null, overrideColor: null };
+export function clearVotes(rt: PollRuntime, _cfg?: PollConfig): PollRuntime {
+  return {
+    ...rt,
+    roundId: newRound(),
+    red: 0,
+    green: 0,
+    leader: null,
+    overrideId: null,
+    overrideColor: null
+  };
 }
 
 export function restoreEffects(rt: PollRuntime): PollRuntime {

@@ -7,6 +7,7 @@ export type RelayPublicState = {
   green_label: string;
   running_poll: boolean;
   round_id: string;
+  state_version?: number;
   red: number;
   green: number;
   host_online?: boolean;
