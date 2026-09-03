@@ -1,12 +1,13 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Auralith Host Console",
-  "version": "1.0.0-rc.30",
+  "version": "1.0.0-rc.31",
   "identifier": "com.auralith.host.console",
   "build": {
     "frontendDist": "../web"
   },
   "app": {
+    "withGlobalTauri": true,
     "windows": [
       {
         "label": "main",
@@ -20,10 +21,20 @@
   },
   "bundle": {
     "active": true,
+    "createUpdaterArtifacts": true,
     "targets": ["nsis"],
     "icon": ["icons/icon.png", "icons/icon.ico"],
     "windows": {
       "nsis": { "installMode": "currentUser" }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdEODhERUE4RjBGNDZBOTUKUldTVmF2VHdxTjZJZlh2aHBSdC9aTjF0SWxOUTRKd2NxSlJReDdrK3lFU3BYRGZKT2RlVG5PSVAK",
+      "endpoints": [
+        "https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json"
+      ],
+      "windows": { "installMode": "passive" }
     }
   }
 }

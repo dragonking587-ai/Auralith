@@ -67,18 +67,19 @@ jobs:
           New-Item -ItemType Directory -Force dist-install | Out-Null
           $dest = "dist-install/$name"
           Copy-Item $exe.FullName $dest
+          Copy-Item $exe.FullName "dist-install/$($exe.Name)"
           $hash = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
           "$name  $hash" | Set-Content dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List FullName,Length
           Write-Host "SHA256 $hash"
           $sig = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.sig | Select-Object -First 1
           $zip = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.nsis.zip,*.zip | Where-Object { $_.Name -match "nsis|updater" } | Select-Object -First 1
-          if (-not $zip) { $zip = $exe }
           if ($sig) { Copy-Item $sig.FullName "dist-install/$($sig.Name)" }
-          if ($zip -and $zip.FullName -ne $exe.FullName) { Copy-Item $zip.FullName "dist-install/$($zip.Name)" }
+          if ($zip) { Copy-Item $zip.FullName "dist-install/$($zip.Name)" }
           $sigText = if ($sig) { (Get-Content $sig.FullName -Raw).Trim() } else { "" }
-          $assetName = if ($zip) { $zip.Name } else { $name }
-          $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$v/$assetName"
+          $signedName = if ($zip) { $zip.Name } else { $exe.Name }
+          $enc = [uri]::EscapeDataString($signedName)
+          $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$v/$enc"
           $latest = [ordered]@{
             version = $v
             notes = "Auralith Reborn $v"

@@ -16,7 +16,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </style>
 </head>
 <body>
-<h1>AURALITH HOST CONSOLE 1.0.0-rc.30</h1>
+<h1>AURALITH HOST CONSOLE 1.0.0-rc.31</h1>
 <p id="st">Connection: OFFLINE</p>
 <p id="room">Room: —</p>
 <p id="ack"></p>
@@ -96,7 +96,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.30";
+const APP_VERSION="1.0.0-rc.31";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
@@ -207,32 +207,48 @@ function semverNewer(a,b){
   for(let i=0;i<3;i++){const x=pa[i]||0,y=pb[i]||0; if(x>y)return true; if(x<y)return false;}
   return String(a)!==String(b) && String(a)>String(b);
 }
+function invokeTauri(cmd, args){
+  const core = window.__TAURI__ && window.__TAURI__.core;
+  if (core && core.invoke) return core.invoke(cmd, args||{});
+  throw new Error("Host Console updater plugin is unavailable in this window.");
+}
 async function checkUpdates(){
   const box=document.getElementById("upd");
   box.textContent="Checking...";
   document.getElementById("dlupd").disabled=true;
   try{
-    const man=await fetch(MANIFEST+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()});
-    const latest=man.version||"";
+    let latest="", notes="";
+    try {
+      const r = await invokeTauri("check_console_update");
+      if (r && r.available) { latest = r.version; notes = r.notes||""; }
+    } catch (pluginErr) {
+      const man=await fetch(MANIFEST+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error("manifest HTTP "+r.status);return r.json()});
+      latest=man.version||"";
+    }
     if(!latest || !semverNewer(latest, APP_VERSION)){
       pendingUpdate=null; box.textContent="Up to date. Installed "+APP_VERSION+" · Latest "+(latest||APP_VERSION);
       return;
     }
-    const plat=man.platforms && (man.platforms["windows-x86_64"]||man.platforms["windows-x64"]);
-    const url=(plat&&plat.url)||man.url||"";
-    if(/Auralith-Reborn/i.test(url)){ box.textContent="Update failed: manifest pointed at Main Auralith installer."; return; }
-    pendingUpdate={version:latest,url};
-    box.textContent="Update available: "+latest;
+    pendingUpdate={version:latest};
+    box.textContent="Update available: "+latest+(notes?("\n"+notes):"");
     document.getElementById("dlupd").disabled=false;
     document.getElementById("retryupd").disabled=false;
-  }catch(e){ box.textContent="Update failed: "+e; document.getElementById("retryupd").disabled=false; }
+  }catch(e){ box.textContent="UPDATE FAILED\nReason: "+e; document.getElementById("retryupd").disabled=false; }
 }
 document.getElementById("chkupd").onclick=checkUpdates;
 document.getElementById("retryupd").onclick=checkUpdates;
-document.getElementById("dlupd").onclick=()=>{
-  if(!pendingUpdate){document.getElementById("upd").textContent="No update selected.";return}
-  document.getElementById("upd").textContent="Downloading Host Console "+pendingUpdate.version+" (control connection will drop briefly)…";
-  window.open(pendingUpdate.url,"_blank");
+document.getElementById("dlupd").onclick=async()=>{
+  const box=document.getElementById("upd");
+  if(!pendingUpdate){box.textContent="No update selected.";return}
+  if(!confirm("Host Console will restart and briefly disconnect. Main Auralith rendering should continue.")) return;
+  box.textContent="Downloading / verifying Host Console "+pendingUpdate.version+"…";
+  try{
+    await invokeTauri("install_console_update");
+    box.textContent="Installing / restarting Host Console…";
+  }catch(e){
+    box.textContent="UPDATE FAILED\nReason: "+e;
+    document.getElementById("retryupd").disabled=false;
+  }
 };
 document.getElementById("about").onclick=()=>say(true,"Auralith Host Console "+APP_VERSION+" · control-only · com.auralith.host.console");
 document.getElementById("help").onclick=()=>say(true,"Paste a public Railway Host QR URL, approve on desktop, then use poll/reaction controls.");

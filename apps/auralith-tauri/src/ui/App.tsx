@@ -29,7 +29,7 @@ import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.30";
+const APP_VERSION = "1.0.0-rc.31";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -2113,6 +2113,7 @@ export function App() {
                 )}
                 {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
                 <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Retry Update</button>
+                <button onClick={()=>window.open("https://github.com/dragonking587-ai/Auralith/releases","_blank")}>View Release</button>
               </div>
               {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
               {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
