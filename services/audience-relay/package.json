@@ -2,12 +2,19 @@
   "name": "auralith-audience-relay",
   "private": true,
   "version": "1.0.0",
-  "description": "Auralith Audience Poll public relay (Cloudflare Workers + Durable Objects). Deploy separately. No desktop secrets here.",
+  "description": "Auralith Audience Poll public relay — Railway Node.js + WebSocket. Poll transport only.",
+  "type": "module",
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy"
+    "dev": "tsx src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
   },
+  "engines": { "node": ">=18" },
+  "dependencies": { "ws": "^8.18.0" },
   "devDependencies": {
-    "wrangler": "^3.80.0"
+    "@types/node": "^22.10.0",
+    "@types/ws": "^8.5.13",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
   }
 }

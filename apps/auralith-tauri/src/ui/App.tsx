@@ -1417,9 +1417,9 @@ export function App() {
               </div>
               {viewerMode==="public" && (
                 <>
-                  <p>Public Relay is Development / Not Deployed until you set a live HTTPS Worker URL. Worldwide is not claimed from local code.</p>
+                  <p>Public Relay uses Railway. Paste the HTTPS origin after deploy. Worldwide is not claimed until a cellular test passes.</p>
                   <label>Relay URL
-                    <input value={relayUrl} onChange={(e)=>{ setRelayUrl(e.target.value); localStorage.setItem("auralith.relayUrl", e.target.value); }} placeholder="https://your-worker.workers.dev" />
+                    <input value={relayUrl} onChange={(e)=>{ setRelayUrl(e.target.value); localStorage.setItem("auralith.relayUrl", e.target.value); }} placeholder="https://your-service.up.railway.app" />
                   </label>
                   <p>Relay: {relayStatus}{relayErr ? " · "+relayErr : ""}</p>
                   <p>Room: {relayRoom || "—"}</p>
