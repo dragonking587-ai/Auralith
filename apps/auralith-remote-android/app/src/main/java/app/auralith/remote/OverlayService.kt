@@ -72,13 +72,13 @@ class OverlayService : Service() {
   private fun vote(room: String, vid: String, opt: String) {
     thread {
       val body = JSONObject().put("option", opt).put("viewerSessionId", vid).toString()
-      http.newCall(Request.Builder().url("https://obsidian-production-6e2e.up.railway.app/api/rooms/$room/vote").post(body.toRequestBody("application/json".toMediaType())).build()).execute().close()
+      http.newCall(Request.Builder().url("${RelayConfig.voteUrl(room)}").post(body.toRequestBody("application/json".toMediaType())).build()).execute().close()
     }
   }
   private fun react(room: String, vid: String, id: String) {
     thread {
       val body = JSONObject().put("reactionId", id).put("viewerSessionId", vid).put("type", "reaction").toString()
-      http.newCall(Request.Builder().url("https://obsidian-production-6e2e.up.railway.app/api/rooms/$room/react").post(body.toRequestBody("application/json".toMediaType())).build()).execute().close()
+      http.newCall(Request.Builder().url("${RelayConfig.reactUrl(room)}").post(body.toRequestBody("application/json".toMediaType())).build()).execute().close()
     }
   }
   override fun onDestroy() {
