@@ -62,3 +62,22 @@ Example:
 - In-memory rooms die if the Railway instance restarts.
 - No custom domain required for V1.
 - Worldwide voting is unverified until a cellular-data phone vote reaches the host.
+
+## Let Grok / GitHub Actions deploy to Railway
+
+This remote environment cannot keep `railway login`.
+
+Use a **Railway project token** as a GitHub Actions secret. Never commit it. Never paste it into chat.
+
+1. Railway → project **Obsidian** → Settings → Tokens (or Account → Tokens).
+2. Create a token scoped to **Obsidian**.
+3. GitHub → https://github.com/dragonking587-ai/Auralith/settings/secrets/actions
+4. New repository secret:
+   - Name: `RAILWAY_TOKEN`
+   - Value: the token (paste only on GitHub)
+5. After that, any push to `services/audience-relay` on `tauri/auralith-reborn` deploys.
+6. You can also run **Actions → Deploy audience relay → Run workflow**.
+
+Public URL stays:
+
+`https://obsidian-production-6e2e.up.railway.app`

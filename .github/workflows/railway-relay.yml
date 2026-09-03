@@ -1,0 +1,36 @@
+name: Deploy audience relay
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - "services/audience-relay/**"
+      - ".github/workflows/railway-relay.yml"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: services/audience-relay
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: npm ci
+      - run: npm run build
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+      - name: Deploy to Railway
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+        run: |
+          if [ -z "$RAILWAY_TOKEN" ]; then
+            echo "Missing GitHub Actions secret RAILWAY_TOKEN."
+            echo "Create a Railway project token for Obsidian and add it in the Auralith repo secrets."
+            echo "Do not put the token in source control or chat."
+            exit 1
+          fi
+          railway up --ci --detach
