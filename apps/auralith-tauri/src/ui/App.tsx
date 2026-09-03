@@ -24,6 +24,7 @@ import {
 import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
+import { qrDataUrl } from "../scene/qr";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
@@ -1505,7 +1506,6 @@ export function App() {
                   </label>
                   <p>Relay: {relayStatus}{relayErr ? " · "+relayErr : ""}</p>
                   <p>Room: {relayRoom || "—"}</p>
-                  <p>Viewer URL: {relayViewer || "—"}</p>
                   <div className="row">
                     <button onClick={async ()=>{
                       try {
@@ -1515,7 +1515,7 @@ export function App() {
                         const sess = await relayRef.current.connectHost(relayUrl, {
                           question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
                         });
-                        setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl);
+                        setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl); setShowQr(true);
                         relayAction("updatePollMetadata");
                         relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) });
                       } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
@@ -1524,12 +1524,15 @@ export function App() {
                     <button onClick={()=>setShowQr((v)=>!v)}>Show QR</button>
                     <button onClick={()=>{ if (relayViewer) window.open(relayViewer, "_blank"); }}>Open Viewer Page</button>
                   </div>
-                  {showQr && (
+                  {(showQr || !!relayViewer) && (
                     <div className="card">
-                      <p>Public viewer URL only — host token is never encoded.</p>
-                      <p style={{ wordBreak: "break-all" }}>{relayViewer || "Start public poll first"}</p>
+                      <p>Scan to vote — host token is never in the QR.</p>
+                      {relayViewer ? (
+                        <img alt="Public viewer QR" style={{ width: 220, height: 220, background: "#fff4d6" }} src={qrDataUrl(relayViewer)} />
+                      ) : (
+                        <p>Start public poll first</p>
+                      )}
                       <p>{relayRoom}</p>
-                      <p>Printable QR bitmap is shown after you deploy the Worker; copy the HTTPS URL for now.</p>
                     </div>
                   )}
                 </>

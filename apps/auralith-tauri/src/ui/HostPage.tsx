@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { qrDataUrl } from "../scene/qr";
 
 type Snap = {
   running: boolean; question: string; redLabel: string; greenLabel: string;
@@ -47,7 +48,9 @@ export function HostPage() {
         <>
           <p>Relay: {s.relay.status}{s.relay.error ? " · " + s.relay.error : ""}</p>
           <p>Room: {s.relay.room || "—"}</p>
-          <p>Public URL: {s.relay.url || "—"}</p>
+          {s.relay.url ? (
+            <img alt="Public viewer QR" style={{ width: 200, height: 200, background: "#fff4d6" }} src={qrDataUrl(s.relay.url)} />
+          ) : null}
         </>
       )}
       <p>Local server: {s.viewer.state} · Health: {s.viewer.health} · Port: {s.viewer.port || "—"}</p>
