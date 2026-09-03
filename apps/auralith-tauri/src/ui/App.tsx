@@ -1511,6 +1511,7 @@ export function App() {
                     <input value={relayUrl} onChange={(e)=>{ setRelayUrl(e.target.value); localStorage.setItem("auralith.relayUrl", e.target.value); }} placeholder="https://your-service.up.railway.app" />
                   </label>
                   <p>Relay: {relayStatus}{relayErr ? " · "+relayErr : ""}</p>
+                  <p>Public Room: {relayRoom || "none"} · Poll: {pollRt.running && relayStatus === "ONLINE" ? "LIVE" : "STOPPED"}</p>
                   <p>Room: {relayRoom || "—"}</p>
                   <div className="row">
                     <button onClick={async ()=>{
@@ -1542,8 +1543,10 @@ export function App() {
                           question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
                         });
                         setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl); setShowQr(true);
-                        relayAction("updatePollMetadata");
+                        applyRt(startPoll(pollRtRef.current, pollCfgRef.current));
                         relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) });
+                        const check = await relayRef.current.verifyLiveState();
+                        if (!check.ok) throw new Error(check.error);
                       } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
                     }}>Start Public Poll</button>
                     <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>

@@ -54,6 +54,7 @@ export class PollRelayTransport {
   private ws: WebSocket | null = null;
   private tries = 0;
   private closed = false;
+  private hb = 0;
   onStatus?: (s: RelayStatus, err: string) => void;
   onState?: (s: RelayPublicState) => void;
   onReaction?: (ev: { type: string; eventId?: string; reactionId?: string; roomId?: string; timestamp?: number }) => void;
@@ -90,7 +91,16 @@ export class PollRelayTransport {
     const hostToken = String(data.hostToken || "");
     if (!room || !hostToken) throw new Error("Relay did not return room/token");
     this.session = { baseUrl: base, room, hostToken, viewerUrl: base + "/" + room };
-    this.openSocket();
+    await this.openSocket();
+    this.sendHost("updatePollMetadata", meta);
+    this.sendHost("startPoll", meta);
+    this.startHeartbeat();
+    const verified = await this.verifyLiveState();
+    if (!verified.ok) {
+      this.setStatus("ERROR", verified.error);
+      throw new Error(verified.error);
+    }
+    this.setStatus("ONLINE", "");
     return this.session;
   }
 
@@ -106,35 +116,67 @@ export class PollRelayTransport {
     }).catch(() => {});
   }
 
+  async verifyLiveState(): Promise<{ ok: boolean; error: string; state?: RelayPublicState }> {
+    const s = this.session;
+    if (!s) return { ok: false, error: "No public room session." };
+    try {
+      const res = await fetch(s.baseUrl + "/api/rooms/" + s.room + "/state");
+      const state = await res.json() as RelayPublicState & { error?: string };
+      if (!res.ok) return { ok: false, error: "State HTTP " + res.status };
+      if (!state.host_online) return { ok: false, error: "PUBLIC POLL SYNC FAILED: host_online=false", state };
+      if (!state.running_poll) return { ok: false, error: "PUBLIC POLL SYNC FAILED: running_poll=false", state };
+      this.onState?.(state);
+      return { ok: true, error: "", state };
+    } catch (e) {
+      return { ok: false, error: "State check failed: " + String(e) };
+    }
+  }
+
   disconnect() {
     this.closed = true;
+    if (this.hb) { clearInterval(this.hb); this.hb = 0; }
     try { this.ws?.close(); } catch { /* ignore */ }
     this.ws = null;
     this.setStatus("IDLE", "");
   }
 
-  private openSocket() {
+  private startHeartbeat() {
+    if (this.hb) clearInterval(this.hb);
+    this.hb = window.setInterval(() => this.sendHost("heartbeat"), 8000);
+  }
+
+  private openSocket(): Promise<void> {
     const s = this.session;
-    if (!s || this.closed) return;
-    const url = wsUrl(s.baseUrl, "/ws/host/" + s.room + "?token=" + encodeURIComponent(s.hostToken));
-    const ws = new WebSocket(url);
-    this.ws = ws;
-    ws.onopen = () => { this.tries = 0; this.setStatus("ONLINE", ""); };
-    ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(String(ev.data));
-        if (msg.type === "audience_reaction") this.onReaction?.(msg);
-        else if (String(msg.type || "").startsWith("remote_") || msg.type === "remote_command") this.onRemote?.(msg);
-        else if (msg.type === "state" || msg.room) this.onState?.(msg);
-      } catch { /* ignore */ }
-    };
-    ws.onclose = () => {
-      if (this.closed) return;
-      this.setStatus("RECONNECTING", "Host socket closed");
-      const delay = Math.min(15000, 800 * Math.pow(2, this.tries++));
-      setTimeout(() => this.openSocket(), delay);
-    };
-    ws.onerror = () => { this.setStatus("RECONNECTING", "Host socket error"); };
+    if (!s || this.closed) return Promise.resolve();
+    return new Promise((resolve) => {
+      const url = wsUrl(s.baseUrl, "/ws/host/" + s.room + "?token=" + encodeURIComponent(s.hostToken));
+      const ws = new WebSocket(url);
+      this.ws = ws;
+      let settled = false;
+      const done = () => { if (!settled) { settled = true; resolve(); } };
+      ws.onopen = () => { this.tries = 0; this.setStatus("ONLINE", ""); this.sendHost("startPoll"); done(); };
+      ws.onmessage = (ev) => {
+        try {
+          const msg = JSON.parse(String(ev.data));
+          if (msg.type === "audience_reaction") this.onReaction?.(msg);
+          else if (String(msg.type || "").startsWith("remote_") || msg.type === "remote_command") this.onRemote?.(msg);
+          else if (msg.type === "state" || msg.room) this.onState?.(msg);
+        } catch { /* ignore */ }
+      };
+      ws.onclose = () => {
+        if (this.closed) return;
+        this.setStatus("RECONNECTING", "Host socket closed");
+        const delay = Math.min(15000, 800 * Math.pow(2, this.tries++));
+        setTimeout(() => {
+          this.openSocket().then(() => {
+            this.sendHost("updatePollMetadata");
+            this.sendHost("startPoll");
+          });
+        }, delay);
+      };
+      ws.onerror = () => { this.setStatus("RECONNECTING", "Host socket error"); };
+      setTimeout(done, 2500);
+    });
   }
 
   private setStatus(s: RelayStatus, err: string) {
