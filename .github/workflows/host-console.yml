@@ -6,10 +6,18 @@ on:
     branches: [tauri/auralith-reborn]
     paths:
       - "apps/auralith-host-console/**"
+      - "apps/auralith-tauri/VERSION"
+      - "apps/auralith-tauri/src-tauri/tauri.conf.json"
       - ".github/workflows/host-console.yml"
+      - ".github/workflows/tauri-preview.yml"
+  workflow_run:
+    workflows: ["Auralith Reborn Preview"]
+    types: [completed]
+    branches: [tauri/auralith-reborn]
 
 jobs:
   windows:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: windows-latest
     permissions:
       contents: write
@@ -66,15 +74,25 @@ jobs:
         with:
           name: Auralith-Host-Console-nsis
           path: apps/auralith-host-console/dist/*
-      - name: Publish Host Console assets LAST
+      - name: Attach Host Console to the same version tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
           $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $tag = "v$ver"
-          gh release view $tag --repo dragonking587-ai/Auralith
+          $ok = $false
+          for ($i = 0; $i -lt 30; $i++) {
+            gh release view $tag --repo dragonking587-ai/Auralith 2>$null
+            if ($LASTEXITCODE -eq 0) { $ok = $true; break }
+            Write-Host "Waiting for $tag so Host Console can join the same release..."
+            Start-Sleep -Seconds 20
+          }
+          if (-not $ok) { throw "Release $tag does not exist yet. Main Auralith must publish first so both installers share one tag." }
           Get-ChildItem dist | ForEach-Object {
             gh release upload $tag $_.FullName --repo dragonking587-ai/Auralith --clobber
           }
-          gh release upload updater-latest dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+          if (Test-Path dist/latest-host-console.json) {
+            gh release upload updater-latest dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+          }
+          Write-Host "Host Console attached to $tag"

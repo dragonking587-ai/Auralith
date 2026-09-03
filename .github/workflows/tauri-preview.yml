@@ -109,7 +109,13 @@ jobs:
           files: |
             apps/auralith-tauri/dist-install/*
           body: |
-            # Auralith Reborn ${{ steps.ver.outputs.version }}
+            # Auralith ${{ steps.ver.outputs.version }}
+
+            This release must include BOTH Windows installers on the same tag:
+            - Auralith-Reborn-${{ steps.ver.outputs.version }}-x64-Setup.exe
+            - Auralith-Host-Console-${{ steps.ver.outputs.version }}-x64-Setup.exe
+
+            Host Console is attached by the companion workflow onto this same release.
 
             Public installer. No Beta Access Code is required. The app opens directly.
 
