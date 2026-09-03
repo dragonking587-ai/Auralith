@@ -26,11 +26,58 @@ jobs:
       - name: Deploy to Railway
         env:
           RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+          RAILWAY_SERVICE: ${{ secrets.RAILWAY_SERVICE }}
         run: |
           if [ -z "$RAILWAY_TOKEN" ]; then
             echo "Missing GitHub Actions secret RAILWAY_TOKEN."
-            echo "Create a Railway project token for Obsidian and add it in the Auralith repo secrets."
-            echo "Do not put the token in source control or chat."
             exit 1
           fi
-          railway up --ci --detach
+          echo "RAILWAY_TOKEN detected"
+          railway status --json > /tmp/railway-status.json || railway status || true
+          python3 - <<'PY'
+          import json, os, sys
+          wanted = (os.environ.get("RAILWAY_SERVICE") or "").strip()
+          names = []
+          try:
+              data = json.load(open("/tmp/railway-status.json"))
+          except Exception as e:
+              print("status json parse:", e)
+              data = {}
+          print("status_type", type(data).__name__)
+          def walk(obj):
+              if isinstance(obj, dict):
+                  n = obj.get("name") or obj.get("serviceName")
+                  if n:
+                      names.append(str(n))
+                  for v in obj.values():
+                      walk(v)
+              elif isinstance(obj, list):
+                  for v in obj:
+                      walk(v)
+          walk(data)
+          seen=set(); uniq=[]
+          for n in names:
+              if n not in seen:
+                  seen.add(n); uniq.append(n)
+          print("discovered_services:", uniq)
+          skip = {"postgres", "postgresql", "redis", "mysql", "mongo", "mongodb"}
+          pick = wanted
+          if not pick:
+              for n in uniq:
+                  if any(k in n.lower() for k in ("relay", "audience", "auralith")):
+                      pick = n; break
+          if not pick:
+              for n in uniq:
+                  if n.lower() not in skip:
+                      pick = n; break
+          if not pick and uniq:
+              pick = uniq[0]
+          if not pick:
+              # last resort well-known names for this project
+              pick = os.environ.get("RAILWAY_SERVICE") or "Obsidian"
+          print("using_service:", pick)
+          open("/tmp/service-name","w").write(pick)
+          PY
+          SERVICE=$(cat /tmp/service-name)
+          echo "railway up --service $SERVICE"
+          railway up --ci --detach --service "$SERVICE" || railway up --ci --detach --service Obsidian
