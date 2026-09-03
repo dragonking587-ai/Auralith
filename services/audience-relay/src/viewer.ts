@@ -1,8 +1,11 @@
 export function landingHtml() {
-  return `<!doctype html><html><body style="font-family:Georgia;background:#120c08;color:#f4e4b0;padding:24px">
+  return `<!doctype html><html><body style="font-family:Georgia;background:#120c08;color:#f4e4b0;padding:24px;max-width:40rem">
 <h1>Auralith Audience Relay</h1>
-<p>Open a room URL from Auralith. This service is poll transport only.</p>
-<p>Local/LAN mode in the desktop app remains available if this relay is offline.</p>
+<p>This is the service homepage, not a poll.</p>
+<p>In Auralith look at <b>Room</b> and <b>Viewer URL</b>. Open that URL. It looks like:</p>
+<pre>https://YOUR-DOMAIN/ABCD-1234</pre>
+<p>Do not open the bare domain. Voters need the room-code path.</p>
+<p>Local/LAN mode in the desktop app still works if this relay is offline.</p>
 </body></html>`;
 }
 
