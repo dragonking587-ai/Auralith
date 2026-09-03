@@ -1574,14 +1574,20 @@ export function App() {
               </label>
               <div className="row">
                 <button onClick={()=>{
-                  relayRef.current.sendHost("create_pairing", { role: hostRole, ttlSec: 90 });
                   const s = relayRef.current.session;
-                  if (!s) return;
+                  if (!s || relayStatus !== "ONLINE") {
+                    setRelayErr("Start Public Poll first, then Generate Host QR.");
+                    return;
+                  }
                   fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
                     method:"POST",
                     headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 90 })
-                  }).then(r=>r.json()).then((j)=>{ setHostPair(j); }).catch((e)=>setRelayErr(String(e)));
+                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120 })
+                  }).then(async (r)=>{
+                    const j = await r.json();
+                    if (!r.ok || !j.qrUrl) throw new Error(j.error || "pairing failed");
+                    setHostPair(j);
+                  }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>
                 <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
                 <button onClick={()=>{ setRemoteEnabled(false); relayRef.current.sendHost("disable_remote_host"); }}>Disable All Remote Host Control</button>
@@ -1591,7 +1597,9 @@ export function App() {
                 <div className="card">
                   <p>HOST REMOTE PAIRING · {hostPair.role}</p>
                   <img alt="Host pairing QR" style={{ width: 200, height: 200 }} src={qrDataUrl(hostPair.qrUrl)} />
-                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""}</p>
+                  <p style={{ wordBreak: "break-all" }}>{hostPair.qrUrl}</p>
+                  <button onClick={()=>{ if (hostPair.qrUrl) navigator.clipboard.writeText(hostPair.qrUrl).catch(()=>{}); }}>Copy Host Pairing URL</button>
+                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste that URL in Auralith Remote Host Mode.</p>
                 </div>
               )}
               {pendingRemote && (
@@ -1599,8 +1607,24 @@ export function App() {
                   <p>REMOTE HOST REQUEST</p>
                   <p>Device: {pendingRemote.deviceDisplayName} · {pendingRemote.platform}</p>
                   <p>Role: {pendingRemote.requestedRole}</p>
-                  <button onClick={()=>{ relayRef.current.sendHost("approve_pairing", { pairingId: pendingRemote.pairingId }); setPendingRemote(null); }}>Approve</button>
-                  <button onClick={()=>{ relayRef.current.sendHost("deny_pairing", { pairingId: pendingRemote.pairingId }); setPendingRemote(null); }}>Deny</button>
+                  <button onClick={()=>{
+                    const s = relayRef.current.session;
+                    if (!s) return;
+                    fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                      method:"POST",
+                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
+                      body: JSON.stringify({ action:"approve_pairing", pairingId: pendingRemote.pairingId })
+                    }).then(()=>setPendingRemote(null)).catch((e)=>setRelayErr(String(e)));
+                  }}>Approve</button>
+                  <button onClick={()=>{
+                    const s = relayRef.current.session;
+                    if (!s) { setPendingRemote(null); return; }
+                    fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                      method:"POST",
+                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
+                      body: JSON.stringify({ action:"deny_pairing", pairingId: pendingRemote.pairingId })
+                    }).finally(()=>setPendingRemote(null));
+                  }}>Deny</button>
                 </div>
               )}
               <p>Authorized devices: {remoteDevices.length} · Remote host {remoteEnabled ? "ON" : "OFF"}</p>

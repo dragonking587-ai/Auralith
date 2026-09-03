@@ -405,12 +405,16 @@ const server = http.createServer(async (req, res) => {
     }
   }
 
-  if (req.method === "POST" && path.startsWith("/api/pair/")) {
+  if ((req.method === "POST" || req.method === "GET") && path.startsWith("/api/pair/")) {
     const pairingId = path.split("/")[3] || "";
-    const tail = path.split("/")[4] || "claim";
+    const tail = path.split("/")[4] || (req.method === "GET" ? "status" : "claim");
     const p = pairings.get(pairingId);
     if (!p) { json(res, { error: "invalid_pairing" }, 404); return; }
     if (Date.now() > p.expiresAt) { p.status = "expired"; json(res, { error: "expired" }, 410); return; }
+    if (req.method === "GET" || tail === "status") {
+      json(res, { status: p.status, roomId: p.room, role: p.role, token: p.status === "approved" ? p.approvedToken : undefined, deviceId: p.deviceId });
+      return;
+    }
     const body = await readBody(req);
     if (tail === "claim") {
       if (String(body.code || "") !== p.code) { json(res, { error: "bad_code" }, 401); return; }
@@ -451,8 +455,16 @@ const server = http.createServer(async (req, res) => {
   }
 
   if (req.method === "GET" && path.startsWith("/host/pair/")) {
+    const pairingId = path.split("/").filter(Boolean).pop() || "";
+    const u = new URL(req.url || "/", "https://obsidian-production-6e2e.up.railway.app");
+    const code = u.searchParams.get("code") || "";
     html(res, `<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><body style="font-family:Georgia;background:#120c08;color:#f4e4b0;padding:24px">
-<h1>Auralith Host Pairing</h1><p>Open this link in Auralith Remote. This page does not grant host access by itself.</p></body>`);
+<h1>Auralith Host Pairing</h1>
+<p>This page does not grant host access.</p>
+<p>In <b>Auralith Remote</b> → Host Mode, paste this full URL and tap Claim Host QR:</p>
+<p style="word-break:break-all">${u.origin}/host/pair/${pairingId}?code=${code}</p>
+<p>Pairing ID: ${pairingId}<br>Code: ${code}</p>
+</body>`);
     return;
   }
 

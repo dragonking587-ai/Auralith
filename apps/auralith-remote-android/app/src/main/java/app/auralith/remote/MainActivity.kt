@@ -53,9 +53,11 @@ class MainActivity : Activity() {
       }
     })
     root.addView(label("HOST MODE"))
-    val pairField = field("Host pairing URL from desktop QR")
+    val pairField = field("Paste Host pairing URL from desktop QR")
+    intent?.data?.toString()?.let { pairField.setText(it) }
     root.addView(pairField)
     root.addView(btn("Claim Host QR") { claim(pairField.text.toString(), status) })
+    intent?.data?.toString()?.takeIf { it.contains("/host/pair/") }?.let { claim(it, status) }
     root.addView(btn("Start Poll") { remote("poll_start") })
     root.addView(btn("End Poll") { remote("poll_end") })
     root.addView(btn("Clear Votes") { remote("poll_clear") })
@@ -84,24 +86,48 @@ class MainActivity : Activity() {
   private fun claim(url: String, status: TextView) {
     thread {
       try {
-        val uri = Uri.parse(url)
-        val id = uri.pathSegments.last()
+        val raw = url.trim()
+        if (raw.isEmpty()) {
+          runOnUiThread { status.text = "Paste the Host QR URL first (not the viewer room URL)." }
+          return@thread
+        }
+        val uri = Uri.parse(raw)
+        val segs = uri.pathSegments
+        val id = if (segs.size >= 2 && segs[segs.size - 2] == "pair") segs.last() else segs.lastOrNull() ?: ""
         val code = uri.getQueryParameter("code") ?: ""
-        val body = JSONObject().put("code", code).put("deviceName", "Pixel").put("platform", "android").toString()
-        post("$origin/api/pair/$id/claim", body)
-        runOnUiThread { status.text = "Waiting for desktop approval…" }
-        repeat(20) {
+        if (id.isEmpty() || code.isEmpty()) {
+          runOnUiThread { status.text = "Need a Host pairing URL with /host/pair/ID?code=..." }
+          return@thread
+        }
+        val body = JSONObject().put("code", code).put("deviceName", android.os.Build.MODEL).put("platform", "android").toString()
+        val claimed = post("$origin/api/pair/$id/claim", body)
+        val cj = JSONObject(if (claimed.isBlank()) "{}" else claimed)
+        if (cj.has("error")) {
+          runOnUiThread { status.text = "Claim failed: " + cj.optString("error") }
+          return@thread
+        }
+        runOnUiThread { status.text = "Waiting for desktop Approve…" }
+        repeat(30) {
           Thread.sleep(2000)
           val st = get("$origin/api/pair/$id/status")
-          val j = JSONObject(st)
-          if (j.optString("status") == "approved" && j.has("token")) {
+          val j = JSONObject(if (st.isBlank()) "{}" else st)
+          if (j.optString("error").isNotEmpty()) {
+            runOnUiThread { status.text = "Pair status: " + j.optString("error") }
+            return@thread
+          }
+          if (j.optString("status") == "denied") {
+            runOnUiThread { status.text = "Desktop denied pairing." }
+            return@thread
+          }
+          if (j.optString("status") == "approved" && j.optString("token").isNotEmpty()) {
             hostToken = j.getString("token")
             hostRole = j.optString("role")
             room = j.optString("roomId")
-            runOnUiThread { status.text = "HOST REMOTE connected · $hostRole" }
+            runOnUiThread { status.text = "HOST REMOTE connected · $hostRole · $room" }
             return@thread
           }
         }
+        runOnUiThread { status.text = "Timed out waiting for desktop Approve." }
       } catch (e: Exception) {
         runOnUiThread { status.text = "Pair failed: ${e.message}" }
       }
@@ -117,9 +143,9 @@ class MainActivity : Activity() {
       http.newCall(req).execute().close()
     }
   }
-  private fun post(url: String, body: String) {
+  private fun post(url: String, body: String): String {
     val req = Request.Builder().url(url).post(body.toRequestBody("application/json".toMediaType())).build()
-    http.newCall(req).execute().close()
+    return http.newCall(req).execute().use { it.body?.string() ?: "{}" }
   }
   private fun get(url: String): String {
     val req = Request.Builder().url(url).build()
