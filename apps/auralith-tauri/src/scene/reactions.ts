@@ -18,6 +18,7 @@ export type ReactionSlot = {
   trailLength: number;
   gravity: number;
   wind: number;
+  shellMode: "random" | "chrysanthemum" | "willow" | "ring" | "palm";
   brightness: number;
   bloom: number;
   colorA: string;
@@ -42,6 +43,7 @@ export type LiveReaction = {
   burstCount: number;
   gravity: number;
   wind: number;
+  shellMode: "random" | "chrysanthemum" | "willow" | "ring" | "palm";
 };
 
 export function defaultSlots(): ReactionSlot[] {
@@ -49,7 +51,7 @@ export function defaultSlots(): ReactionSlot[] {
     id, label, enabled: true, reactionType: id, target: "canvas",
     durationMs: id === "lightning" ? 900 : 2500, intensity: 0.7, hostCooldownMs: 5000,
     trigger: "stack_limited", burstCount: 5, launchHeight: 0.7, spread: 0.6,
-    explosionRadius: 0.22, sparkCount: 40, trailLength: 0.35, gravity: 0.35, wind: 0.1,
+    explosionRadius: 0.22, sparkCount: 40, trailLength: 0.35, gravity: 0.35, wind: 0.1, shellMode: "random",
     brightness: 1, bloom: 0.5, colorA: "#ffd27a", colorB: "#ff4d2a", colorC: "#fff6c8",
     marginL: 0.08, marginR: 0.08, marginT: 0.08, marginB: 0.12
   });
@@ -100,7 +102,7 @@ export class ReactionEngine {
       intensity: slot.intensity,
       seed: Math.random() * 1000,
       colorA: slot.colorA, colorB: slot.colorB, colorC: slot.colorC,
-      burstCount: slot.burstCount, gravity: slot.gravity, wind: slot.wind
+      burstCount: slot.burstCount, gravity: slot.gravity, wind: slot.wind, shellMode: slot.shellMode || "random"
     });
     this.last = { id: reactionId, at: Date.now() };
     this.counts[reactionId] = (this.counts[reactionId] || 0) + 1;

@@ -891,7 +891,9 @@ export class GlRenderer {
           const py = 0.18 + (Math.abs(Math.sin(seed * 78.233)) % 1) * 0.55;
           const ox = vp.x + px * vp.w;
           const oy = vp.y + (1 - py) * vp.h;
-          const rad = Math.max(24, vp.w * (0.08 + (rx.intensity || 0.7) * 0.16) * (1 + 0.2 * Math.sin(seed)));
+          const shell = (rx as any).shellMode || "random";
+          const shellMul = shell==="willow"?1.25:shell==="ring"?0.85:shell==="palm"?1.1:1;
+          const rad = Math.max(24, vp.w * (0.08 + (rx.intensity || 0.7) * 0.16) * shellMul * (1 + 0.2 * Math.sin(seed)));
           const ca = hex(rx.colorA || "#ffd27a"), cb = hex(rx.colorB || "#ff4d2a");
           gl.uniform2f(gl.getUniformLocation(this.prog, "uRes"), w, h);
           gl.uniform1f(gl.getUniformLocation(this.prog, "uTime"), t * 1.4 + seed);

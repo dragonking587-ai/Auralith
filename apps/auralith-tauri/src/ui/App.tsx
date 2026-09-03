@@ -1459,6 +1459,7 @@ export function App() {
               <p>Status: {rxEngine.enabled ? "ENABLED" : "DISABLED"} · Last: {rxEngine.last?.id || "—"}</p>
               <p>Fireworks {rxEngine.counts.fireworks} · Lightning {rxEngine.counts.lightning} · Rune {rxEngine.counts.rune_burst} · Meteor {rxEngine.counts.meteor_shower}</p>
               <div className="row">
+                <button onClick={()=>{ rxEngine.ingest({ reactionId: "fireworks", eventId: "preview-"+Date.now() }); }}>Preview Fireworks</button>
                 <button onClick={()=>{ rxEngine.enabled=false; relayRef.current.sendHost("disable_reactions"); }} >Disable Audience Reactions</button>
                 <button onClick={()=>{ rxEngine.enabled=true; relayRef.current.sendHost("enable_reactions"); relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, true) }); }}>Enable Reactions</button>
                 <button onClick={()=>rxEngine.clear()}>Clear Active Reactions</button>
@@ -1470,6 +1471,17 @@ export function App() {
                   <label>Duration ms<input type="number" defaultValue={s.durationMs} onBlur={(e)=>{ s.durationMs=Number(e.target.value)||s.durationMs; }} /></label>
                   <label>Intensity<input type="number" step="0.05" defaultValue={s.intensity} onBlur={(e)=>{ s.intensity=Number(e.target.value)||s.intensity; }} /></label>
                   <label>Cooldown ms<input type="number" defaultValue={s.hostCooldownMs} onBlur={(e)=>{ s.hostCooldownMs=Number(e.target.value)||5000; }} /></label>
+                  {s.id==="fireworks" && (
+                    <label>Shell
+                      <select defaultValue={s.shellMode||"random"} onChange={(e)=>{ s.shellMode=e.target.value as any; }}>
+                        <option value="random">Random</option>
+                        <option value="chrysanthemum">Chrysanthemum</option>
+                        <option value="willow">Willow</option>
+                        <option value="ring">Ring</option>
+                        <option value="palm">Palm</option>
+                      </select>
+                    </label>
+                  )}
                 </div>
               ))}
               <h4>LOCAL / LAN SERVER</h4>
