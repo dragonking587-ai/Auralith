@@ -41,10 +41,7 @@ type Room = {
 
 const SAFE_REACTION_IDS = ["fireworks", "lightning", "rune_burst", "meteor_shower"] as const;
 const DEFAULT_REACTIONS: AllowedReaction[] = [
-  { id: "fireworks", label: "Fireworks", enabled: true, iconKey: "fireworks", cooldownMs: 5000 },
-  { id: "lightning", label: "Lightning", enabled: true, iconKey: "lightning", cooldownMs: 5000 },
-  { id: "rune_burst", label: "Rune Burst", enabled: true, iconKey: "rune", cooldownMs: 5000 },
-  { id: "meteor_shower", label: "Meteor Shower", enabled: true, iconKey: "meteor", cooldownMs: 5000 }
+  { id: "fireworks", label: "Fireworks", enabled: true, iconKey: "fireworks", cooldownMs: 5000 }
 ];
 
 function clamp(n: number, lo: number, hi: number, fallback: number) {
@@ -206,10 +203,16 @@ function applyHost(room: Room, body: any) {
 
 
 function applyReaction(room: Room, body: any) {
-  const reactionId = String(body?.reactionId || body?.id || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+  if (!body || typeof body !== "object") return { ok: false, error: "invalid_reaction" };
+  const blocked = ["effectId","targetId","shader","color","duration","intensity","hostToken","action","command"];
+  for (const k of Object.keys(body)) {
+    if (blocked.includes(k)) return { ok: false, error: "unsafe_field" };
+  }
+  const reactionId = String(body?.reactionId || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
   const viewer = String(body?.viewerSessionId || "").slice(0, 64);
   if (!viewer || !reactionId) return { ok: false, error: "invalid_reaction" };
   if (!room.reactionsEnabled) return { ok: false, error: "reactions_disabled" };
+  if (room.hosts.size === 0 && Date.now() - room.hostSeen > 20_000) return { ok: false, error: "host_offline" };
   const allowed = room.allowedReactions.find((r) => r.id === reactionId && r.enabled);
   if (!allowed) return { ok: false, error: "reaction_not_allowed" };
   const now = Date.now();
