@@ -5,6 +5,14 @@ import { landingHtml, viewerHtml } from "./viewer.js";
 
 type Vote = "red" | "green";
 
+type AllowedReaction = {
+  id: string;
+  label: string;
+  enabled: boolean;
+  iconKey: string;
+  cooldownMs: number;
+};
+
 type Room = {
   code: string;
   hostToken: string;
@@ -21,7 +29,59 @@ type Room = {
   created: number;
   hosts: Set<WebSocket>;
   views: Set<WebSocket>;
+  reactionsEnabled: boolean;
+  allowedReactions: AllowedReaction[];
+  viewerCooldownMs: number;
+  globalCooldownMs: number;
+  lastReactionAt: number;
+  lastByViewer: Map<string, number>;
+  budget: Map<string, number[]>;
 };
+
+
+const SAFE_REACTION_IDS = ["fireworks", "lightning", "rune_burst", "meteor_shower"] as const;
+const DEFAULT_REACTIONS: AllowedReaction[] = [
+  { id: "fireworks", label: "Fireworks", enabled: true, iconKey: "fireworks", cooldownMs: 5000 },
+  { id: "lightning", label: "Lightning", enabled: true, iconKey: "lightning", cooldownMs: 5000 },
+  { id: "rune_burst", label: "Rune Burst", enabled: true, iconKey: "rune", cooldownMs: 5000 },
+  { id: "meteor_shower", label: "Meteor Shower", enabled: true, iconKey: "meteor", cooldownMs: 5000 }
+];
+
+function clamp(n: number, lo: number, hi: number, fallback: number) {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.min(hi, Math.max(lo, v));
+}
+
+function sanitizeAllowed(list: any): AllowedReaction[] {
+  if (!Array.isArray(list)) return DEFAULT_REACTIONS.map((r) => ({ ...r }));
+  const out: AllowedReaction[] = [];
+  const seen = new Set<string>();
+  for (const item of list.slice(0, 4)) {
+    const id = String(item?.id || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+    if (!(SAFE_REACTION_IDS as readonly string[]).includes(id) || seen.has(id)) continue;
+    seen.add(id);
+    out.push({
+      id,
+      label: String(item?.label || id).slice(0, 24),
+      enabled: item?.enabled !== false,
+      iconKey: String(item?.iconKey || id).slice(0, 24),
+      cooldownMs: clamp(item?.cooldownMs, 1000, 60000, 5000)
+    });
+  }
+  return out.length ? out : DEFAULT_REACTIONS.map((r) => ({ ...r }));
+}
+
+function publicReactions(r: Room) {
+  if (!r.reactionsEnabled) return [];
+  return r.allowedReactions.filter((x) => x.enabled).map((x) => ({
+    id: x.id,
+    label: x.label,
+    enabled: true,
+    iconKey: x.iconKey,
+    cooldownMs: x.cooldownMs
+  }));
+}
 
 const rooms = new Map<string, Room>();
 const rate = new Map<string, { n: number; t: number }>();
@@ -50,7 +110,9 @@ function publicState(r: Room) {
     red: r.red,
     green: r.green,
     host_online: Date.now() - r.hostSeen < 20_000,
-    status: r.running ? "LIVE" : "WAITING"
+    status: r.running ? "LIVE" : "WAITING",
+    reactions_enabled: r.reactionsEnabled,
+    allowed_reactions: publicReactions(r)
   };
 }
 
@@ -133,6 +195,47 @@ function applyHost(room: Room, body: any) {
     if (typeof body.allowChange === "boolean") room.allowChange = body.allowChange;
   }
   if (action === "closeRoom") room.running = false;
+  if (action === "set_allowed_reactions" || action === "setAllowedReactions") {
+    room.allowedReactions = sanitizeAllowed(body.allowedReactions || body.reactions);
+    if (typeof body.viewerCooldownMs === "number") room.viewerCooldownMs = clamp(body.viewerCooldownMs, 1000, 60000, 5000);
+    if (typeof body.globalCooldownMs === "number") room.globalCooldownMs = clamp(body.globalCooldownMs, 250, 10000, 1000);
+  }
+  if (action === "disable_reactions" || action === "disableReactions") room.reactionsEnabled = false;
+  if (action === "enable_reactions" || action === "enableReactions") room.reactionsEnabled = true;
+}
+
+
+function applyReaction(room: Room, body: any) {
+  const reactionId = String(body?.reactionId || body?.id || "").toLowerCase().replace(/[^a-z0-9_]/g, "");
+  const viewer = String(body?.viewerSessionId || "").slice(0, 64);
+  if (!viewer || !reactionId) return { ok: false, error: "invalid_reaction" };
+  if (!room.reactionsEnabled) return { ok: false, error: "reactions_disabled" };
+  const allowed = room.allowedReactions.find((r) => r.id === reactionId && r.enabled);
+  if (!allowed) return { ok: false, error: "reaction_not_allowed" };
+  const now = Date.now();
+  if (now - room.lastReactionAt < room.globalCooldownMs) return { ok: false, error: "global_cooldown", retryMs: room.globalCooldownMs - (now - room.lastReactionAt) };
+  const last = room.lastByViewer.get(viewer) || 0;
+  const need = Math.max(room.viewerCooldownMs, allowed.cooldownMs);
+  if (now - last < need) return { ok: false, error: "viewer_cooldown", retryMs: need - (now - last) };
+  const stamps = (room.budget.get(viewer) || []).filter((t) => now - t < 30_000);
+  if (stamps.length >= 3) return { ok: false, error: "budget" };
+  stamps.push(now);
+  room.budget.set(viewer, stamps);
+  room.lastByViewer.set(viewer, now);
+  room.lastReactionAt = now;
+  const event = {
+    type: "audience_reaction",
+    roomId: room.code,
+    reactionId: allowed.id,
+    viewerSessionId: viewer,
+    eventId: "e-" + crypto.randomBytes(8).toString("hex"),
+    timestamp: now
+  };
+  const msg = JSON.stringify(event);
+  for (const s of room.hosts) {
+    try { s.send(msg); } catch { room.hosts.delete(s); }
+  }
+  return { ok: true, reactionId: allowed.id, eventId: event.eventId };
 }
 
 function fanout(room: Room) {
@@ -194,14 +297,21 @@ const server = http.createServer(async (req, res) => {
       hostSeen: Date.now(),
       created: Date.now(),
       hosts: new Set(),
-      views: new Set()
+      views: new Set(),
+      reactionsEnabled: true,
+      allowedReactions: sanitizeAllowed(body.allowedReactions),
+      viewerCooldownMs: clamp(body.viewerCooldownMs, 1000, 60000, 5000),
+      globalCooldownMs: clamp(body.globalCooldownMs, 250, 10000, 1000),
+      lastReactionAt: 0,
+      lastByViewer: new Map(),
+      budget: new Map()
     };
     rooms.set(code, room);
     json(res, { room: code, hostToken: room.hostToken, viewerPath: "/" + code });
     return;
   }
 
-  const roomMatch = path.match(/^\/(?:api\/rooms\/)?([A-Z0-9]{4}-[A-Z0-9]{4})(?:\/(state|vote|host))?$/i);
+  const roomMatch = path.match(/^\/(?:api\/rooms\/)?([A-Z0-9]{4}-[A-Z0-9]{4})(?:\/(state|vote|host|react))?$/i);
   if (roomMatch) {
     const code = roomMatch[1].toUpperCase();
     const action = roomMatch[2] || "";
@@ -218,6 +328,13 @@ const server = http.createServer(async (req, res) => {
       const body = await readBody(req);
       const out = applyVote(room, body);
       if (out.ok) fanout(room);
+      json(res, out, out.ok ? 200 : 400);
+      return;
+    }
+    if (req.method === "POST" && action === "react") {
+      if (limited("react:" + (req.socket.remoteAddress || "x"), 40)) { json(res, { error: "rate_limited" }, 429); return; }
+      const body = await readBody(req);
+      const out = applyReaction(room, body);
       json(res, out, out.ok ? 200 : 400);
       return;
     }

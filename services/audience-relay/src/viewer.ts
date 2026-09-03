@@ -27,12 +27,21 @@ body.mini .full-only{display:none}
 <p id="st">Waiting for host...</p>
 <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center"><button id="r">RED</button><button id="g">GREEN</button></div>
 <p id="msg"></p><p id="tally"></p>
+<div id="rx"></div><p id="rxmsg"></p>
 </div>
 <script>
 const room = ${JSON.stringify(room)};
 const proto = location.protocol === "https:" ? "wss:" : "ws:";
 let round = "";
 const vid = localStorage.getItem("vid") || (localStorage.setItem("vid","v-"+Math.random().toString(36).slice(2,10)), localStorage.getItem("vid"));
+const cool={};
+const ICONS={fireworks:"🎆",lightning:"⚡",rune_burst:"✨",meteor_shower:"☄"};
+function renderRx(list){
+  const box=document.getElementById("rx");
+  if(!list||!list.length){box.innerHTML="";return;}
+  box.innerHTML="<p>REACTIONS</p>"+list.map(r=>"<button data-rx=\""+r.id+"\" style=\"min-width:140px;margin:4px;background:#3a2a12\">"+(ICONS[r.id]||"✦")+" "+r.label+"</button>").join("");
+  box.querySelectorAll("button").forEach(b=>b.onclick=()=>react(b.getAttribute("data-rx")));
+}
 function apply(s){
   round = s.round_id || round;
   document.getElementById("q").textContent = s.question || "Which color?";
@@ -42,6 +51,16 @@ function apply(s){
   document.getElementById("tally").textContent = (s.red_label||"RED")+" "+(s.red||0)+" · "+(s.green_label||"GREEN")+" "+(s.green||0);
   document.getElementById("r").disabled = !s.running_poll;
   document.getElementById("g").disabled = !s.running_poll;
+  renderRx(s.allowed_reactions||[]);
+}
+async function react(id){
+  const now=Date.now();
+  if(cool[id] && cool[id]>now){ document.getElementById("rxmsg").textContent="Ready in "+Math.ceil((cool[id]-now)/1000)+"s"; return; }
+  cool[id]=now+5000;
+  const r=await fetch("/api/rooms/"+room+"/react",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({reactionId:id,viewerSessionId:vid})});
+  const j=await r.json().catch(()=>({}));
+  document.getElementById("rxmsg").textContent = r.ok && j.ok ? (id+" sent ✓") : (j.error||"Reaction blocked");
+  if(j.retryMs) cool[id]=Date.now()+j.retryMs;
 }
 async function vote(option){
   const r = await fetch("/api/rooms/"+room+"/vote",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({option,viewerSessionId:vid,roundId:round})});
