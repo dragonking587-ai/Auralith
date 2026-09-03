@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
@@ -22,6 +22,7 @@ import {
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
 import { PollRelayTransport, defaultRelayUrl, publicRelayOrigin, rewritePublicPairingUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
+import { hostInstanceId } from "../scene/hostInstance";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 import { QrImage, QrModal } from "./QrPanel";
@@ -209,6 +210,9 @@ export function App() {
   const [relayStatus, setRelayStatus] = useState<RelayStatus>("IDLE");
   const [relayErr, setRelayErr] = useState("");
   const [relayRoom, setRelayRoom] = useState("");
+  const [customRoom, setCustomRoom] = useState(() => localStorage.getItem("auralith.roomName") || "OBSIDIAN-WOLF");
+  const [roomAvail, setRoomAvail] = useState("");
+  const hostId = useMemo(() => hostInstanceId(), []);
   const [relayViewer, setRelayViewer] = useState("");
   const [showQr, setShowQr] = useState(false);
   const [showHostQrModal, setShowHostQrModal] = useState(false);
@@ -1495,9 +1499,20 @@ export function App() {
               </div>
               <div className="row">
                 <button onClick={async ()=>{
+                  try {
+                    await invoke("open_host_console");
+                    publishHostSync();
+                  } catch {
+                    setViewer((s)=>({...s, msg: "Auralith Host Console is not installed."}));
+                    try { await invoke("poll_detach_host"); publishHostSync(); } catch (e) {
+                      setViewer((s)=>({...s, msg: "Auralith Host Console is not installed. Legacy pop-out failed: "+String(e)}));
+                    }
+                  }
+                }}>Open Host Console</button>
+                <button onClick={async ()=>{
                   try { await invoke("poll_detach_host"); publishHostSync(); }
                   catch (e) { setViewer((s)=>({...s, msg: "Could not detach host controls: "+String(e)})); }
-                }}>Detach Host Controls</button>
+                }}>Legacy Pop-Out Host Controls</button>
               </div>
               <h4>VIEWER CONNECTION MODE</h4>
               <div className="row">
@@ -1511,8 +1526,33 @@ export function App() {
                     <input value={relayUrl} onChange={(e)=>{ setRelayUrl(e.target.value); localStorage.setItem("auralith.relayUrl", e.target.value); }} placeholder="https://your-service.up.railway.app" />
                   </label>
                   <p>Relay: {relayStatus}{relayErr ? " · "+relayErr : ""}</p>
-                  <p>Public Room: {relayRoom || "none"} · Poll: {pollRt.running && relayStatus === "ONLINE" ? "LIVE" : "STOPPED"}</p>
-                  <p>Room: {relayRoom || "—"}</p>
+                  <p>Public Room: {relayRoom || "none"} · Server: {relayStatus === "ONLINE" ? "ONLINE" : "OFFLINE"} · Poll: {pollRt.running && relayStatus === "ONLINE" ? "LIVE" : "STOPPED"}</p>
+                  <label>Room Name
+                    <input value={customRoom} onChange={(e)=>{ setCustomRoom(e.target.value.toUpperCase()); localStorage.setItem("auralith.roomName", e.target.value.toUpperCase()); }} placeholder="OBSIDIAN-WOLF" />
+                  </label>
+                  <p>Availability: {roomAvail || "—"}</p>
+                  <div className="row">
+                    <button onClick={async ()=>{
+                      try {
+                        const a = await relayRef.current.checkAvailability(relayUrl || "https://obsidian-production-6e2e.up.railway.app", customRoom, hostId);
+                        setRoomAvail(String(a.status || a.error || "UNKNOWN"));
+                      } catch (e) { setRoomAvail(String(e)); }
+                    }}>Check Availability</button>
+                    <button onClick={()=>{
+                      relayRef.current.disconnect();
+                      setRelayStatus("IDLE"); setRelayErr("");
+                    }}>Stop Public Server</button>
+                    <button onClick={async ()=>{
+                      const typed = window.prompt("Type the room name to release it permanently:");
+                      if (!typed || typed.toUpperCase() !== (relayRoom || customRoom).toUpperCase()) return;
+                      try {
+                        await relayRef.current.releaseRoom(hostId);
+                        relayRef.current.disconnect();
+                        setRelayStatus("IDLE"); setRelayRoom(""); setRelayViewer("");
+                        setRoomAvail("RELEASED");
+                      } catch (e) { setRelayErr(String(e)); }
+                    }}>Release Room Name</button>
+                  </div>
                   <div className="row">
                     <button onClick={async ()=>{
                       try {
@@ -1540,15 +1580,17 @@ export function App() {
                           }
                         };
                         const sess = await relayRef.current.connectHost(relayUrl, {
-                          question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
+                          question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange,
+                          roomName: customRoom, hostInstanceId: hostId, startPoll: false
                         });
                         setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl); setShowQr(true);
-                        applyRt(startPoll(pollRtRef.current, pollCfgRef.current));
-                        relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) });
-                        const check = await relayRef.current.verifyLiveState();
+                        localStorage.setItem("auralith.roomName", sess.room);
+                        setCustomRoom(sess.room);
+                        relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled), hostInstanceId: hostId });
+                        const check = await relayRef.current.verifyLiveState(false);
                         if (!check.ok) throw new Error(check.error);
                       } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
-                    }}>Start Public Poll</button>
+                    }}>Start Public Server</button>
                     <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>
                     <button onClick={()=>setShowQr((v)=>!v)}>Show QR</button>
                     <button onClick={()=>{ if (relayViewer) window.open(relayViewer, "_blank"); }}>Open Viewer Page</button>
@@ -1588,7 +1630,7 @@ export function App() {
                 <button onClick={()=>{
                   const s = relayRef.current.session;
                   if (!s || relayStatus !== "ONLINE") {
-                    setRelayErr("Start Public Poll first, then Generate Host QR.");
+                    setRelayErr("Start Public Server first, then Generate Host QR.");
                     return;
                   }
                   fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {

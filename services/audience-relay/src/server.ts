@@ -6,6 +6,7 @@ import {
   createPairing, publicPairing, parseRole, pairings, remotes, newId,
   cmdAllowed, listDevices, revokeRoom, revokeDevice, sweepRemote, type HostRole
 } from "./remote.js";
+import { availability, claimRoom, getClaim, releaseRoom, normalizeRoomName, storageInfo } from "./claims.js";
 
 type Vote = "red" | "green";
 
@@ -41,6 +42,7 @@ type Room = {
   lastByViewer: Map<string, number>;
   budget: Map<string, number[]>;
   remotesEnabled: boolean;
+  ownerHostInstanceId: string;
 };
 
 
@@ -322,18 +324,61 @@ const server = http.createServer(async (req, res) => {
       lastReactionAt: 0,
       lastByViewer: new Map(),
       budget: new Map(),
-      remotesEnabled: true
+      remotesEnabled: true,
+      ownerHostInstanceId: String(body.hostInstanceId || "")
     };
+    const wanted = String(body.roomName || body.room || "").trim();
+    if (wanted) {
+      const claimed = claimRoom(wanted, String(body.hostInstanceId || ""), room.hostToken, wanted);
+      if (!claimed.ok) { json(res, { error: claimed.error }, claimed.error === "room_name_unavailable" ? 409 : 400); return; }
+      room.code = claimed.claim.name;
+      room.hostToken = claimed.claim.hostToken;
+      room.ownerHostInstanceId = claimed.claim.ownerHostInstanceId;
+      const existing = rooms.get(room.code);
+      if (existing && existing.ownerHostInstanceId === room.ownerHostInstanceId) {
+        existing.hostToken = room.hostToken;
+        existing.hostSeen = Date.now();
+        json(res, { room: existing.code, hostToken: existing.hostToken, viewerPath: "/" + existing.code, owned: true });
+        return;
+      }
+      code = room.code;
+    }
     rooms.set(code, room);
-    json(res, { room: code, hostToken: room.hostToken, viewerPath: "/" + code });
+    json(res, { room: code, hostToken: room.hostToken, viewerPath: "/" + code, owned: !!wanted });
     return;
   }
 
-  const roomMatch = path.match(/^\/(?:api\/rooms\/)?([A-Z0-9]{4}-[A-Z0-9]{4})(?:\/(state|vote|host|react))?$/i);
+  if (req.method === "POST" && path === "/api/rooms/availability") {
+    const body = await readBody(req);
+    json(res, availability(String(body.roomName || body.room || ""), String(body.hostInstanceId || "")));
+    return;
+  }
+
+  if (req.method === "GET" && path === "/api/storage") {
+    json(res, storageInfo());
+    return;
+  }
+
+  const roomMatch = path.match(/^\/(?:api\/rooms\/)?([A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9])(?:\/(state|vote|host|react|release|remote))?$/i);
   if (roomMatch) {
     const code = roomMatch[1].toUpperCase();
     const action = roomMatch[2] || "";
-    const room = rooms.get(code);
+    let room = rooms.get(code);
+    if (!room) {
+      const claim = getClaim(code);
+      if (claim) {
+        room = {
+          code: claim.name, hostToken: claim.hostToken, question: "Which color?", redLabel: "RED", greenLabel: "GREEN",
+          allowChange: true, running: false, roundId: "r-1", red: 0, green: 0, votes: new Map(),
+          hostSeen: 0, created: claim.claimedAt, hosts: new Set(), views: new Set(),
+          reactionsEnabled: true, allowedReactions: DEFAULT_REACTIONS.map((r)=>({...r})),
+          viewerCooldownMs: 5000, globalCooldownMs: 1000, lastReactionAt: 0,
+          lastByViewer: new Map(), budget: new Map(), remotesEnabled: true,
+          ownerHostInstanceId: claim.ownerHostInstanceId
+        };
+        rooms.set(code, room);
+      }
+    }
     if (!room) { json(res, { error: "invalid_room" }, 404); return; }
 
     if (req.method === "GET" && (action === "state" || action === "")) {
@@ -356,10 +401,25 @@ const server = http.createServer(async (req, res) => {
       json(res, out, out.ok ? 200 : 400);
       return;
     }
+    if (req.method === "POST" && action === "release") {
+      const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+      if (auth !== room.hostToken) { json(res, { error: "unauthorized" }, 401); return; }
+      const body = await readBody(req);
+      if (room.hosts.size) { json(res, { error: "server_must_be_offline" }, 409); return; }
+      const out = releaseRoom(room.code, String(body.hostInstanceId || room.ownerHostInstanceId));
+      if (!out.ok) { json(res, { error: out.error }, 403); return; }
+      rooms.delete(room.code);
+      json(res, { ok: true, released: room.code });
+      return;
+    }
     if (req.method === "POST" && action === "host") {
       const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
       if (auth !== room.hostToken) { json(res, { error: "unauthorized" }, 401); return; }
       const body = await readBody(req);
+      const inst = String(body.hostInstanceId || req.headers["x-host-instance"] || "");
+      if (room.ownerHostInstanceId && inst && inst !== room.ownerHostInstanceId) {
+        json(res, { error: "tenant_mismatch" }, 403); return;
+      }
       applyHost(room, body);
       if (body.action === "create_pairing") {
         const p = createPairing(room.code, parseRole(body.role), Number(body.ttlSec || 90));
@@ -439,7 +499,7 @@ const server = http.createServer(async (req, res) => {
     return;
   }
 
-  if (req.method === "POST" && /^\/api\/rooms\/[A-Z0-9-]{9}\/remote$/i.test(path)) {
+  if (req.method === "POST" && /^\/api\/rooms\/[A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9]\/remote$/i.test(path)) {
     const code = path.split("/")[3].toUpperCase();
     const room = rooms.get(code);
     const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
@@ -482,9 +542,9 @@ const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url || "/", "http://localhost");
-  const host = url.pathname.match(/^\/ws\/host\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
-  const view = url.pathname.match(/^\/ws\/view\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
-  const remote = url.pathname.match(/^\/ws\/remote\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
+  const host = url.pathname.match(/^\/ws\/host\/([A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9])$/i);
+  const view = url.pathname.match(/^\/ws\/view\/([A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9])$/i);
+  const remote = url.pathname.match(/^\/ws\/remote\/([A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9])$/i);
   const code = (host?.[1] || view?.[1] || remote?.[1] || "").toUpperCase();
   const room = rooms.get(code);
   if (!room) { socket.destroy(); return; }

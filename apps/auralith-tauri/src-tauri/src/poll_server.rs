@@ -173,6 +173,36 @@ pub fn poll_detach_host(app: AppHandle) -> Result<(), String> {
     Ok(())
 }
 
+#[tauri::command]
+pub fn open_host_console() -> Result<(), String> {
+    let candidates = [
+        r"C:\Program Files\Auralith Host Console\Auralith Host Console.exe",
+        r"C:\Program Files\Auralith Host Console\AuralithHostConsole.exe",
+    ];
+    for p in candidates {
+        if std::path::Path::new(p).exists() {
+            std::process::Command::new(p).spawn().map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    }
+    Err("host_console_not_installed".into())
+}
+
+#[tauri::command]
+pub fn open_host_console() -> Result<(), String> {
+    let candidates = [
+        r"C:\Program Files\Auralith Host Console\Auralith Host Console.exe",
+        r"C:\Program Files\Auralith Host Console\AuralithHostConsole.exe",
+    ];
+    for p in candidates {
+        if std::path::Path::new(p).exists() {
+            std::process::Command::new(p).spawn().map_err(|e| e.to_string())?;
+            return Ok(());
+        }
+    }
+    Err("host_console_not_installed".into())
+}
+
 fn handle(mut stream: TcpStream, state: Arc<PollServer>, app: AppHandle) {
     let _ = stream.set_read_timeout(Some(Duration::from_secs(3)));
     let mut buf = [0u8; 4096];

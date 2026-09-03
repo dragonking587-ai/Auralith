@@ -81,3 +81,4 @@ Use a **Railway project token** as a GitHub Actions secret. Never commit it. Nev
 Public URL stays:
 
 `https://obsidian-production-6e2e.up.railway.app`
+DATA_DIR=/data

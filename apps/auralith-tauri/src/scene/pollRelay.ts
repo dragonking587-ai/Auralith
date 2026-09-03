@@ -18,6 +18,7 @@ export type RelaySession = {
   room: string;
   hostToken: string;
   viewerUrl: string;
+  hostInstanceId?: string;
 };
 
 export function publicRelayOrigin(configured: string) {
@@ -64,7 +65,7 @@ export class PollRelayTransport {
     return !!(base || "").trim();
   }
 
-  async connectHost(baseUrl: string, meta: { question: string; redLabel: string; greenLabel: string; allowChange: boolean }) {
+  async connectHost(baseUrl: string, meta: { question: string; redLabel: string; greenLabel: string; allowChange: boolean; roomName?: string; hostInstanceId?: string; startPoll?: boolean }) {
     this.closed = false;
     const base = (baseUrl || "").trim().replace(/\/$/, "");
     if (/[<>]/.test(base) || /obsidian-service|your-service|your-worker/i.test(base)) {
@@ -83,19 +84,22 @@ export class PollRelayTransport {
     const res = await fetch(base + "/api/rooms", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify(meta)
+      body: JSON.stringify({
+        question: meta.question, redLabel: meta.redLabel, greenLabel: meta.greenLabel, allowChange: meta.allowChange,
+        roomName: meta.roomName, hostInstanceId: meta.hostInstanceId
+      })
     });
-    if (!res.ok) throw new Error("Relay room create failed (" + res.status + ")");
-    const data = await res.json();
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error === "room_name_unavailable" ? "Room name unavailable." : (data.error || "Relay room create failed (" + res.status + ")"));
     const room = String(data.room || "");
     const hostToken = String(data.hostToken || "");
     if (!room || !hostToken) throw new Error("Relay did not return room/token");
-    this.session = { baseUrl: base, room, hostToken, viewerUrl: base + "/" + room };
+    this.session = { baseUrl: base, room, hostToken, viewerUrl: base + "/" + room, hostInstanceId: meta.hostInstanceId };
     await this.openSocket();
-    this.sendHost("updatePollMetadata", meta);
-    this.sendHost("startPoll", meta);
+    this.sendHost("updatePollMetadata", { ...meta, hostInstanceId: meta.hostInstanceId });
+    if (meta.startPoll) this.sendHost("startPoll", { hostInstanceId: meta.hostInstanceId });
     this.startHeartbeat();
-    const verified = await this.verifyLiveState();
+    const verified = await this.verifyLiveState(!!meta.startPoll);
     if (!verified.ok) {
       this.setStatus("ERROR", verified.error);
       throw new Error(verified.error);
@@ -104,10 +108,33 @@ export class PollRelayTransport {
     return this.session;
   }
 
+  async checkAvailability(baseUrl: string, roomName: string, hostInstanceId: string) {
+    const base = baseUrl.replace(/\/$/, "");
+    const res = await fetch(base + "/api/rooms/availability", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ roomName, hostInstanceId })
+    });
+    return res.json();
+  }
+
+  async releaseRoom(hostInstanceId: string) {
+    const s = this.session;
+    if (!s) throw new Error("No public server session.");
+    const res = await fetch(s.baseUrl + "/api/rooms/" + s.room + "/release", {
+      method: "POST",
+      headers: { "content-type": "application/json", authorization: "Bearer " + s.hostToken },
+      body: JSON.stringify({ hostInstanceId })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || "Release failed");
+    return data;
+  }
+
   sendHost(action: string, extra: Record<string, unknown> = {}) {
     const s = this.session;
     if (!s) return;
-    const payload = JSON.stringify({ action, ...extra });
+    const payload = JSON.stringify({ action, hostInstanceId: s.hostInstanceId, ...extra });
     if (this.ws && this.ws.readyState === 1) this.ws.send(payload);
     fetch(s.baseUrl + "/api/rooms/" + s.room + "/host", {
       method: "POST",
@@ -116,15 +143,15 @@ export class PollRelayTransport {
     }).catch(() => {});
   }
 
-  async verifyLiveState(): Promise<{ ok: boolean; error: string; state?: RelayPublicState }> {
+  async verifyLiveState(requirePoll = false): Promise<{ ok: boolean; error: string; state?: RelayPublicState }> {
     const s = this.session;
     if (!s) return { ok: false, error: "No public room session." };
     try {
       const res = await fetch(s.baseUrl + "/api/rooms/" + s.room + "/state");
       const state = await res.json() as RelayPublicState & { error?: string };
       if (!res.ok) return { ok: false, error: "State HTTP " + res.status };
-      if (!state.host_online) return { ok: false, error: "PUBLIC POLL SYNC FAILED: host_online=false", state };
-      if (!state.running_poll) return { ok: false, error: "PUBLIC POLL SYNC FAILED: running_poll=false", state };
+      if (!state.host_online) return { ok: false, error: "PUBLIC SERVER SYNC FAILED: host_online=false", state };
+      if (requirePoll && !state.running_poll) return { ok: false, error: "PUBLIC POLL SYNC FAILED: running_poll=false", state };
       this.onState?.(state);
       return { ok: true, error: "", state };
     } catch (e) {

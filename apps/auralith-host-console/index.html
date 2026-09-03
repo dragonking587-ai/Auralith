@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<title>Auralith Host Console</title>
+<style>
+body{font-family:Segoe UI,sans-serif;background:#120c08;color:#f4e4b0;margin:0;padding:20px}
+input,button{margin:4px 0;padding:8px}
+button{background:#3a2a12;color:#f4e4b0;border:1px solid #c9a227}
+.ok{color:#7dffa0} .bad{color:#ff8a7a}
+</style>
+</head>
+<body>
+<h1>AURALITH HOST CONSOLE</h1>
+<p id="st">Connection: OFFLINE</p>
+<p>Pair with Auralith using a public Railway pairing URL. Never paste a host token.</p>
+<input id="pair" style="width:100%" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/..."/>
+<label><input id="remember" type="checkbox"/> Remember this host</label>
+<div>
+<button id="go">PAIR WITH AURALITH</button>
+<button id="start">Start Poll</button>
+<button id="end">End Poll</button>
+<button id="clear">Clear Votes</button>
+<button id="fw">Preview Fireworks</button>
+</div>
+<p id="room"></p>
+<script>
+const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
+let token="", room="", role="";
+const st=document.getElementById("st");
+function blocked(u){return /tauri\.localhost|localhost|127\.0\.0\.1/.test(u)}
+document.getElementById("go").onclick=async()=>{
+  const raw=document.getElementById("pair").value.trim();
+  if(blocked(raw)){st.textContent="Invalid local desktop address. Generate a new Host QR.";return}
+  const u=new URL(raw);
+  const id=u.pathname.split("/").pop();
+  const code=u.searchParams.get("code")||"";
+  st.textContent="CLAIMING…";
+  const claim=await fetch(ORIGIN+"/api/pair/"+id+"/claim",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code,deviceName:"Host Console",platform:"windows"})}).then(r=>r.json());
+  if(claim.error){st.textContent="Claim failed: "+claim.error;return}
+  st.textContent="Waiting for desktop approval…";
+  for(let i=0;i<30;i++){
+    await new Promise(r=>setTimeout(r,2000));
+    const s=await fetch(ORIGIN+"/api/pair/"+id+"/status").then(r=>r.json());
+    if(s.status==="approved"&&s.token){
+      token=s.token; room=s.roomId; role=s.role;
+      if(document.getElementById("remember").checked) localStorage.setItem("auralith.consoleSession", JSON.stringify({token,room,role}));
+      st.textContent="CONNECTED · "+role; document.getElementById("room").textContent="Room "+room;
+      return;
+    }
+    if(s.status==="denied"||s.status==="expired"){st.textContent=s.status;return}
+  }
+  st.textContent="Timed out waiting for approval.";
+};
+async function cmd(c){
+  if(!token||!room){st.textContent="Not paired";return}
+  const out=await fetch(ORIGIN+"/api/rooms/"+room+"/remote",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+token},body:JSON.stringify({cmd:c})}).then(r=>r.json());
+  st.textContent="Sent "+c+" · "+JSON.stringify(out);
+}
+document.getElementById("start").onclick=()=>cmd("poll_start");
+document.getElementById("end").onclick=()=>cmd("poll_end");
+document.getElementById("clear").onclick=()=>cmd("poll_clear");
+document.getElementById("fw").onclick=()=>cmd("fireworks_preview");
+try{
+  const saved=JSON.parse(localStorage.getItem("auralith.consoleSession")||"null");
+  if(saved?.token){token=saved.token;room=saved.room;role=saved.role;st.textContent="REMEMBERED · reconnect if valid";document.getElementById("room").textContent="Room "+room}
+}catch{}
+</script>
+</body>
+</html>
