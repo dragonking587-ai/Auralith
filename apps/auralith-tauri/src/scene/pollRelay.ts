@@ -36,6 +36,7 @@ export class PollRelayTransport {
   onStatus?: (s: RelayStatus, err: string) => void;
   onState?: (s: RelayPublicState) => void;
   onReaction?: (ev: { type: string; eventId?: string; reactionId?: string; roomId?: string; timestamp?: number }) => void;
+  onRemote?: (ev: any) => void;
 
   configured(base?: string) {
     return !!(base || "").trim();
@@ -102,6 +103,7 @@ export class PollRelayTransport {
       try {
         const msg = JSON.parse(String(ev.data));
         if (msg.type === "audience_reaction") this.onReaction?.(msg);
+        else if (String(msg.type || "").startsWith("remote_") || msg.type === "remote_command") this.onRemote?.(msg);
         else if (msg.type === "state" || msg.room) this.onState?.(msg);
       } catch { /* ignore */ }
     };

@@ -2,6 +2,10 @@ import http from "node:http";
 import crypto from "node:crypto";
 import { WebSocketServer, type WebSocket } from "ws";
 import { landingHtml, viewerHtml } from "./viewer.js";
+import {
+  createPairing, publicPairing, parseRole, pairings, remotes, newId,
+  cmdAllowed, listDevices, revokeRoom, revokeDevice, sweepRemote, type HostRole
+} from "./remote.js";
 
 type Vote = "red" | "green";
 
@@ -36,6 +40,7 @@ type Room = {
   lastReactionAt: number;
   lastByViewer: Map<string, number>;
   budget: Map<string, number[]>;
+  remotesEnabled: boolean;
 };
 
 
@@ -199,6 +204,8 @@ function applyHost(room: Room, body: any) {
   }
   if (action === "disable_reactions" || action === "disableReactions") room.reactionsEnabled = false;
   if (action === "enable_reactions" || action === "enableReactions") room.reactionsEnabled = true;
+  if (action === "disable_remote_host" || action === "disableRemoteHost") room.remotesEnabled = false;
+  if (action === "enable_remote_host" || action === "enableRemoteHost") room.remotesEnabled = true;
 }
 
 
@@ -239,6 +246,13 @@ function applyReaction(room: Room, body: any) {
     try { s.send(msg); } catch { room.hosts.delete(s); }
   }
   return { ok: true, reactionId: allowed.id, eventId: event.eventId };
+}
+
+function notifyHosts(room: Room, msg: object) {
+  const raw = JSON.stringify(msg);
+  for (const s of room.hosts) {
+    try { s.send(raw); } catch { room.hosts.delete(s); }
+  }
 }
 
 function fanout(room: Room) {
@@ -307,7 +321,8 @@ const server = http.createServer(async (req, res) => {
       globalCooldownMs: clamp(body.globalCooldownMs, 250, 10000, 1000),
       lastReactionAt: 0,
       lastByViewer: new Map(),
-      budget: new Map()
+      budget: new Map(),
+      remotesEnabled: true
     };
     rooms.set(code, room);
     json(res, { room: code, hostToken: room.hostToken, viewerPath: "/" + code });
@@ -346,10 +361,99 @@ const server = http.createServer(async (req, res) => {
       if (auth !== room.hostToken) { json(res, { error: "unauthorized" }, 401); return; }
       const body = await readBody(req);
       applyHost(room, body);
+      if (body.action === "create_pairing") {
+        const p = createPairing(room.code, parseRole(body.role), Number(body.ttlSec || 90));
+        const origin = String(req.headers.origin || process.env.PUBLIC_ORIGIN || "https://obsidian-production-6e2e.up.railway.app");
+        json(res, publicPairing(p, origin));
+        return;
+      }
+      if (body.action === "approve_pairing") {
+        const p = pairings.get(String(body.pairingId || ""));
+        if (!p || p.room !== room.code) { json(res, { error: "invalid_pairing" }, 404); return; }
+        if (p.status !== "pending" && p.status !== "open") { json(res, { error: "pairing_closed" }, 400); return; }
+        p.status = "approved"; p.used = true;
+        const token = newId() + newId();
+        const deviceId = newId();
+        p.approvedToken = token;
+        p.deviceId = deviceId;
+        remotes.set(token, {
+          token, room: room.code, role: p.role, deviceId,
+          deviceName: p.deviceName || "Android", platform: p.platform || "android",
+          createdAt: Date.now(), lastSeen: Date.now(), expiresAt: Date.now() + 8 * 3600_000,
+          revoked: false, sockets: new Set()
+        });
+        notifyHosts(room, { type: "remote_pairing_approved", pairingId: p.pairingId, devices: listDevices(room.code) });
+        json(res, { ok: true, pairingId: p.pairingId, devices: listDevices(room.code) });
+        return;
+      }
+      if (body.action === "deny_pairing") {
+        const p = pairings.get(String(body.pairingId || ""));
+        if (p) p.status = "denied";
+        notifyHosts(room, { type: "remote_pairing_denied", pairingId: body.pairingId });
+        json(res, { ok: true });
+        return;
+      }
+      if (body.action === "revoke_device") { revokeDevice(room.code, String(body.deviceId || "")); json(res, { devices: listDevices(room.code) }); return; }
+      if (body.action === "revoke_all" || body.action === "disable_remote_host") {
+        revokeRoom(room.code); room.remotesEnabled = body.action === "disable_remote_host" ? false : room.remotesEnabled;
+        json(res, { devices: [] }); return;
+      }
+      if (body.action === "list_devices") { json(res, { devices: listDevices(room.code), remotesEnabled: room.remotesEnabled }); return; }
       fanout(room);
       json(res, publicState(room));
       return;
     }
+  }
+
+  if (req.method === "POST" && path.startsWith("/api/pair/")) {
+    const pairingId = path.split("/")[3] || "";
+    const tail = path.split("/")[4] || "claim";
+    const p = pairings.get(pairingId);
+    if (!p) { json(res, { error: "invalid_pairing" }, 404); return; }
+    if (Date.now() > p.expiresAt) { p.status = "expired"; json(res, { error: "expired" }, 410); return; }
+    const body = await readBody(req);
+    if (tail === "claim") {
+      if (String(body.code || "") !== p.code) { json(res, { error: "bad_code" }, 401); return; }
+      if (p.used && p.status === "approved") { json(res, { error: "already_used" }, 409); return; }
+      p.deviceName = String(body.deviceName || "Android").slice(0, 40);
+      p.platform = String(body.platform || "android").slice(0, 24);
+      p.status = "pending";
+      const room = rooms.get(p.room);
+      if (room) notifyHosts(room, {
+        type: "remote_pairing_request",
+        pairingId: p.pairingId, roomId: p.room, requestedRole: p.role,
+        deviceDisplayName: p.deviceName, platform: p.platform, timestamp: Date.now()
+      });
+      json(res, { ok: true, status: "pending", pairingId: p.pairingId, roomId: p.room, role: p.role });
+      return;
+    }
+    if (tail === "status") {
+      json(res, { status: p.status, roomId: p.room, role: p.role, token: p.status === "approved" ? p.approvedToken : undefined, deviceId: p.deviceId });
+      return;
+    }
+    json(res, { error: "not_found" }, 404);
+    return;
+  }
+
+  if (req.method === "POST" && /^\/api\/rooms\/[A-Z0-9-]{9}\/remote$/i.test(path)) {
+    const code = path.split("/")[3].toUpperCase();
+    const room = rooms.get(code);
+    const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
+    const sess = remotes.get(auth);
+    if (!room || !sess || sess.room !== code || sess.revoked || !room.remotesEnabled) { json(res, { error: "unauthorized" }, 401); return; }
+    const body = await readBody(req);
+    const cmd = String(body.cmd || body.command || "");
+    if (!cmdAllowed(sess.role, cmd)) { json(res, { error: "forbidden", cmd }, 403); return; }
+    sess.lastSeen = Date.now();
+    notifyHosts(room, { type: "remote_command", cmd, params: body.params || {}, role: sess.role, deviceId: sess.deviceId });
+    json(res, { ok: true });
+    return;
+  }
+
+  if (req.method === "GET" && path.startsWith("/host/pair/")) {
+    html(res, `<!doctype html><meta name=viewport content="width=device-width,initial-scale=1"><body style="font-family:Georgia;background:#120c08;color:#f4e4b0;padding:24px">
+<h1>Auralith Host Pairing</h1><p>Open this link in Auralith Remote. This page does not grant host access by itself.</p></body>`);
+    return;
   }
 
   if (/^\/[A-Z0-9]{4}-[A-Z0-9]{4}$/i.test(path) && req.method === "GET") {
@@ -368,12 +472,25 @@ server.on("upgrade", (req, socket, head) => {
   const url = new URL(req.url || "/", "http://localhost");
   const host = url.pathname.match(/^\/ws\/host\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
   const view = url.pathname.match(/^\/ws\/view\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
-  const code = (host?.[1] || view?.[1] || "").toUpperCase();
+  const remote = url.pathname.match(/^\/ws\/remote\/([A-Z0-9]{4}-[A-Z0-9]{4})$/i);
+  const code = (host?.[1] || view?.[1] || remote?.[1] || "").toUpperCase();
   const room = rooms.get(code);
   if (!room) { socket.destroy(); return; }
   if (host) {
     const tok = url.searchParams.get("token") || "";
     if (tok !== room.hostToken) { socket.destroy(); return; }
+  }
+  if (remote) {
+    const tok = url.searchParams.get("token") || "";
+    const sess = remotes.get(tok);
+    if (!sess || sess.room !== code || sess.revoked || !room.remotesEnabled) { socket.destroy(); return; }
+    wss.handleUpgrade(req, socket, head, (ws) => {
+      sess.sockets.add(ws);
+      sess.lastSeen = Date.now();
+      ws.on("close", () => sess.sockets.delete(ws));
+      try { ws.send(JSON.stringify({ type: "state", ...publicState(room), role: sess.role })); } catch { /* */ }
+    });
+    return;
   }
   wss.handleUpgrade(req, socket, head, (ws) => {
     if (host) {
@@ -392,6 +509,7 @@ server.on("upgrade", (req, socket, head) => {
 });
 
 setInterval(sweep, 60_000).unref();
+setInterval(sweepRemote, 15_000).unref();
 
 const port = Number(process.env.PORT || 8787);
 server.listen(port, "0.0.0.0", () => {

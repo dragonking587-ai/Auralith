@@ -211,6 +211,11 @@ export function App() {
   const [relayRoom, setRelayRoom] = useState("");
   const [relayViewer, setRelayViewer] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [hostRole, setHostRole] = useState<"FULL_HOST"|"POLL_MODERATOR"|"EFFECTS_OPERATOR"|"REACTION_MODERATOR">("FULL_HOST");
+  const [hostPair, setHostPair] = useState<{ qrUrl?: string; pairingId?: string; expiresAt?: number; role?: string } | null>(null);
+  const [pendingRemote, setPendingRemote] = useState<any>(null);
+  const [remoteDevices, setRemoteDevices] = useState<any[]>([]);
+  const [remoteEnabled, setRemoteEnabled] = useState(true);
   const relayRef = useRef(new PollRelayTransport());
   const viewerModeRef = useRef(viewerMode); viewerModeRef.current = viewerMode;
   const pollVotes = useRef(new Map<string, PollOption>());
@@ -1512,6 +1517,26 @@ export function App() {
                         relayRef.current.onStatus = (s, err) => { setRelayStatus(s); setRelayErr(err); };
                         relayRef.current.onState = (st) => applyRelaySnapshot(st);
                         relayRef.current.onReaction = (ev) => { try { rxEngine.ingest(ev); } catch {} };
+                        relayRef.current.onRemote = (ev) => {
+                          if (ev.type === "remote_pairing_request") setPendingRemote(ev);
+                          if (ev.type === "remote_pairing_approved") setRemoteDevices(ev.devices || []);
+                          if (ev.type === "remote_command") {
+                            const c = String(ev.cmd || "");
+                            if (c === "poll_start") applyRt(startPoll(pollRtRef.current));
+                            else if (c === "poll_end") applyRt(endPoll(pollRtRef.current));
+                            else if (c === "poll_clear") { const r = clearVotes(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
+                            else if (c === "poll_reset") { const r = resetPoll(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
+                            else if (c === "poll_clear_restore") { const r = restoreEffects(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
+                            else if (c === "reactions_enable") rxEngine.enabled = true;
+                            else if (c === "reactions_disable") rxEngine.enabled = false;
+                            else if (c === "reaction_clear_active") rxEngine.clear();
+                            else if (c === "fireworks_preview") rxEngine.ingest({ reactionId: "fireworks", eventId: "remote-"+Date.now() });
+                            else if (c.startsWith("fireworks_set_") && ev.params) {
+                              const slot = rxEngine.slots.find((x)=>x.id==="fireworks");
+                              if (slot) Object.assign(slot, ev.params);
+                            }
+                          }
+                        };
                         const sess = await relayRef.current.connectHost(relayUrl, {
                           question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
                         });
@@ -1537,6 +1562,54 @@ export function App() {
                   )}
                 </>
               )}
+              <h4>HOST REMOTE</h4>
+              <p>Private Host QR for Auralith Remote. Never shown in Clean Capture.</p>
+              <label>Access Level
+                <select value={hostRole} onChange={(e)=>setHostRole(e.target.value as any)}>
+                  <option value="FULL_HOST">Full Host</option>
+                  <option value="POLL_MODERATOR">Poll Moderator</option>
+                  <option value="EFFECTS_OPERATOR">Effects Operator</option>
+                  <option value="REACTION_MODERATOR">Reaction Moderator</option>
+                </select>
+              </label>
+              <div className="row">
+                <button onClick={()=>{
+                  relayRef.current.sendHost("create_pairing", { role: hostRole, ttlSec: 90 });
+                  const s = relayRef.current.session;
+                  if (!s) return;
+                  fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                    method:"POST",
+                    headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
+                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 90 })
+                  }).then(r=>r.json()).then((j)=>{ setHostPair(j); }).catch((e)=>setRelayErr(String(e)));
+                }}>Generate Host QR</button>
+                <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
+                <button onClick={()=>{ setRemoteEnabled(false); relayRef.current.sendHost("disable_remote_host"); }}>Disable All Remote Host Control</button>
+                <button onClick={()=>{ relayRef.current.sendHost("revoke_all"); setRemoteDevices([]); }}>Revoke All Devices</button>
+              </div>
+              {hostPair?.qrUrl && view !== "CleanCapture" && (
+                <div className="card">
+                  <p>HOST REMOTE PAIRING · {hostPair.role}</p>
+                  <img alt="Host pairing QR" style={{ width: 200, height: 200 }} src={qrDataUrl(hostPair.qrUrl)} />
+                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""}</p>
+                </div>
+              )}
+              {pendingRemote && (
+                <div className="card">
+                  <p>REMOTE HOST REQUEST</p>
+                  <p>Device: {pendingRemote.deviceDisplayName} · {pendingRemote.platform}</p>
+                  <p>Role: {pendingRemote.requestedRole}</p>
+                  <button onClick={()=>{ relayRef.current.sendHost("approve_pairing", { pairingId: pendingRemote.pairingId }); setPendingRemote(null); }}>Approve</button>
+                  <button onClick={()=>{ relayRef.current.sendHost("deny_pairing", { pairingId: pendingRemote.pairingId }); setPendingRemote(null); }}>Deny</button>
+                </div>
+              )}
+              <p>Authorized devices: {remoteDevices.length} · Remote host {remoteEnabled ? "ON" : "OFF"}</p>
+              {remoteDevices.map((d:any)=>(
+                <div className="card" key={d.deviceSessionId}>
+                  <p>{d.deviceName} · {d.role} · {d.connected ? "connected" : "idle"}</p>
+                  <button onClick={()=>{ relayRef.current.sendHost("revoke_device", { deviceId: d.deviceSessionId }); setRemoteDevices((x)=>x.filter((y:any)=>y.deviceSessionId!==d.deviceSessionId)); }}>Revoke</button>
+                </div>
+              ))}
               <h4>AUDIENCE REACTIONS</h4>
               <p>Status: {rxEngine.enabled ? "ENABLED" : "DISABLED"} · Last: {rxEngine.last?.id || "—"}</p>
               <p>Fireworks {rxEngine.counts.fireworks} · Lightning {rxEngine.counts.lightning} · Rune {rxEngine.counts.rune_burst} · Meteor {rxEngine.counts.meteor_shower}</p>
