@@ -8,7 +8,27 @@
   "permissions": [
     "core:default",
     "dialog:default",
+    "dialog:allow-save",
+    "dialog:allow-open",
     "fs:default",
+    {
+      "identifier": "fs:allow-write-text-file",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
+    {
+      "identifier": "fs:allow-read-text-file",
+      "allow": [
+        { "path": "$HOME/**" },
+        { "path": "$DOCUMENT/**" },
+        { "path": "$DESKTOP/**" },
+        { "path": "$DOWNLOAD/**" }
+      ]
+    },
     "allow-vcam-status",
     "allow-vcam-install",
     "allow-vcam-start",

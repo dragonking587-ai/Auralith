@@ -12,6 +12,9 @@ import { NEURAL_MODEL, modelsInstalled, downloadVerified, invalidateEmbed } from
 import { detectWordTraces, rasterizeWordMask, type WordCandidate } from "../scene/smartNeon";
 import { FEEDBACK_TYPES, buildReport, githubNewIssueUrl, type FeedbackDraft } from "../scene/feedback";
 import { semverNewer, formatBytes, persistPending, takePending, autosaveProject } from "../scene/updater";
+import { serializeProject } from "../scene/projectIo";
+import { save as saveDialog, open as openDialog } from "@tauri-apps/plugin-dialog";
+import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { GlRenderer } from "../render/renderer";
 import {
   applyVote, clearVotes, defaultPollConfig, defaultPollRuntime, effectIndex, endPoll,
@@ -795,6 +798,81 @@ export function App() {
     }
   };
 
+  const applyLoadedProject = (p: Project) => {
+    if (p.version !== 1) throw new Error("unsupported project");
+    setProject(p);
+    setPollCfg(p.poll || defaultPollConfig());
+    setPollRt(defaultPollRuntime());
+    pollVotes.current = new Map();
+    try { rxEngine.restore(p.reactions); rxEngine.clear(); } catch { /* ignore */ }
+    if (p.backdropDataUrl && p.backdropDataUrl.startsWith("data:")) {
+      const img = new Image();
+      img.onload = () => {
+        imgRef.current = img;
+        glRef.current?.setBackdrop(img);
+      };
+      img.src = p.backdropDataUrl;
+    }
+  };
+
+  const saveProjectFile = async () => {
+    try {
+      const packed = await serializeProject(project, {
+        backdropImage: imgRef.current,
+        poll: persistablePoll(pollCfg),
+        reactions: rxEngine.persist()
+      });
+      if (!packed.backdropDataUrl && !packed.regions.length) {
+        setErr("Nothing to save. Load an image or add an effect first.");
+        return;
+      }
+      const json = JSON.stringify(packed);
+      try {
+        const path = await saveDialog({
+          defaultPath: "scene.auralith",
+          filters: [{ name: "Auralith Project", extensions: ["auralith"] }]
+        });
+        if (!path) return;
+        await writeTextFile(path, json);
+        setErr("");
+        console.log("[Project] SAVE_OK", path, "effects="+packed.regions.reduce((n,r)=>n+r.effects.length,0), "image="+!!packed.backdropDataUrl);
+        return;
+      } catch (nativeErr) {
+        console.warn("[Project] native save unavailable, using download", nativeErr);
+      }
+      const blob = new Blob([json], { type: "application/json" });
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "scene.auralith";
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    } catch (e) {
+      setErr("Could not save project.\nReason: " + String(e));
+    }
+  };
+
+  const openProjectFile = async () => {
+    try {
+      try {
+        const path = await openDialog({
+          multiple: false,
+          filters: [{ name: "Auralith Project", extensions: ["auralith", "json"] }]
+        });
+        if (path && typeof path === "string") {
+          const text = await readTextFile(path);
+          applyLoadedProject(JSON.parse(text));
+          console.log("[Project] OPEN_OK", path);
+          return;
+        }
+      } catch (nativeErr) {
+        console.warn("[Project] native open unavailable, using file input", nativeErr);
+      }
+      document.getElementById("proj")?.click();
+    } catch (e) {
+      setErr("Could not open project.\nReason: " + String(e));
+    }
+  };
+
   const selected = project.regions.find((r) => r.id === sel);
   const clean = view === "CleanCapture";
   const snap = audio.snapshot;
@@ -933,10 +1011,10 @@ export function App() {
         <span className="grp">PROJECT</span>
         <button onClick={() => document.getElementById("file")?.click()}>Load Image</button>
         <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
-        <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
-        <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
+        <button onClick={() => { void saveProjectFile(); }}>Save</button>
+        <button onClick={() => { void openProjectFile(); }}>Open</button>
         <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
-        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p); setPollCfg(p.poll || defaultPollConfig()); setPollRt(defaultPollRuntime()); pollVotes.current = new Map(); rxEngine.restore(p.reactions); rxEngine.clear(); } catch(err){ setErr(String(err)); } }} />
+        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; e.target.value=""; if(!f) return; try { applyLoadedProject(JSON.parse(await f.text())); } catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
         <button className={tool==="Shape"?"on":""} title="Add a shape target" onClick={() => setTool("Shape")}>Shape</button>
         <button className={tool==="Prop"?"on":""} title="Import a PNG/WebP prop" onClick={() => setTool("Prop")}>Prop</button>
