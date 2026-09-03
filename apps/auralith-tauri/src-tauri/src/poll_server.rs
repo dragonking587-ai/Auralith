@@ -157,15 +157,17 @@ try{ const es = new EventSource((location.protocol==='https:'?'https:':'http:')+
 #[tauri::command]
 pub fn poll_detach_host(app: AppHandle) -> Result<(), String> {
     if let Some(w) = app.get_webview_window("poll-host") {
-        let _ = w.set_focus();
-        return Ok(());
+        let _ = w.close();
     }
-    WebviewWindowBuilder::new(&app, "poll-host", WebviewUrl::App("host.html".into()))
+    // Use the same packaged index.html as the main window.
+    // host.html can 404 in some production asset layouts and render a blank white WebView.
+    WebviewWindowBuilder::new(&app, "poll-host", WebviewUrl::App("index.html".into()))
         .title("AUDIENCE POLL — HOST")
         .inner_size(440.0, 760.0)
         .min_inner_size(360.0, 480.0)
         .resizable(true)
         .visible(true)
+        .initialization_script("window.__AURALITH_HOST__=true;try{location.hash='#host'}catch(e){}")
         .build()
         .map_err(|e| e.to_string())?;
     Ok(())

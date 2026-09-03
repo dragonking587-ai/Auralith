@@ -13,7 +13,11 @@ try {
   if (!rootEl) throw new Error("root element missing");
   console.log("REACT_MOUNT_BEGIN");
   const hash = location.hash || "";
-  const page = /(#vote|#viewer)/i.test(hash) ? <ViewerPage /> : /#host/i.test(hash) ? <HostPage /> : <App />;
+  const hostFlag = Boolean((window as any).__AURALITH_HOST__)
+    || /#host/i.test(hash)
+    || /(?:\?|&)page=host\b/i.test(location.search)
+    || /host\.html$/i.test(location.pathname);
+  const page = /(#vote|#viewer)/i.test(hash) ? <ViewerPage /> : hostFlag ? <HostPage /> : <App />;
   createRoot(rootEl).render(page);
   console.log("REACT_MOUNT_OK");
   if (boot) boot.classList.add("ok");

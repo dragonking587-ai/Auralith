@@ -19,11 +19,17 @@ export function HostPage() {
   });
   const [top, setTop] = useState(false);
   const [msg, setMsg] = useState("");
+  const [qr, setQr] = useState("");
   useEffect(() => {
     const un = listen<Snap>("poll-sync", (e) => { if (e.payload) setS(e.payload); });
     emit("poll-cmd", { action: "sync" }).catch(() => {});
     return () => { un.then((f) => f()).catch(() => {}); };
   }, []);
+  useEffect(() => {
+    const url = s.relay?.url || "";
+    if (!url) { setQr(""); return; }
+    try { setQr(qrDataUrl(url)); } catch (e) { setQr(""); setMsg("QR unavailable"); }
+  }, [s.relay?.url]);
   const cmd = (action: string) => emit("poll-cmd", { action }).catch((e) => setMsg(String(e)));
   const tot = s.red + s.green;
   const rp = tot ? Math.round(s.red / tot * 100) : 0;
@@ -48,8 +54,8 @@ export function HostPage() {
         <>
           <p>Relay: {s.relay.status}{s.relay.error ? " · " + s.relay.error : ""}</p>
           <p>Room: {s.relay.room || "—"}</p>
-          {s.relay.url ? (
-            <img alt="Public viewer QR" style={{ width: 200, height: 200, background: "#fff4d6" }} src={qrDataUrl(s.relay.url)} />
+          {qr ? (
+            <img alt="Public viewer QR" style={{ width: 200, height: 200, background: "#fff4d6" }} src={qr} />
           ) : null}
         </>
       )}
