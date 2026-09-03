@@ -42,7 +42,15 @@ export class PollRelayTransport {
 
   async connectHost(baseUrl: string, meta: { question: string; redLabel: string; greenLabel: string; allowChange: boolean }) {
     this.closed = false;
-    const base = baseUrl.replace(/\/$/, "");
+    const base = (baseUrl || "").trim().replace(/\/$/, "");
+    if (/[<>]/.test(base) || /obsidian-service|your-service|your-worker/i.test(base)) {
+      this.setStatus("NOT_CONFIGURED", "Paste the real Railway HTTPS origin from `railway domain`, not the example placeholder.");
+      throw new Error(this.error);
+    }
+    try { new URL(base); } catch {
+      this.setStatus("NOT_CONFIGURED", "Relay URL is not a valid origin.");
+      throw new Error(this.error);
+    }
     if (!base.startsWith("https://") && !base.startsWith("http://localhost") && !base.startsWith("http://127.0.0.1")) {
       this.setStatus("NOT_CONFIGURED", "Set an https:// relay URL (or localhost for development).");
       throw new Error(this.error);
