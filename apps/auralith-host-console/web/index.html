@@ -16,7 +16,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </style>
 </head>
 <body>
-<h1>AURALITH HOST CONSOLE 1.0.0-rc.29</h1>
+<h1>AURALITH HOST CONSOLE 1.0.0-rc.30</h1>
 <p id="st">Connection: OFFLINE</p>
 <p id="room">Room: —</p>
 <p id="ack"></p>
@@ -96,28 +96,35 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.29";
-let token="", room="", role="", pairingAbort=false, pendingUpdate=null;
+const APP_VERSION="1.0.0-rc.30";
+let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
 function say(ok,msg){ack.className=ok?"ok":"bad";ack.textContent=msg;st.textContent=token?"CONNECTED · "+role+" · "+(room||""):"Connection: OFFLINE";}
 function blocked(u){return /tauri\.localhost|localhost|127\.0\.0\.1/.test(u)}
 function needPair(){if(!token||!room){say(false,"Pair with Auralith first.");return false}return true}
+async function rawCmd(c, params){
+  const res=await fetch(ORIGIN+"/api/rooms/"+encodeURIComponent(room)+"/remote",{
+    method:"POST",
+    headers:{"content-type":"application/json",authorization:"Bearer "+token},
+    body:JSON.stringify({cmd:c, params: params||{}})
+  });
+  const out=await res.json().catch(()=>({error:"malformed_response"}));
+  if(!res.ok || out.error){ say(false, c+" failed: "+(out.error||("HTTP "+res.status))); return out; }
+  say(true, c+" acknowledged");
+  return out;
+}
 async function cmd(c, params){
   if(!needPair()) return {ok:false,error:"not_paired"};
-  try{
-    const res=await fetch(ORIGIN+"/api/rooms/"+encodeURIComponent(room)+"/remote",{
-      method:"POST",
-      headers:{"content-type":"application/json",authorization:"Bearer "+token},
-      body:JSON.stringify({cmd:c, params: params||{}})
-    });
-    const out=await res.json().catch(()=>({}));
-    if(!res.ok || out.error){ say(false, c+" failed: "+(out.error||("HTTP "+res.status))); return out; }
-    say(true, c+" acknowledged");
-    return out;
-  }catch(e){ say(false, c+" failed: "+e); return {ok:false}; }
+  if(busy){ say(false,"Wait — previous command still in flight."); return {ok:false,error:"busy"}; }
+  busy=true;
+  try { return await rawCmd(c, params); }
+  catch(e){ say(false, c+" failed: "+e); return {ok:false}; }
+  finally { busy=false; }
 }
 async function pairFrom(raw){
+  if(pairingBusy){say(false,"Pairing already in progress.");return}
+  pairingBusy=true;
   pairingAbort=false;
   if(!raw){say(false,"Paste a Host pairing URL.");return}
   if(blocked(raw)){say(false,"This Host QR used a local desktop address. Generate a new Host QR.");return}
@@ -142,6 +149,7 @@ async function pairFrom(raw){
     if(s.status==="expired"){say(false,"Pairing expired. Generate a new Host QR.");return}
   }
   if(pairingAbort) say(false,"Pairing cancelled."); else say(false,"Timed out waiting for approval.");
+  pairingBusy=false;
 }
 document.getElementById("go").onclick=()=>pairFrom(document.getElementById("pair").value.trim());
 document.getElementById("reconnect").onclick=()=>{
@@ -175,16 +183,23 @@ document.getElementById("rnoff").onclick=()=>cmd("reaction_disable",{id:"rune_bu
 document.getElementById("mton").onclick=()=>cmd("reaction_enable",{id:"meteor_shower"});
 document.getElementById("mtoff").onclick=()=>cmd("reaction_disable",{id:"meteor_shower"});
 document.getElementById("fw").onclick=()=>cmd("fireworks_preview");
-document.getElementById("lnprev").onclick=()=>cmd("fireworks_preview");
+document.getElementById("lnprev").onclick=()=>say(false,"Preview Lightning is not a supported remote command. Use Preview Fireworks.");
+document.getElementById("lnprev").disabled=true;
+document.getElementById("lnprev").title="No lightning_preview command on the relay. Disabled to avoid a mis-map.";
 document.getElementById("applyfw").onclick=async()=>{
-  await cmd("fireworks_set_preset",{preset:document.getElementById("preset").value});
-  await cmd("fireworks_set_intensity",{value:+document.getElementById("intensity").value});
-  await cmd("fireworks_set_shell_count",{value:+document.getElementById("shells").value});
-  await cmd("fireworks_set_pattern",{value:document.getElementById("pattern").value});
-  await cmd("fireworks_set_brightness",{value:+document.getElementById("bright").value});
-  await cmd("fireworks_set_smoke",{value:+document.getElementById("smoke").value});
-  await cmd("fireworks_set_bloom",{value:+document.getElementById("bloom").value});
-  await cmd("fireworks_set_duration",{value:+document.getElementById("dur").value});
+  if(!needPair()) return;
+  if(busy){ say(false,"Wait — previous command still in flight."); return; }
+  busy=true;
+  try {
+    await rawCmd("fireworks_set_preset",{preset:document.getElementById("preset").value});
+    await rawCmd("fireworks_set_intensity",{value:+document.getElementById("intensity").value});
+    await rawCmd("fireworks_set_shell_count",{value:+document.getElementById("shells").value});
+    await rawCmd("fireworks_set_pattern",{value:document.getElementById("pattern").value});
+    await rawCmd("fireworks_set_brightness",{value:+document.getElementById("bright").value});
+    await rawCmd("fireworks_set_smoke",{value:+document.getElementById("smoke").value});
+    await rawCmd("fireworks_set_bloom",{value:+document.getElementById("bloom").value});
+    await rawCmd("fireworks_set_duration",{value:+document.getElementById("dur").value});
+  } finally { busy=false; }
 };
 function semverNewer(a,b){
   const pa=String(a).replace(/^v/,"").split(/[-+]/)[0].split(".").map(Number);

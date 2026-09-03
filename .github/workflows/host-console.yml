@@ -32,7 +32,7 @@ jobs:
           $src = Get-ChildItem -Recurse "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
           if (-not $src) { throw "No NSIS exe" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $name = "Auralith-Host-Console-1.0.0-rc.29-x64-Setup.exe"
+          $name = "Auralith-Host-Console-1.0.0-rc.30-x64-Setup.exe"
           Copy-Item $src.FullName "dist/$name"
           Get-FileHash "dist/$name" -Algorithm SHA256 | Out-File "dist/SHA256.txt"
           Get-ChildItem dist
@@ -40,12 +40,12 @@ jobs:
         with:
           name: Auralith-Host-Console-nsis
           path: apps/auralith-host-console/dist/*
-      - name: Attach to v1.0.0-rc.29
+      - name: Attach to v1.0.0-rc.30
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          $ver = "1.0.0-rc.29"
+          $ver = "1.0.0-rc.30"
           $exe = "dist/Auralith-Host-Console-$ver-x64-Setup.exe"
           $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
           $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$ver/Auralith-Host-Console-$ver-x64-Setup.exe"

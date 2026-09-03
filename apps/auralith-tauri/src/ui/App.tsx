@@ -29,7 +29,7 @@ import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.29";
+const APP_VERSION = "1.0.0-rc.30";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1568,18 +1568,41 @@ export function App() {
                           if (ev.type === "remote_pairing_approved") setRemoteDevices(ev.devices || []);
                           if (ev.type === "remote_command") {
                             const c = String(ev.cmd || "");
-                            if (c === "poll_start") applyRt(startPoll(pollRtRef.current));
-                            else if (c === "poll_end") applyRt(endPoll(pollRtRef.current));
-                            else if (c === "poll_clear") { const r = clearVotes(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
-                            else if (c === "poll_reset") { const r = resetPoll(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
-                            else if (c === "poll_clear_restore") { const r = restoreEffects(pollRtRef.current); pollVotes.current = r.votes; applyRt(r.rt); }
-                            else if (c === "reactions_enable") rxEngine.enabled = true;
-                            else if (c === "reactions_disable") rxEngine.enabled = false;
+                            const p = ev.params || {};
+                            if (c === "poll_start") applyRt(startPoll(pollRtRef.current, pollCfgRef.current));
+                            else if (c === "poll_end") applyRt(endPoll(pollRtRef.current, pollCfgRef.current));
+                            else if (c === "poll_clear") { pollVotes.current = new Map(); applyRt(clearVotes(pollRtRef.current, pollCfgRef.current)); }
+                            else if (c === "poll_reset") { const n = resetPoll(pollCfgRef.current); pollVotes.current = n.votes; applyRt(n.rt); }
+                            else if (c === "poll_clear_restore") { pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRtRef.current, pollCfgRef.current))); }
+                            else if (c === "poll_set_question") setPollAndProject({ ...pollCfgRef.current, question: String(p.question || "") });
+                            else if (c === "poll_set_red_label") setPollAndProject({ ...pollCfgRef.current, redLabel: String(p.label || p.redLabel || "RED") });
+                            else if (c === "poll_set_green_label") setPollAndProject({ ...pollCfgRef.current, greenLabel: String(p.label || p.greenLabel || "GREEN") });
+                            else if (c === "poll_set_show_results") {
+                              const show = p.show !== false;
+                              setPollAndProject({ ...pollCfgRef.current, display: { ...pollCfgRef.current.display, showCounts: show, showPct: show, showLeader: show, showTotal: show } });
+                            }
+                            else if (c === "reactions_enable") { rxEngine.enabled = true; relayRef.current?.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, true), hostInstanceId: hostId }); }
+                            else if (c === "reactions_disable") { rxEngine.enabled = false; relayRef.current?.sendHost("set_allowed_reactions", { allowedReactions: [], hostInstanceId: hostId }); }
+                            else if (c === "reaction_enable" || c === "reaction_disable") {
+                              const id = String(p.id || "");
+                              const slot = rxEngine.slots.find((x)=>x.id===id);
+                              if (slot) slot.enabled = c === "reaction_enable";
+                              relayRef.current?.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled), hostInstanceId: hostId });
+                            }
                             else if (c === "reaction_clear_active") rxEngine.clear();
                             else if (c === "fireworks_preview") rxEngine.ingest({ reactionId: "fireworks", eventId: "remote-"+Date.now() });
-                            else if (c.startsWith("fireworks_set_") && ev.params) {
+                            else if (c.startsWith("fireworks_set_")) {
                               const slot = rxEngine.slots.find((x)=>x.id==="fireworks");
-                              if (slot) Object.assign(slot, ev.params);
+                              if (slot) {
+                                if (c === "fireworks_set_preset") slot.shellMode = String(p.preset || p.value || slot.shellMode) as any;
+                                if (c === "fireworks_set_intensity") slot.intensity = Number(p.value ?? p.intensity ?? slot.intensity) / (Number(p.value) > 1 ? 100 : 1);
+                                if (c === "fireworks_set_shell_count") slot.burstCount = Number(p.value ?? p.shells ?? slot.burstCount);
+                                if (c === "fireworks_set_pattern") slot.shellMode = String(p.value || p.pattern || slot.shellMode) as any;
+                                if (c === "fireworks_set_brightness") slot.brightness = Number(p.value ?? slot.brightness) / (Number(p.value) > 1.5 ? 100 : 1);
+                                if (c === "fireworks_set_smoke") slot.smokeAmt = Number(p.value ?? slot.smokeAmt) / (Number(p.value) > 1.5 ? 100 : 1);
+                                if (c === "fireworks_set_bloom") slot.bloom = Number(p.value ?? slot.bloom) / (Number(p.value) > 1.5 ? 100 : 1);
+                                if (c === "fireworks_set_duration") slot.durationMs = Math.max(500, Number(p.value ?? 6) * 1000);
+                              }
                             }
                           }
                         };
