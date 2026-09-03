@@ -29,7 +29,7 @@ import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.22";
+const APP_VERSION = "1.0.0-rc.29";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -983,6 +983,10 @@ export function App() {
   const installUpdate = async () => {
     const upd = pendingUpdateRef.current;
     if (!upd || updateBusy) return;
+    if (relayStatus === "ONLINE" || pollRtRef.current.running) {
+      const ok = window.confirm("Installing this update will restart Auralith and temporarily stop the live host connection.");
+      if (!ok) return;
+    }
     autosaveProject(JSON.stringify({ ...project, reactions: rxEngine.persist() }));
     persistPending(updateAvail || upd.version);
     setUpdateBusy(true);
@@ -2085,6 +2089,7 @@ export function App() {
                   <button disabled={updateBusy} onClick={()=>void installUpdate()}>Download &amp; Install</button>
                 )}
                 {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
+                <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Retry Update</button>
               </div>
               {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
               {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}

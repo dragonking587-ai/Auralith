@@ -4,66 +4,227 @@
 <meta charset="utf-8"/>
 <title>Auralith Host Console</title>
 <style>
-body{font-family:Segoe UI,sans-serif;background:#120c08;color:#f4e4b0;margin:0;padding:20px}
-input,button{margin:4px 0;padding:8px}
-button{background:#3a2a12;color:#f4e4b0;border:1px solid #c9a227}
-.ok{color:#7dffa0} .bad{color:#ff8a7a}
+body{font-family:Segoe UI,sans-serif;background:#120c08;color:#f4e4b0;margin:0;padding:16px 20px 40px}
+h1,h2{margin:12px 0 8px}
+input,select,button,textarea{margin:3px 4px 3px 0;padding:7px;background:#1b140c;color:#f4e4b0;border:1px solid #c9a227}
+button{cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.ok{color:#7dffa0}.bad{color:#ff8a7a}
+#ack{min-height:1.4em}
+label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </style>
 </head>
 <body>
-<h1>AURALITH HOST CONSOLE</h1>
+<h1>AURALITH HOST CONSOLE 1.0.0-rc.29</h1>
 <p id="st">Connection: OFFLINE</p>
-<p>Pair with Auralith using a public Railway pairing URL. Never paste a host token.</p>
-<input id="pair" style="width:100%" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/..."/>
-<label><input id="remember" type="checkbox"/> Remember this host</label>
-<div>
-<button id="go">PAIR WITH AURALITH</button>
-<button id="start">Start Poll</button>
-<button id="end">End Poll</button>
-<button id="clear">Clear Votes</button>
-<button id="fw">Preview Fireworks</button>
+<p id="room">Room: —</p>
+<p id="ack"></p>
+
+<h2>CONNECTION</h2>
+<input id="pair" style="width:100%" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/...?code="/>
+<div class="row">
+  <label class="chk"><input id="remember" type="checkbox"/> Remember This Host</label>
+  <button id="go">Pair With Auralith</button>
+  <button id="reconnect">Reconnect</button>
+  <button id="disconnect">Disconnect</button>
+  <button id="forget">Forget Host</button>
+  <button id="cancel">Cancel Pairing</button>
 </div>
-<p id="room"></p>
+
+<h2>POLL</h2>
+<input id="question" placeholder="Question" style="width:70%"/>
+<input id="red" placeholder="RED label" size="10"/>
+<input id="green" placeholder="GREEN label" size="10"/>
+<div class="row">
+  <button id="start">Start Poll</button>
+  <button id="end">End Poll</button>
+  <button id="clear">Clear Votes</button>
+  <button id="restore">Clear + Restore</button>
+  <button id="reset">Reset Poll</button>
+  <button id="setq">Apply Question</button>
+  <button id="setred">Apply RED Label</button>
+  <button id="setgreen">Apply GREEN Label</button>
+  <button id="showres">Show Results</button>
+</div>
+<p>Start/Stop Public Server and Release Room Name stay on main Auralith (ownership admin).</p>
+
+<h2>AUDIENCE REACTIONS</h2>
+<div class="row">
+  <button id="rxon">Enable Reactions</button>
+  <button id="rxoff">Disable Reactions</button>
+  <button id="rxclear">Clear Active Reactions</button>
+  <button id="fwon">Fireworks On</button>
+  <button id="fwoff">Fireworks Off</button>
+  <button id="lnon">Lightning On</button>
+  <button id="lnoff">Lightning Off</button>
+  <button id="rnon">Rune On</button>
+  <button id="rnoff">Rune Off</button>
+  <button id="mton">Meteor On</button>
+  <button id="mtoff">Meteor Off</button>
+  <button id="fw">Preview Fireworks</button>
+  <button id="lnprev">Preview Lightning</button>
+</div>
+
+<h2>FIREWORKS</h2>
+<div class="row">
+  <select id="preset">
+    <option>Realistic Balanced</option><option>Cinematic Show</option>
+    <option>Golden Willow</option><option>Cold Sky</option><option>Festival Finale</option>
+  </select>
+  <label>Intensity <input id="intensity" type="range" min="0" max="100" value="70"></label>
+  <label>Shells <input id="shells" type="number" min="1" max="12" value="3"></label>
+  <select id="pattern"><option>Random</option><option>Chrysanthemum</option><option>Peony</option><option>Willow</option><option>Palm</option><option>Ring</option><option>Crossette</option></select>
+  <label>Brightness <input id="bright" type="range" min="0" max="100" value="80"></label>
+  <label>Smoke <input id="smoke" type="range" min="0" max="100" value="40"></label>
+  <label>Bloom <input id="bloom" type="range" min="0" max="100" value="50"></label>
+  <label>Duration <input id="dur" type="number" min="1" max="20" value="6"></label>
+  <button id="applyfw">Apply Fireworks Settings</button>
+</div>
+
+<h2>APP</h2>
+<div class="row">
+  <button id="chkupd">Check for Updates</button>
+  <button id="dlupd" disabled>Download & Install</button>
+  <button id="retryupd" disabled>Retry Update</button>
+  <button id="about">About</button>
+  <button id="help">Help</button>
+  <button id="exit">Exit</button>
+</div>
+<p id="upd">Updater: idle</p>
+
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
-let token="", room="", role="";
+const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
+const APP_VERSION="1.0.0-rc.29";
+let token="", room="", role="", pairingAbort=false, pendingUpdate=null;
 const st=document.getElementById("st");
+const ack=document.getElementById("ack");
+function say(ok,msg){ack.className=ok?"ok":"bad";ack.textContent=msg;st.textContent=token?"CONNECTED · "+role+" · "+(room||""):"Connection: OFFLINE";}
 function blocked(u){return /tauri\.localhost|localhost|127\.0\.0\.1/.test(u)}
-document.getElementById("go").onclick=async()=>{
-  const raw=document.getElementById("pair").value.trim();
-  if(blocked(raw)){st.textContent="Invalid local desktop address. Generate a new Host QR.";return}
-  const u=new URL(raw);
-  const id=u.pathname.split("/").pop();
+function needPair(){if(!token||!room){say(false,"Pair with Auralith first.");return false}return true}
+async function cmd(c, params){
+  if(!needPair()) return {ok:false,error:"not_paired"};
+  try{
+    const res=await fetch(ORIGIN+"/api/rooms/"+encodeURIComponent(room)+"/remote",{
+      method:"POST",
+      headers:{"content-type":"application/json",authorization:"Bearer "+token},
+      body:JSON.stringify({cmd:c, params: params||{}})
+    });
+    const out=await res.json().catch(()=>({}));
+    if(!res.ok || out.error){ say(false, c+" failed: "+(out.error||("HTTP "+res.status))); return out; }
+    say(true, c+" acknowledged");
+    return out;
+  }catch(e){ say(false, c+" failed: "+e); return {ok:false}; }
+}
+async function pairFrom(raw){
+  pairingAbort=false;
+  if(!raw){say(false,"Paste a Host pairing URL.");return}
+  if(blocked(raw)){say(false,"This Host QR used a local desktop address. Generate a new Host QR.");return}
+  let u; try{u=new URL(raw)}catch{say(false,"Invalid pairing URL");return}
+  const id=u.pathname.split("/").filter(Boolean).pop();
   const code=u.searchParams.get("code")||"";
-  st.textContent="CLAIMING…";
-  const claim=await fetch(ORIGIN+"/api/pair/"+id+"/claim",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code,deviceName:"Host Console",platform:"windows"})}).then(r=>r.json());
-  if(claim.error){st.textContent="Claim failed: "+claim.error;return}
-  st.textContent="Waiting for desktop approval…";
-  for(let i=0;i<30;i++){
+  if(!id||!code){say(false,"Pairing URL must include /host/pair/ID?code=");return}
+  say(true,"CLAIMING…");
+  const claim=await fetch(ORIGIN+"/api/pair/"+id+"/claim",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code,deviceName:"Host Console",platform:"windows"})}).then(r=>r.json()).catch(e=>({error:String(e)}));
+  if(claim.error){say(false,"Claim failed: "+claim.error);return}
+  say(true,"Waiting for desktop approval…");
+  for(let i=0;i<30 && !pairingAbort;i++){
     await new Promise(r=>setTimeout(r,2000));
-    const s=await fetch(ORIGIN+"/api/pair/"+id+"/status").then(r=>r.json());
+    const s=await fetch(ORIGIN+"/api/pair/"+id+"/status").then(r=>r.json()).catch(()=>({}));
     if(s.status==="approved"&&s.token){
       token=s.token; room=s.roomId; role=s.role;
       if(document.getElementById("remember").checked) localStorage.setItem("auralith.consoleSession", JSON.stringify({token,room,role}));
-      st.textContent="CONNECTED · "+role; document.getElementById("room").textContent="Room "+room;
-      return;
+      document.getElementById("room").textContent="Room "+room;
+      say(true,"CONNECTED · "+role); return;
     }
-    if(s.status==="denied"||s.status==="expired"){st.textContent=s.status;return}
+    if(s.status==="denied"){say(false,"Desktop denied pairing.");return}
+    if(s.status==="expired"){say(false,"Pairing expired. Generate a new Host QR.");return}
   }
-  st.textContent="Timed out waiting for approval.";
-};
-async function cmd(c){
-  if(!token||!room){st.textContent="Not paired";return}
-  const out=await fetch(ORIGIN+"/api/rooms/"+room+"/remote",{method:"POST",headers:{"content-type":"application/json",authorization:"Bearer "+token},body:JSON.stringify({cmd:c})}).then(r=>r.json());
-  st.textContent="Sent "+c+" · "+JSON.stringify(out);
+  if(pairingAbort) say(false,"Pairing cancelled."); else say(false,"Timed out waiting for approval.");
 }
+document.getElementById("go").onclick=()=>pairFrom(document.getElementById("pair").value.trim());
+document.getElementById("reconnect").onclick=()=>{
+  const saved=JSON.parse(localStorage.getItem("auralith.consoleSession")||"null");
+  if(!saved?.token){say(false,"No remembered host.");return}
+  token=saved.token; room=saved.room; role=saved.role;
+  document.getElementById("room").textContent="Room "+room;
+  say(true,"Reconnected session loaded. Send a command to verify.");
+};
+document.getElementById("disconnect").onclick=()=>{token="";role="";say(true,"Disconnected. Room ownership unchanged.");};
+document.getElementById("forget").onclick=()=>{localStorage.removeItem("auralith.consoleSession");token="";room="";role="";document.getElementById("room").textContent="Room: —";say(true,"Remembered host forgotten.");};
+document.getElementById("cancel").onclick=()=>{pairingAbort=true;say(true,"Cancel requested.");};
 document.getElementById("start").onclick=()=>cmd("poll_start");
 document.getElementById("end").onclick=()=>cmd("poll_end");
 document.getElementById("clear").onclick=()=>cmd("poll_clear");
+document.getElementById("restore").onclick=()=>cmd("poll_clear_restore");
+document.getElementById("reset").onclick=()=>cmd("poll_reset");
+document.getElementById("setq").onclick=()=>cmd("poll_set_question",{question:document.getElementById("question").value});
+document.getElementById("setred").onclick=()=>cmd("poll_set_red_label",{label:document.getElementById("red").value});
+document.getElementById("setgreen").onclick=()=>cmd("poll_set_green_label",{label:document.getElementById("green").value});
+document.getElementById("showres").onclick=()=>cmd("poll_set_show_results",{show:true});
+document.getElementById("rxon").onclick=()=>cmd("reactions_enable");
+document.getElementById("rxoff").onclick=()=>cmd("reactions_disable");
+document.getElementById("rxclear").onclick=()=>cmd("reaction_clear_active");
+document.getElementById("fwon").onclick=()=>cmd("reaction_enable",{id:"fireworks"});
+document.getElementById("fwoff").onclick=()=>cmd("reaction_disable",{id:"fireworks"});
+document.getElementById("lnon").onclick=()=>cmd("reaction_enable",{id:"lightning"});
+document.getElementById("lnoff").onclick=()=>cmd("reaction_disable",{id:"lightning"});
+document.getElementById("rnon").onclick=()=>cmd("reaction_enable",{id:"rune_burst"});
+document.getElementById("rnoff").onclick=()=>cmd("reaction_disable",{id:"rune_burst"});
+document.getElementById("mton").onclick=()=>cmd("reaction_enable",{id:"meteor_shower"});
+document.getElementById("mtoff").onclick=()=>cmd("reaction_disable",{id:"meteor_shower"});
 document.getElementById("fw").onclick=()=>cmd("fireworks_preview");
+document.getElementById("lnprev").onclick=()=>cmd("fireworks_preview");
+document.getElementById("applyfw").onclick=async()=>{
+  await cmd("fireworks_set_preset",{preset:document.getElementById("preset").value});
+  await cmd("fireworks_set_intensity",{value:+document.getElementById("intensity").value});
+  await cmd("fireworks_set_shell_count",{value:+document.getElementById("shells").value});
+  await cmd("fireworks_set_pattern",{value:document.getElementById("pattern").value});
+  await cmd("fireworks_set_brightness",{value:+document.getElementById("bright").value});
+  await cmd("fireworks_set_smoke",{value:+document.getElementById("smoke").value});
+  await cmd("fireworks_set_bloom",{value:+document.getElementById("bloom").value});
+  await cmd("fireworks_set_duration",{value:+document.getElementById("dur").value});
+};
+function semverNewer(a,b){
+  const pa=String(a).replace(/^v/,"").split(/[-+]/)[0].split(".").map(Number);
+  const pb=String(b).replace(/^v/,"").split(/[-+]/)[0].split(".").map(Number);
+  for(let i=0;i<3;i++){const x=pa[i]||0,y=pb[i]||0; if(x>y)return true; if(x<y)return false;}
+  return String(a)!==String(b) && String(a)>String(b);
+}
+async function checkUpdates(){
+  const box=document.getElementById("upd");
+  box.textContent="Checking...";
+  document.getElementById("dlupd").disabled=true;
+  try{
+    const man=await fetch(MANIFEST+"?t="+Date.now()).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json()});
+    const latest=man.version||"";
+    if(!latest || !semverNewer(latest, APP_VERSION)){
+      pendingUpdate=null; box.textContent="Up to date. Installed "+APP_VERSION+" · Latest "+(latest||APP_VERSION);
+      return;
+    }
+    const plat=man.platforms && (man.platforms["windows-x86_64"]||man.platforms["windows-x64"]);
+    const url=(plat&&plat.url)||man.url||"";
+    if(/Auralith-Reborn/i.test(url)){ box.textContent="Update failed: manifest pointed at Main Auralith installer."; return; }
+    pendingUpdate={version:latest,url};
+    box.textContent="Update available: "+latest;
+    document.getElementById("dlupd").disabled=false;
+    document.getElementById("retryupd").disabled=false;
+  }catch(e){ box.textContent="Update failed: "+e; document.getElementById("retryupd").disabled=false; }
+}
+document.getElementById("chkupd").onclick=checkUpdates;
+document.getElementById("retryupd").onclick=checkUpdates;
+document.getElementById("dlupd").onclick=()=>{
+  if(!pendingUpdate){document.getElementById("upd").textContent="No update selected.";return}
+  document.getElementById("upd").textContent="Downloading Host Console "+pendingUpdate.version+" (control connection will drop briefly)…";
+  window.open(pendingUpdate.url,"_blank");
+};
+document.getElementById("about").onclick=()=>say(true,"Auralith Host Console "+APP_VERSION+" · control-only · com.auralith.host.console");
+document.getElementById("help").onclick=()=>say(true,"Paste a public Railway Host QR URL, approve on desktop, then use poll/reaction controls.");
+document.getElementById("exit").onclick=()=>window.close();
 try{
   const saved=JSON.parse(localStorage.getItem("auralith.consoleSession")||"null");
-  if(saved?.token){token=saved.token;room=saved.room;role=saved.role;st.textContent="REMEMBERED · reconnect if valid";document.getElementById("room").textContent="Room "+room}
+  if(saved?.token){token=saved.token;room=saved.room;role=saved.role;document.getElementById("room").textContent="Room "+room;document.getElementById("remember").checked=true;say(true,"Remembered session loaded.");}
 }catch{}
 </script>
 </body>

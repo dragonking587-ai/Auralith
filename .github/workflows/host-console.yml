@@ -32,7 +32,7 @@ jobs:
           $src = Get-ChildItem -Recurse "src-tauri/target/release/bundle/nsis/*.exe" | Select-Object -First 1
           if (-not $src) { throw "No NSIS exe" }
           New-Item -ItemType Directory -Force -Path dist | Out-Null
-          $name = "Auralith-Host-Console-1.0.0-rc.28-x64-Setup.exe"
+          $name = "Auralith-Host-Console-1.0.0-rc.29-x64-Setup.exe"
           Copy-Item $src.FullName "dist/$name"
           Get-FileHash "dist/$name" -Algorithm SHA256 | Out-File "dist/SHA256.txt"
           Get-ChildItem dist
@@ -40,9 +40,16 @@ jobs:
         with:
           name: Auralith-Host-Console-nsis
           path: apps/auralith-host-console/dist/*
-      - name: Attach to v1.0.0-rc.28
+      - name: Attach to v1.0.0-rc.29
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
         run: |
-          gh release upload v1.0.0-rc.28 "dist/Auralith-Host-Console-1.0.0-rc.28-x64-Setup.exe" --repo dragonking587-ai/Auralith --clobber
+          $ver = "1.0.0-rc.29"
+          $exe = "dist/Auralith-Host-Console-$ver-x64-Setup.exe"
+          $hash = (Get-FileHash $exe -Algorithm SHA256).Hash.ToLower()
+          $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$ver/Auralith-Host-Console-$ver-x64-Setup.exe"
+          @{ version=$ver; notes="Auralith Host Console"; pub_date=(Get-Date).ToUniversalTime().ToString("o"); platforms=@{ "windows-x86_64"=@{ url=$url } } } | ConvertTo-Json -Depth 6 | Set-Content dist/latest-host-console.json -Encoding utf8
+          gh release upload "v$ver" $exe --repo dragonking587-ai/Auralith --clobber
+          gh release upload updater-latest dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+
