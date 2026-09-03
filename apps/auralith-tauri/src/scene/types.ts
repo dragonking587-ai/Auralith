@@ -105,6 +105,7 @@ export type Project = {
   depthDataUrl?: string;
   aiMeta?: { model: string; version: string };
   poll?: import("./poll").PollConfig;
+  reactions?: { enabled: boolean; slots: any[] };
 };
 
 export function newProject(): Project {

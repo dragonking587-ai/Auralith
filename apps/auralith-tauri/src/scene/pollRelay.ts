@@ -35,6 +35,7 @@ export class PollRelayTransport {
   private closed = false;
   onStatus?: (s: RelayStatus, err: string) => void;
   onState?: (s: RelayPublicState) => void;
+  onReaction?: (ev: { type: string; eventId?: string; reactionId?: string; roomId?: string; timestamp?: number }) => void;
 
   configured(base?: string) {
     return !!(base || "").trim();
@@ -100,7 +101,8 @@ export class PollRelayTransport {
     ws.onmessage = (ev) => {
       try {
         const msg = JSON.parse(String(ev.data));
-        if (msg.type === "state" || msg.room) this.onState?.(msg);
+        if (msg.type === "audience_reaction") this.onReaction?.(msg);
+        else if (msg.type === "state" || msg.room) this.onState?.(msg);
       } catch { /* ignore */ }
     };
     ws.onclose = () => {

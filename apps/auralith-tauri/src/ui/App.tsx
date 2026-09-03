@@ -19,9 +19,11 @@ import {
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
 import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
+import { ReactionEngine, publicAllowed } from "../scene/reactions";
 
 const audio = new AudioEngine();
-const APP_VERSION = "1.0.0-rc.19";
+const rxEngine = new ReactionEngine();
+const APP_VERSION = "1.0.0-rc.20";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -270,7 +272,8 @@ export function App() {
           const vp = currentVp(wrap.getBoundingClientRect());
           const ov: Record<string, string> = {};
           if (pollRtRef.current.overrideId && pollRtRef.current.overrideColor) ov[pollRtRef.current.overrideId] = pollRtRef.current.overrideColor;
-          glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight, vp, ov);
+          rxEngine.tick();
+          glRef.current.draw(projectRef.current, audio.snapshot, wrap.clientWidth, wrap.clientHeight, vp, ov, rxEngine.live);
         }
       } catch (e) {
         console.error("APP_BOOT_FAILED stage=RENDER_FRAME error=" + e);
@@ -890,7 +893,7 @@ export function App() {
   const installUpdate = async () => {
     const upd = pendingUpdateRef.current;
     if (!upd || updateBusy) return;
-    autosaveProject(JSON.stringify(project));
+    autosaveProject(JSON.stringify({ ...project, reactions: rxEngine.persist() }));
     persistPending(updateAvail || upd.version);
     setUpdateBusy(true);
     setUpdateMsg("Preparing update...");
@@ -933,7 +936,7 @@ export function App() {
         <button onClick={() => { const blob=new Blob([JSON.stringify(project,null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='scene.auralith'; a.click(); }}>Save</button>
         <button onClick={() => document.getElementById('proj')?.click()}>Open</button>
         <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
-        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p); setPollCfg(p.poll || defaultPollConfig()); setPollRt(defaultPollRuntime()); pollVotes.current = new Map(); } catch(err){ setErr(String(err)); } }} />
+        <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; if(!f) return; try { const p=JSON.parse(await f.text()); if(p.version!==1) throw new Error('unsupported project'); setProject(p); setPollCfg(p.poll || defaultPollConfig()); setPollRt(defaultPollRuntime()); pollVotes.current = new Map(); rxEngine.restore(p.reactions); rxEngine.clear(); } catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
         <button className={tool==="Shape"?"on":""} title="Add a shape target" onClick={() => setTool("Shape")}>Shape</button>
         <button className={tool==="Prop"?"on":""} title="Import a PNG/WebP prop" onClick={() => setTool("Prop")}>Prop</button>
@@ -1429,11 +1432,13 @@ export function App() {
                       try {
                         relayRef.current.onStatus = (s, err) => { setRelayStatus(s); setRelayErr(err); };
                         relayRef.current.onState = (st) => applyRelaySnapshot(st);
+                        relayRef.current.onReaction = (ev) => { try { rxEngine.ingest(ev); } catch {} };
                         const sess = await relayRef.current.connectHost(relayUrl, {
                           question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange
                         });
                         setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl);
                         relayAction("updatePollMetadata");
+                        relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) });
                       } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
                     }}>Start Public Poll</button>
                     <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>
@@ -1450,6 +1455,23 @@ export function App() {
                   )}
                 </>
               )}
+              <h4>AUDIENCE REACTIONS</h4>
+              <p>Status: {rxEngine.enabled ? "ENABLED" : "DISABLED"} · Last: {rxEngine.last?.id || "—"}</p>
+              <p>Fireworks {rxEngine.counts.fireworks} · Lightning {rxEngine.counts.lightning} · Rune {rxEngine.counts.rune_burst} · Meteor {rxEngine.counts.meteor_shower}</p>
+              <div className="row">
+                <button onClick={()=>{ rxEngine.enabled=false; relayRef.current.sendHost("disable_reactions"); }} >Disable Audience Reactions</button>
+                <button onClick={()=>{ rxEngine.enabled=true; relayRef.current.sendHost("enable_reactions"); relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, true) }); }}>Enable Reactions</button>
+                <button onClick={()=>rxEngine.clear()}>Clear Active Reactions</button>
+              </div>
+              {rxEngine.slots.map((s,i)=>(
+                <div className="card" key={s.id}>
+                  <label><input type="checkbox" defaultChecked={s.enabled} onChange={(e)=>{ s.enabled=e.target.checked; relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) }); }} /> {s.label}</label>
+                  <label>Viewer Label<input defaultValue={s.label} onBlur={(e)=>{ s.label=e.target.value||s.label; }} /></label>
+                  <label>Duration ms<input type="number" defaultValue={s.durationMs} onBlur={(e)=>{ s.durationMs=Number(e.target.value)||s.durationMs; }} /></label>
+                  <label>Intensity<input type="number" step="0.05" defaultValue={s.intensity} onBlur={(e)=>{ s.intensity=Number(e.target.value)||s.intensity; }} /></label>
+                  <label>Cooldown ms<input type="number" defaultValue={s.hostCooldownMs} onBlur={(e)=>{ s.hostCooldownMs=Number(e.target.value)||5000; }} /></label>
+                </div>
+              ))}
               <h4>LOCAL / LAN SERVER</h4>
               <p>Server: {viewer.state} · Health: {viewer.health} · Port: {viewer.port || "—"}</p>
               {viewer.error && <p className="warn">{viewer.error}</p>}

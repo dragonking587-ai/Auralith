@@ -748,7 +748,7 @@ export class GlRenderer {
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
     gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
   }
-  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number, viewCss?: { x: number; y: number; w: number; h: number }, colorOverrides?: Record<string, string>) {
+  draw(project: Project, snap: AudioSnapshot, cssW: number, cssH: number, viewCss?: { x: number; y: number; w: number; h: number }, colorOverrides?: Record<string, string>, reactions?: any[]) {
     const gl = this.gl;
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const w = Math.max(2, Math.floor(cssW * dpr)), h = Math.max(2, Math.floor(cssH * dpr));
@@ -865,6 +865,50 @@ export class GlRenderer {
         gl.uniform1f(gl.getUniformLocation(this.prog, "uP1"), e.p1 ?? 0.5);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uP2"), e.p2 ?? 0.4);
         gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+      }
+    }
+    if (reactions && reactions.length) {
+      const kindMap: Record<string, number> = {
+        fireworks: KIND_INDEX.Sparks,
+        lightning: KIND_INDEX.LightningArc,
+        rune_burst: KIND_INDEX.RuneGlow,
+        meteor_shower: KIND_INDEX.EnergySparks
+      };
+      const extra: Record<string, number> = {
+        fireworks: KIND_INDEX.CelestialStars,
+        lightning: KIND_INDEX.ThunderFlash,
+        rune_burst: KIND_INDEX.SigilActivation,
+        meteor_shower: KIND_INDEX.Laser
+      };
+      for (const rx of reactions) {
+        const age = Math.max(0, (Date.now() - rx.started) / Math.max(200, rx.durationMs || 2000));
+        if (age >= 1) continue;
+        const fade = age < 0.15 ? age / 0.15 : (1 - age);
+        const bursts = Math.max(1, Math.min(8, rx.burstCount || 4));
+        for (let i = 0; i < bursts; i++) {
+          const seed = (rx.seed || 1) * (i + 1.37);
+          const px = 0.12 + (Math.abs(Math.sin(seed * 12.9898)) % 1) * 0.76;
+          const py = 0.18 + (Math.abs(Math.sin(seed * 78.233)) % 1) * 0.55;
+          const ox = vp.x + px * vp.w;
+          const oy = vp.y + (1 - py) * vp.h;
+          const rad = Math.max(24, vp.w * (0.08 + (rx.intensity || 0.7) * 0.16) * (1 + 0.2 * Math.sin(seed)));
+          const ca = hex(rx.colorA || "#ffd27a"), cb = hex(rx.colorB || "#ff4d2a");
+          gl.uniform2f(gl.getUniformLocation(this.prog, "uRes"), w, h);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uTime"), t * 1.4 + seed);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uMod"), (rx.intensity || 0.7) * fade * (1 + snap.beat * 0.25));
+          gl.uniform3f(gl.getUniformLocation(this.prog, "uA"), ca[0], ca[1], ca[2]);
+          gl.uniform3f(gl.getUniformLocation(this.prog, "uB"), cb[0], cb[1], cb[2]);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseSdf"), 0);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseMask"), 0);
+          gl.uniform2f(gl.getUniformLocation(this.prog, "uOrigin"), ox, oy);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uRadius"), rad);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), kindMap[rx.reactionId] || KIND_INDEX.Sparks);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), fade);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), extra[rx.reactionId] || KIND_INDEX.Embers);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uRadius"), rad * 1.35);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
       }
     }
     this.lastW = w; this.lastH = h;
