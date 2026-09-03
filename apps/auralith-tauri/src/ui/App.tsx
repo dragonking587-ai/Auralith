@@ -24,7 +24,7 @@ import {
 import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
-import { qrDataUrl } from "../scene/qr";
+import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
@@ -211,6 +211,7 @@ export function App() {
   const [relayRoom, setRelayRoom] = useState("");
   const [relayViewer, setRelayViewer] = useState("");
   const [showQr, setShowQr] = useState(false);
+  const [showHostQrModal, setShowHostQrModal] = useState(false);
   const [hostRole, setHostRole] = useState<"FULL_HOST"|"POLL_MODERATOR"|"EFFECTS_OPERATOR"|"REACTION_MODERATOR">("FULL_HOST");
   const [hostPair, setHostPair] = useState<{ qrUrl?: string; pairingId?: string; expiresAt?: number; role?: string } | null>(null);
   const [pendingRemote, setPendingRemote] = useState<any>(null);
@@ -1549,16 +1550,24 @@ export function App() {
                     <button onClick={()=>setShowQr((v)=>!v)}>Show QR</button>
                     <button onClick={()=>{ if (relayViewer) window.open(relayViewer, "_blank"); }}>Open Viewer Page</button>
                   </div>
-                  {(showQr || !!relayViewer) && (
+                  {!!relayViewer && (
                     <div className="card">
-                      <p>Scan to vote — host token is never in the QR.</p>
-                      {relayViewer ? (
-                        <img alt="Public viewer QR" style={{ width: 220, height: 220, background: "#fff4d6" }} src={qrDataUrl(relayViewer)} />
-                      ) : (
-                        <p>Start public poll first</p>
-                      )}
+                      <p>Scan preview — use Show QR for the large monitor-scan code.</p>
+                      <div style={{ background: "#FFFFFF", padding: 8, width: 236 }}>
+                        <QrImage value={relayViewer.trim()} size={220} alt="Public viewer QR" />
+                      </div>
                       <p>{relayRoom}</p>
                     </div>
+                  )}
+                  {showQr && relayViewer && (
+                    <QrModal
+                      title="PUBLIC VIEWER QR"
+                      value={relayViewer.trim()}
+                      room={relayRoom}
+                      onCopy={() => { navigator.clipboard.writeText(relayViewer.trim()).catch(()=>{}); }}
+                      onOpen={() => { window.open(relayViewer.trim(), "_blank"); }}
+                      onClose={() => setShowQr(false)}
+                    />
                   )}
                 </>
               )}
@@ -1587,6 +1596,7 @@ export function App() {
                     const j = await r.json();
                     if (!r.ok || !j.qrUrl) throw new Error(j.error || "pairing failed");
                     setHostPair(j);
+                    setShowHostQrModal(true);
                   }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>
                 <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
@@ -1596,11 +1606,23 @@ export function App() {
               {hostPair?.qrUrl && view !== "CleanCapture" && (
                 <div className="card">
                   <p>HOST REMOTE PAIRING · {hostPair.role}</p>
-                  <img alt="Host pairing QR" style={{ width: 200, height: 200 }} src={qrDataUrl(hostPair.qrUrl)} />
+                  <div style={{ background: "#FFFFFF", padding: 8, width: 216 }}>
+                    <QrImage value={String(hostPair.qrUrl).trim()} size={200} alt="Host pairing QR" />
+                  </div>
                   <p style={{ wordBreak: "break-all" }}>{hostPair.qrUrl}</p>
                   <button onClick={()=>{ if (hostPair.qrUrl) navigator.clipboard.writeText(hostPair.qrUrl).catch(()=>{}); }}>Copy Host Pairing URL</button>
                   <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste that URL in Auralith Remote Host Mode.</p>
+                  <button onClick={()=>setShowHostQrModal(true)}>Show Host QR</button>
                 </div>
+              )}
+              {showHostQrModal && hostPair?.qrUrl && view !== "CleanCapture" && (
+                <QrModal
+                  title="HOST REMOTE PAIRING QR"
+                  value={String(hostPair.qrUrl).trim()}
+                  room={hostPair.role}
+                  onCopy={() => { navigator.clipboard.writeText(String(hostPair.qrUrl).trim()).catch(()=>{}); }}
+                  onClose={() => setShowHostQrModal(false)}
+                />
               )}
               {pendingRemote && (
                 <div className="card">

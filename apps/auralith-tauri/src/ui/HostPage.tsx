@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
-import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { qrDataUrl } from "../scene/qr";
+import { QrImage, QrModal } from "./QrPanel";
 
 type Snap = {
   running: boolean; question: string; redLabel: string; greenLabel: string;
@@ -19,21 +18,17 @@ export function HostPage() {
   });
   const [top, setTop] = useState(false);
   const [msg, setMsg] = useState("");
-  const [qr, setQr] = useState("");
+  const [big, setBig] = useState(false);
   useEffect(() => {
     const un = listen<Snap>("poll-sync", (e) => { if (e.payload) setS(e.payload); });
     emit("poll-cmd", { action: "sync" }).catch(() => {});
     return () => { un.then((f) => f()).catch(() => {}); };
   }, []);
-  useEffect(() => {
-    const url = s.relay?.url || "";
-    if (!url) { setQr(""); return; }
-    try { setQr(qrDataUrl(url)); } catch (e) { setQr(""); setMsg("QR unavailable"); }
-  }, [s.relay?.url]);
   const cmd = (action: string) => emit("poll-cmd", { action }).catch((e) => setMsg(String(e)));
   const tot = s.red + s.green;
   const rp = tot ? Math.round(s.red / tot * 100) : 0;
   const gp = tot ? Math.round(s.green / tot * 100) : 0;
+  const viewerUrl = (s.relay?.url || "").trim();
   return (
     <div style={{ minHeight: "100vh", background: "#120c08", color: "#f4e4b0", fontFamily: "Georgia,serif", padding: 18 }}>
       <p style={{ letterSpacing: 2, fontSize: 12, opacity: 0.65 }}>AUDIENCE POLL — HOST</p>
@@ -54,9 +49,12 @@ export function HostPage() {
         <>
           <p>Relay: {s.relay.status}{s.relay.error ? " · " + s.relay.error : ""}</p>
           <p>Room: {s.relay.room || "—"}</p>
-          {qr ? (
-            <img alt="Public viewer QR" style={{ width: 200, height: 200, background: "#fff4d6" }} src={qr} />
+          {viewerUrl ? (
+            <div style={{ background: "#FFFFFF", padding: 8, width: 216 }}>
+              <QrImage value={viewerUrl} size={200} alt="Public viewer QR" />
+            </div>
           ) : null}
+          <button onClick={() => setBig(true)}>Show QR</button>
         </>
       )}
       <p>Local server: {s.viewer.state} · Health: {s.viewer.health} · Port: {s.viewer.port || "—"}</p>
@@ -72,6 +70,16 @@ export function HostPage() {
       </div>
       <p style={{ opacity: 0.6, marginTop: 16 }}>Closing this window does not stop the poll or Clean Capture.</p>
       {msg && <p>{msg}</p>}
+      {big && viewerUrl && (
+        <QrModal
+          title="PUBLIC VIEWER QR"
+          value={viewerUrl}
+          room={s.relay?.room}
+          onCopy={() => { navigator.clipboard.writeText(viewerUrl).catch(() => {}); }}
+          onOpen={() => { window.open(viewerUrl, "_blank"); }}
+          onClose={() => setBig(false)}
+        />
+      )}
     </div>
   );
 }
