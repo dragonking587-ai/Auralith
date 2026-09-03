@@ -21,7 +21,7 @@ import {
   persistablePoll, resetPoll, restoreEffects, startPoll, applyOverride, resolveLeader,
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
-import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
+import { PollRelayTransport, defaultRelayUrl, publicRelayOrigin, rewritePublicPairingUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 import { QrImage, QrModal } from "./QrPanel";
@@ -1594,8 +1594,13 @@ export function App() {
                     body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120 })
                   }).then(async (r)=>{
                     const j = await r.json();
-                    if (!r.ok || !j.qrUrl) throw new Error(j.error || "pairing failed");
-                    setHostPair(j);
+                    if (!r.ok) throw new Error(j.error || "pairing failed");
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    const qrUrl = rewritePublicPairingUrl(origin, String(j.qrUrl || j.pairingUrl || ""), j.pairingId);
+                    if (!qrUrl || /tauri\.localhost|localhost|127\.0\.0\.1/i.test(qrUrl)) {
+                      throw new Error("Pairing URL was not a public Railway HTTPS address.");
+                    }
+                    setHostPair({ ...j, qrUrl });
                     setShowHostQrModal(true);
                   }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>

@@ -20,6 +20,27 @@ export type RelaySession = {
   viewerUrl: string;
 };
 
+export function publicRelayOrigin(configured: string) {
+  const raw = (configured || "").trim().replace(/\/$/, "");
+  if (!raw || /tauri\.localhost|localhost|127\.0\.0\.1/i.test(raw)) {
+    return "https://obsidian-production-6e2e.up.railway.app";
+  }
+  return raw;
+}
+
+export function rewritePublicPairingUrl(relayOrigin: string, rawQr: string, pairingId?: string) {
+  const base = publicRelayOrigin(relayOrigin);
+  try {
+    const u = new URL(rawQr, base);
+    const id = pairingId || u.pathname.split("/").filter(Boolean).pop() || "";
+    const code = u.searchParams.get("code") || "";
+    if (!id) return "";
+    return base + "/host/pair/" + encodeURIComponent(id) + (code ? "?code=" + encodeURIComponent(code) : "");
+  } catch {
+    return "";
+  }
+}
+
 function wsUrl(httpUrl: string, path: string) {
   const u = new URL(path, httpUrl.endsWith("/") ? httpUrl : httpUrl + "/");
   u.protocol = u.protocol === "https:" ? "wss:" : "ws:";
