@@ -1,59 +1,64 @@
-# Auralith Audience Relay
+# Auralith Audience Relay (Railway)
 
 Public RED/GREEN poll transport for Auralith Reborn.
 
 This package lives in the existing Auralith repository. It is **not** a separate GitHub repo.
 
-## Status
+Cloudflare Workers / Wrangler are **not** used.
 
-**NOT DEPLOYED** until you publish a Worker with a public HTTPS hostname.
+## Architecture
 
-Do not treat local code as worldwide voting.
+- Node.js 18+
+- TypeScript
+- `http` + `ws`
+- Bind `0.0.0.0`
+- Port: `process.env.PORT` (Railway) or `8787` locally
+- V1 state: **in-memory on one instance**
+- Redis is not required for V1. Multiple Railway replicas will not share rooms.
 
-## What it does
+## HTTP / WS
 
-- Room create / lookup
-- Host session token (secret)
-- Public room code
-- One vote per viewer per round
-- Optional vote change
-- Authoritative tallies
-- Host start / end / clear / reset
-- WebSocket fanout
+- `GET /health`
+- `POST /api/rooms` — host creates a room (returns `room` + secret `hostToken`)
+- `GET /:ROOM` — public viewer page
+- `GET /api/rooms/:ROOM/state`
+- `POST /api/rooms/:ROOM/vote` — `{ option, viewerSessionId, roundId }`
+- `POST /api/rooms/:ROOM/host` — `Authorization: Bearer <hostToken>`
+- `WS /ws/host/:ROOM?token=` — host outbound socket
+- `WS /ws/view/:ROOM` — viewer live updates
 
-It does **not** receive projects, images, shaders, filesystem, updater, or virtual-camera commands.
+Host token is never placed in viewer URLs.
 
-## Environment
+Clear Votes increments `roundId` and keeps the same public room URL.
 
-Set in Cloudflare (never commit values):
-
-- `RELAY_ENV` — development | production
-- `ALLOWED_ORIGINS` — comma-separated origins for host CORS (viewer is same-origin)
-- `ROOM_TTL_MS` — inactive room expiry
-- `HOST_GRACE_MS` — host disconnect grace
-
-## Deploy
+## Local run
 
 ```bash
 cd services/audience-relay
 npm install
-npx wrangler login
-npx wrangler deploy
+npm run dev
+# http://127.0.0.1:8787/health
 ```
 
-Optional custom domain later: `vote.auralith.app` → this Worker.
+## Railway deploy
 
-Copy the `https://….workers.dev` URL into Auralith:
+Root of this package is `services/audience-relay`.
 
-Viewer Connection → Public Relay → Relay URL
+1. Create one Railway project.
+2. Deploy this directory only (not the whole monorepo), or set the Railway service root to `services/audience-relay`.
+3. Railway assigns `PORT` and an `*.up.railway.app` HTTPS domain.
+4. Paste that origin (no path) into Auralith → Output → Audience Polls → Public Relay → Relay URL.
 
-## Desktop config
+Example:
 
-Auralith setting: Public Relay base URL  
-Example: `https://auralith-audience-relay.<account>.workers.dev`
+`https://auralith-audience-relay-production.up.railway.app`
 
-No inbound ports on the host PC. The desktop opens outbound HTTPS/WSS only.
+## Desktop
 
-## Local fallback
+`PollRelayTransport` already talks to this API. Local/LAN polling stays in the Tauri app if the relay is offline.
 
-Auralith still includes Local / LAN Test mode. Use that when the public Worker is offline.
+## Limits
+
+- In-memory rooms die if the Railway instance restarts.
+- No custom domain required for V1.
+- Worldwide voting is unverified until a cellular-data phone vote reaches the host.
