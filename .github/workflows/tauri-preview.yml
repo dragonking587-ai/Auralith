@@ -149,6 +149,37 @@ jobs:
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
 
+      - name: Rewrite latest.json from uploaded assets
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        working-directory: apps/auralith-tauri
+        run: |
+          $v = "${{ steps.ver.outputs.version }}"
+          $tag = "v$v"
+          $assets = gh api "repos/dragonking587-ai/Auralith/releases/tags/$tag" | ConvertFrom-Json
+          $exe = $assets.assets | Where-Object { $_.name -match 'Auralith\.Reborn\.Preview_.*x64-setup\.exe$' -and $_.name -notmatch '\.sig$' } | Select-Object -First 1
+          if (-not $exe) { $exe = $assets.assets | Where-Object { $_.name -match 'Auralith-Reborn-.*-x64-Setup\.exe$' } | Select-Object -First 1 }
+          if (-not $exe) { throw "No Main Auralith setup exe on $tag" }
+          $url = $exe.browser_download_url
+          if ($url -match 'Host-Console|Host\.Console') { throw "Main manifest must not point at Host Console" }
+          $code = (Invoke-WebRequest -Method Head -Uri $url -UseBasicParsing).StatusCode
+          if ($code -ne 200) { throw "Updater artifact 404: $url" }
+          $sig = ""
+          if (Test-Path "dist-install/latest.json") {
+            $old = Get-Content dist-install/latest.json -Raw | ConvertFrom-Json
+            $sig = $old.platforms.'windows-x86_64'.signature
+          }
+          $latest = [ordered]@{
+            version = $v
+            notes = "Auralith Reborn $v"
+            pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{ "windows-x86_64" = @{ signature = $sig; url = $url } }
+          }
+          $latest | ConvertTo-Json -Depth 6 | Set-Content dist-install/latest.json -Encoding utf8
+          Write-Host "MAIN UPDATER URL $url HTTP $code"
+          gh release upload $tag dist-install/latest.json --repo dragonking587-ai/Auralith --clobber
+
       - name: Publish updater-latest pointer
         uses: softprops/action-gh-release@v2
         with:

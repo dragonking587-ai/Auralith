@@ -89,10 +89,28 @@ jobs:
             Start-Sleep -Seconds 20
           }
           if (-not $ok) { throw "Release $tag does not exist yet. Main Auralith must publish first so both installers share one tag." }
-          Get-ChildItem dist | ForEach-Object {
+          Get-ChildItem dist | Where-Object { $_.Name -ne 'latest-host-console.json' } | ForEach-Object {
             gh release upload $tag $_.FullName --repo dragonking587-ai/Auralith --clobber
           }
+          $assets = gh api "repos/dragonking587-ai/Auralith/releases/tags/$tag" | ConvertFrom-Json
+          $exe = $assets.assets | Where-Object { $_.name -match 'Auralith\.Host\.Console_.*x64-setup\.exe$' -and $_.name -notmatch '\.sig$' } | Select-Object -First 1
+          if (-not $exe) { $exe = $assets.assets | Where-Object { $_.name -match 'Auralith-Host-Console-.*-x64-Setup\.exe$' } | Select-Object -First 1 }
+          if (-not $exe) { throw "No Host Console setup exe on $tag" }
+          $url = $exe.browser_download_url
+          if ($url -match 'Auralith-Reborn|Auralith\.Reborn') { throw "Host Console manifest must not point at Main Auralith" }
+          $code = (Invoke-WebRequest -Method Head -Uri $url -UseBasicParsing).StatusCode
+          if ($code -ne 200) { throw "Host Console updater artifact 404: $url" }
+          $sig = ""
           if (Test-Path dist/latest-host-console.json) {
-            gh release upload updater-latest dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+            $old = Get-Content dist/latest-host-console.json -Raw | ConvertFrom-Json
+            $sig = $old.platforms.'windows-x86_64'.signature
           }
-          Write-Host "Host Console attached to $tag"
+          @{
+            version = $ver
+            notes = "Auralith Host Console $ver"
+            pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
+            platforms = @{ "windows-x86_64" = @{ signature = $sig; url = $url } }
+          } | ConvertTo-Json -Depth 6 | Set-Content dist/latest-host-console.json -Encoding utf8
+          gh release upload $tag dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+          gh release upload updater-latest dist/latest-host-console.json --repo dragonking587-ai/Auralith --clobber
+          Write-Host "HOST CONSOLE UPDATER URL $url HTTP $code"
