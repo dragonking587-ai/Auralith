@@ -3,6 +3,8 @@ import type { EffectKind, Project } from "../scene/types";
 import { sceneViewport } from "../scene/transform";
 import { buildPathField, buildPropAlphaField, fieldKey, regionGeomMode } from "../scene/pathSdf";
 import type { Region } from "../scene/types";
+import { syncFireworks, type FireCfg } from "../scene/fireworksSim";
+import type { LiveReaction } from "../scene/reactions";
 
 const VS = `attribute vec2 a; void main(){ gl_Position=vec4(a,0.0,1.0); }`;
 const FS = `
@@ -868,19 +870,69 @@ export class GlRenderer {
       }
     }
     if (reactions && reactions.length) {
+      const fwLive = (reactions as LiveReaction[]).filter((r) => r.reactionId === "fireworks");
+      if (fwLive.length) {
+        const now = performance.now();
+        const dt = Math.min(0.05, ((now - (this as any)._fwT) || 16) / 1000);
+        (this as any)._fwT = now;
+        const dots = syncFireworks(fwLive, (id) => {
+          const rx = fwLive.find((x) => x.eventId === id);
+          const s = rx?.cfg;
+          const cfg: FireCfg = {
+            intensity: rx?.intensity ?? 0.75, brightness: s?.brightness ?? 1, bloom: s?.bloom ?? 0.55,
+            lightSpill: s?.lightSpill ?? 0.45, exposureFlash: s?.exposureFlash ?? 0.55,
+            burstCount: s?.burstCount ?? 3, durationMs: rx?.durationMs ?? 4200,
+            launchHeight: s?.launchHeight ?? 0.72, spread: s?.spread ?? 0.55,
+            explosionRadius: s?.explosionRadius ?? 0.22, sparkCount: s?.sparkCount ?? 48,
+            trailLength: s?.trailLength ?? 0.45, starLifetime: s?.starLifetime ?? 1,
+            gravity: s?.gravity ?? 0.42, airDrag: s?.airDrag ?? 0.55,
+            windDir: s?.windDir ?? 0.2, wind: s?.wind ?? 0.12, turbulence: s?.turbulence ?? 0.25,
+            smokeAmt: s?.smokeAmt ?? 0.5, smokePersist: s?.smokePersist ?? 0.7,
+            smokeExp: s?.smokeExp ?? 0.6, smokeSoft: s?.smokeSoft ?? 0.8,
+            glitterAmt: s?.glitterAmt ?? 0.25, glitterFreq: s?.glitterFreq ?? 0.6,
+            crackleAmt: s?.crackleAmt ?? 0.15, secondary: s?.secondary ?? true,
+            secondaryChance: s?.secondaryChance ?? 0.35, depthVar: s?.depthVar ?? 0.4,
+            imperfection: s?.imperfection ?? 0.45, tempVar: s?.tempVar ?? 0.3,
+            colorA: s?.colorA || "#ffd27a", colorB: s?.colorB || "#ff4d2a", colorC: s?.colorC || "#fff6c8",
+            shellMode: (s?.shellMode as FireCfg["shellMode"]) || "random",
+            marginL: s?.marginL ?? 0.08, marginR: s?.marginR ?? 0.08, marginT: s?.marginT ?? 0.08, marginB: s?.marginB ?? 0.12,
+            quality: project.quality || "High", audioReactive: !!s?.audioReactive,
+            bass: snap.bass, mid: snap.mid, high: snap.high, beat: snap.beat
+          };
+          return cfg;
+        }, dt);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+        for (const d of dots) {
+          const ox = vp.x + d.x * vp.w;
+          const oy = vp.y + (1 - d.y) * vp.h;
+          gl.uniform2f(gl.getUniformLocation(this.prog, "uRes"), w, h);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uTime"), t);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uMod"), d.a);
+          gl.uniform3f(gl.getUniformLocation(this.prog, "uA"), d.cr, d.cg, d.cb);
+          gl.uniform3f(gl.getUniformLocation(this.prog, "uB"), d.cr, d.cg, d.cb);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseSdf"), 0);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uUseMask"), 0);
+          gl.uniform2f(gl.getUniformLocation(this.prog, "uOrigin"), ox, oy);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uRadius"), Math.max(4, d.r));
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uKind"), d.kind === "smoke" ? KIND_INDEX.SmokeFog : KIND_INDEX.GlowBloom);
+          gl.uniform1f(gl.getUniformLocation(this.prog, "uInt"), d.a);
+          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        }
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+      }
       const kindMap: Record<string, number> = {
-        fireworks: KIND_INDEX.Sparks,
         lightning: KIND_INDEX.LightningArc,
         rune_burst: KIND_INDEX.RuneGlow,
         meteor_shower: KIND_INDEX.EnergySparks
       };
       const extra: Record<string, number> = {
-        fireworks: KIND_INDEX.CelestialStars,
         lightning: KIND_INDEX.ThunderFlash,
         rune_burst: KIND_INDEX.SigilActivation,
         meteor_shower: KIND_INDEX.Laser
       };
       for (const rx of reactions) {
+        if (rx.reactionId === "fireworks") continue;
         const age = Math.max(0, (Date.now() - rx.started) / Math.max(200, rx.durationMs || 2000));
         if (age >= 1) continue;
         const fade = age < 0.15 ? age / 0.15 : (1 - age);

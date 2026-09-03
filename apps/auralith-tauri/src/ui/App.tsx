@@ -23,10 +23,11 @@ import {
 } from "../scene/poll";
 import { PollRelayTransport, defaultRelayUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
+import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.20";
+const APP_VERSION = "1.0.0-rc.22";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1550,15 +1551,51 @@ export function App() {
                   <label>Intensity<input type="number" step="0.05" defaultValue={s.intensity} onBlur={(e)=>{ s.intensity=Number(e.target.value)||s.intensity; }} /></label>
                   <label>Cooldown ms<input type="number" defaultValue={s.hostCooldownMs} onBlur={(e)=>{ s.hostCooldownMs=Number(e.target.value)||5000; }} /></label>
                   {s.id==="fireworks" && (
-                    <label>Shell
-                      <select defaultValue={s.shellMode||"random"} onChange={(e)=>{ s.shellMode=e.target.value as any; }}>
-                        <option value="random">Random</option>
-                        <option value="chrysanthemum">Chrysanthemum</option>
-                        <option value="willow">Willow</option>
-                        <option value="ring">Ring</option>
-                        <option value="palm">Palm</option>
-                      </select>
-                    </label>
+                    <>
+                      <label>Preset
+                        <select defaultValue="" onChange={(e)=>{ const p=FIREWORK_PRESETS[e.target.value]; if(!p) return; Object.assign(s,p); }}>
+                          <option value="">Custom</option>
+                          {Object.keys(FIREWORK_PRESETS).map((k)=><option key={k} value={k}>{k}</option>)}
+                        </select>
+                      </label>
+                      <label>Shell Pattern
+                        <select defaultValue={s.shellMode||"random"} onChange={(e)=>{ s.shellMode=e.target.value as any; }}>
+                          <option value="random">Random</option>
+                          <option value="chrysanthemum">Chrysanthemum</option>
+                          <option value="peony">Peony</option>
+                          <option value="willow">Willow</option>
+                          <option value="palm">Palm</option>
+                          <option value="ring">Ring</option>
+                          <option value="crossette">Crossette</option>
+                        </select>
+                      </label>
+                      <label>Shell Count<input type="number" defaultValue={s.burstCount} onBlur={(e)=>{ s.burstCount=Number(e.target.value)||3; }} /></label>
+                      <label>Burst Height<input type="number" step="0.05" defaultValue={s.launchHeight} onBlur={(e)=>{ s.launchHeight=Number(e.target.value)||0.7; }} /></label>
+                      <label>Explosion Radius<input type="number" step="0.02" defaultValue={s.explosionRadius} onBlur={(e)=>{ s.explosionRadius=Number(e.target.value)||0.22; }} /></label>
+                      <label>Star Density<input type="number" defaultValue={s.sparkCount} onBlur={(e)=>{ s.sparkCount=Number(e.target.value)||48; }} /></label>
+                      <label>Trail Length<input type="number" step="0.05" defaultValue={s.trailLength} onBlur={(e)=>{ s.trailLength=Number(e.target.value)||0.45; }} /></label>
+                      <label>Star Lifetime<input type="number" step="0.05" defaultValue={s.starLifetime} onBlur={(e)=>{ s.starLifetime=Number(e.target.value)||1; }} /></label>
+                      <label>Gravity<input type="number" step="0.05" defaultValue={s.gravity} onBlur={(e)=>{ s.gravity=Number(e.target.value)||0.42; }} /></label>
+                      <label>Air Drag<input type="number" step="0.05" defaultValue={s.airDrag} onBlur={(e)=>{ s.airDrag=Number(e.target.value)||0.55; }} /></label>
+                      <label>Wind Strength<input type="number" step="0.05" defaultValue={s.wind} onBlur={(e)=>{ s.wind=Number(e.target.value)||0.12; }} /></label>
+                      <label>Wind Direction<input type="number" step="0.05" defaultValue={s.windDir} onBlur={(e)=>{ s.windDir=Number(e.target.value)||0; }} /></label>
+                      <label>Turbulence<input type="number" step="0.05" defaultValue={s.turbulence} onBlur={(e)=>{ s.turbulence=Number(e.target.value)||0.25; }} /></label>
+                      <label>Brightness<input type="number" step="0.05" defaultValue={s.brightness} onBlur={(e)=>{ s.brightness=Number(e.target.value)||1; }} /></label>
+                      <label>Bloom<input type="number" step="0.05" defaultValue={s.bloom} onBlur={(e)=>{ s.bloom=Number(e.target.value)||0.55; }} /></label>
+                      <label>Light Spill<input type="number" step="0.05" defaultValue={s.lightSpill} onBlur={(e)=>{ s.lightSpill=Number(e.target.value)||0.45; }} /></label>
+                      <label>Exposure Flash<input type="number" step="0.05" defaultValue={s.exposureFlash} onBlur={(e)=>{ s.exposureFlash=Number(e.target.value)||0.55; }} /></label>
+                      <label>Smoke Amount<input type="number" step="0.05" defaultValue={s.smokeAmt} onBlur={(e)=>{ s.smokeAmt=Number(e.target.value)||0.5; }} /></label>
+                      <label>Smoke Persistence<input type="number" step="0.05" defaultValue={s.smokePersist} onBlur={(e)=>{ s.smokePersist=Number(e.target.value)||0.7; }} /></label>
+                      <label>Glitter Amount<input type="number" step="0.05" defaultValue={s.glitterAmt} onBlur={(e)=>{ s.glitterAmt=Number(e.target.value)||0.25; }} /></label>
+                      <label>Crackle Amount<input type="number" step="0.05" defaultValue={s.crackleAmt} onBlur={(e)=>{ s.crackleAmt=Number(e.target.value)||0.15; }} /></label>
+                      <label>Imperfection<input type="number" step="0.05" defaultValue={s.imperfection} onBlur={(e)=>{ s.imperfection=Number(e.target.value)||0.45; }} /></label>
+                      <label>Depth Variation<input type="number" step="0.05" defaultValue={s.depthVar} onBlur={(e)=>{ s.depthVar=Number(e.target.value)||0.4; }} /></label>
+                      <label>Color A<input type="color" defaultValue={s.colorA} onChange={(e)=>{ s.colorA=e.target.value; }} /></label>
+                      <label>Color B<input type="color" defaultValue={s.colorB} onChange={(e)=>{ s.colorB=e.target.value; }} /></label>
+                      <label>Color C<input type="color" defaultValue={s.colorC} onChange={(e)=>{ s.colorC=e.target.value; }} /></label>
+                      <label><input type="checkbox" defaultChecked={s.secondary} onChange={(e)=>{ s.secondary=e.target.checked; }} /> Secondary Breaks</label>
+                      <label><input type="checkbox" defaultChecked={s.audioReactive} onChange={(e)=>{ s.audioReactive=e.target.checked; }} /> Audio Reactive</label>
+                    </>
                   )}
                 </div>
               ))}

@@ -1,3 +1,5 @@
+import { clearFireworksShows } from "./fireworksSim";
+
 export type ReactionType = "fireworks" | "lightning" | "rune_burst" | "meteor_shower";
 
 export type ReactionSlot = {
@@ -18,9 +20,28 @@ export type ReactionSlot = {
   trailLength: number;
   gravity: number;
   wind: number;
-  shellMode: "random" | "chrysanthemum" | "willow" | "ring" | "palm";
+  shellMode: "random" | "chrysanthemum" | "peony" | "willow" | "palm" | "ring" | "crossette";
   brightness: number;
   bloom: number;
+  lightSpill: number;
+  exposureFlash: number;
+  airDrag: number;
+  windDir: number;
+  turbulence: number;
+  starLifetime: number;
+  smokeAmt: number;
+  smokePersist: number;
+  smokeExp: number;
+  smokeSoft: number;
+  glitterAmt: number;
+  glitterFreq: number;
+  crackleAmt: number;
+  secondary: boolean;
+  secondaryChance: number;
+  depthVar: number;
+  imperfection: number;
+  tempVar: number;
+  audioReactive: boolean;
   colorA: string;
   colorB: string;
   colorC: string;
@@ -43,16 +64,21 @@ export type LiveReaction = {
   burstCount: number;
   gravity: number;
   wind: number;
-  shellMode: "random" | "chrysanthemum" | "willow" | "ring" | "palm";
+  shellMode: ReactionSlot["shellMode"];
+  cfg: ReactionSlot;
 };
 
 export function defaultSlots(): ReactionSlot[] {
   const base = (id: ReactionType, label: string): ReactionSlot => ({
     id, label, enabled: true, reactionType: id, target: "canvas",
-    durationMs: id === "lightning" ? 900 : 2500, intensity: 0.7, hostCooldownMs: 5000,
-    trigger: "stack_limited", burstCount: 5, launchHeight: 0.7, spread: 0.6,
-    explosionRadius: 0.22, sparkCount: 40, trailLength: 0.35, gravity: 0.35, wind: 0.1, shellMode: "random",
-    brightness: 1, bloom: 0.5, colorA: "#ffd27a", colorB: "#ff4d2a", colorC: "#fff6c8",
+    durationMs: id === "lightning" ? 900 : 4200, intensity: 0.75, hostCooldownMs: 5000,
+    trigger: "stack_limited", burstCount: 3, launchHeight: 0.72, spread: 0.55,
+    explosionRadius: 0.22, sparkCount: 48, trailLength: 0.45, gravity: 0.42, wind: 0.12, shellMode: "random",
+    brightness: 1, bloom: 0.55, lightSpill: 0.45, exposureFlash: 0.55, airDrag: 0.55, windDir: 0.2,
+    turbulence: 0.25, starLifetime: 1, smokeAmt: 0.5, smokePersist: 0.7, smokeExp: 0.6, smokeSoft: 0.8,
+    glitterAmt: 0.25, glitterFreq: 0.6, crackleAmt: 0.15, secondary: true, secondaryChance: 0.35,
+    depthVar: 0.4, imperfection: 0.45, tempVar: 0.3, audioReactive: false,
+    colorA: "#ffd27a", colorB: "#ff4d2a", colorC: "#fff6c8",
     marginL: 0.08, marginR: 0.08, marginT: 0.08, marginB: 0.12
   });
   return [
@@ -102,14 +128,15 @@ export class ReactionEngine {
       intensity: slot.intensity,
       seed: Math.random() * 1000,
       colorA: slot.colorA, colorB: slot.colorB, colorC: slot.colorC,
-      burstCount: slot.burstCount, gravity: slot.gravity, wind: slot.wind, shellMode: slot.shellMode || "random"
+      burstCount: slot.burstCount, gravity: slot.gravity, wind: slot.wind, shellMode: slot.shellMode || "random",
+      cfg: { ...slot }
     });
     this.last = { id: reactionId, at: Date.now() };
     this.counts[reactionId] = (this.counts[reactionId] || 0) + 1;
     return true;
   }
 
-  clear() { this.live = []; }
+  clear() { this.live = []; clearFireworksShows(); }
 
   persist() {
     return { enabled: this.enabled, slots: this.slots };
