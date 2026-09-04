@@ -29,7 +29,7 @@ import { QrImage, QrModal } from "./QrPanel";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.32";
+const APP_VERSION = "1.0.0-rc.34";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],

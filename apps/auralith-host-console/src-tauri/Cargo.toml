@@ -1,6 +1,6 @@
 [package]
 name = "auralith-host-console"
-version = "1.0.0-rc.33"
+version = "1.0.0-rc.34"
 description = "Auralith Host Console"
 authors = ["Auralith"]
 edition = "2021"
