@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.42";
+const APP_VERSION = "1.0.0-rc.43";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1772,20 +1772,28 @@ export function App() {
                   <p>Role: {pendingRemote.requestedRole}</p>
                   <button onClick={()=>{
                     const s = relayRef.current.session;
-                    if (!s) return;
-                    fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                    if (!s) { setRelayErr("Public Server is offline. Start it, then Approve."); return; }
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
                       method:"POST",
                       headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                      body: JSON.stringify({ action:"approve_pairing", pairingId: pendingRemote.pairingId })
-                    }).then(()=>setPendingRemote(null)).catch((e)=>setRelayErr(String(e)));
+                      body: JSON.stringify({ action:"approve_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
+                    }).then(async (r)=>{
+                      const j = await r.json().catch(()=>({}));
+                      if (!r.ok) throw new Error(j.error || ("approve failed HTTP "+r.status));
+                      setPendingRemote(null);
+                      setRelayErr("");
+                      logAct("Host pairing approved");
+                    }).catch((e)=>setRelayErr(String(e?.message||e)));
                   }}>Approve</button>
                   <button onClick={()=>{
                     const s = relayRef.current.session;
                     if (!s) { setPendingRemote(null); return; }
-                    fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
                       method:"POST",
                       headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                      body: JSON.stringify({ action:"deny_pairing", pairingId: pendingRemote.pairingId })
+                      body: JSON.stringify({ action:"deny_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
                     }).finally(()=>setPendingRemote(null));
                   }}>Deny</button>
                 </div>

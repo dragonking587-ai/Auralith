@@ -152,7 +152,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.42";
+const APP_VERSION="1.0.0-rc.43";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
@@ -208,6 +208,7 @@ async function pairFrom(raw){
   if(pairingBusy){say(false,"Pairing already in progress.");return}
   pairingBusy=true;
   pairingAbort=false;
+  try {
   if(!raw){say(false,"Paste a Host pairing URL.");return}
   if(blocked(raw)){say(false,"This Host QR used a local desktop address. Generate a new Host QR.");return}
   let u; try{u=new URL(raw)}catch{say(false,"Invalid pairing URL");return}
@@ -217,22 +218,24 @@ async function pairFrom(raw){
   say(true,"CLAIMING…");
   const claim=await fetch(ORIGIN+"/api/pair/"+id+"/claim",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({code,deviceName:"Host Console",platform:"windows"})}).then(r=>r.json()).catch(e=>({error:String(e)}));
   if(claim.error){say(false,"Claim failed: "+claim.error);return}
-  say(true,"Waiting for desktop approval…");
-  for(let i=0;i<30 && !pairingAbort;i++){
+  say(true,"Waiting for desktop approval… Approve the request in Main Auralith.");
+  for(let i=0;i<45 && !pairingAbort;i++){
     await new Promise(r=>setTimeout(r,2000));
     const s=await fetch(ORIGIN+"/api/pair/"+id+"/status").then(r=>r.json()).catch(()=>({}));
     if(s.status==="approved"&&s.token){
       token=s.token; room=s.roomId; role=s.role;
       if(document.getElementById("remember").checked) localStorage.setItem("auralith.consoleSession", JSON.stringify({token,room,role}));
-      document.getElementById("room").textContent="Room "+room;
+      document.getElementById("room").textContent="Room: "+room;
       refreshOverview();
-      say(true,"CONNECTED · "+role); return;
+      say(true,"CONNECTED · "+role);
+      return;
     }
     if(s.status==="denied"){say(false,"Desktop denied pairing.");return}
-    if(s.status==="expired"){say(false,"Pairing expired. Generate a new Host QR.");return}
+    if(s.status==="expired"||s.error==="expired"){say(false,"Pairing expired. Generate a new Host QR.");return}
+    if(s.error && s.error!=="invalid_pairing") say(false,"Status: "+s.error+" — keep waiting or generate a new Host QR.");
   }
-  if(pairingAbort) say(false,"Pairing cancelled."); else say(false,"Timed out waiting for approval.");
-  pairingBusy=false;
+  if(pairingAbort) say(false,"Pairing cancelled."); else say(false,"Timed out waiting for approval. If you already clicked Approve, generate a NEW Host QR — the last Approve may have failed silently.");
+  } finally { pairingBusy=false; }
 }
 document.getElementById("go").onclick=()=>pairFrom(document.getElementById("pair").value.trim());
 document.getElementById("reconnect").onclick=()=>{

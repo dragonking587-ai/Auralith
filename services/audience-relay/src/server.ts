@@ -434,7 +434,8 @@ const server = http.createServer(async (req, res) => {
       if (auth !== room.hostToken) { json(res, { error: "unauthorized" }, 401); return; }
       const body = await readBody(req);
       const inst = String(body.hostInstanceId || req.headers["x-host-instance"] || "");
-      if (room.ownerHostInstanceId && inst !== room.ownerHostInstanceId) {
+      // Host Bearer token already authenticates this desktop. Only reject a *provided* mismatched instance.
+      if (inst && room.ownerHostInstanceId && inst !== room.ownerHostInstanceId) {
         json(res, { error: "tenant_mismatch" }, 403); return;
       }
       applyHost(room, body);
