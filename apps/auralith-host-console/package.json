@@ -1,7 +1,7 @@
 {
   "name": "auralith-host-console",
   "private": true,
-  "version": "1.0.0-rc.34",
+  "version": "1.0.0-rc.35",
   "description": "Auralith Host Console — control-only companion",
   "scripts": {
     "tauri": "tauri"

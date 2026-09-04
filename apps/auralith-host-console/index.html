@@ -16,7 +16,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </style>
 </head>
 <body>
-<h1>AURALITH HOST CONSOLE 1.0.0-rc.34</h1>
+<h1>AURALITH HOST CONSOLE 1.0.0-rc.35</h1>
 <p id="st">Connection: OFFLINE</p>
 <p id="room">Room: —</p>
 <p id="ack"></p>
@@ -92,11 +92,27 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
   <button id="exit">Exit</button>
 </div>
 <p id="upd">Updater: idle</p>
+<div class="row">
+  <button id="helpc">Help & Tutorials</button>
+  <button id="resettut">Reset Tutorials</button>
+</div>
+<div id="helpscrim" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:20;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#120c08;border:1px solid #c9a227;max-width:640px;width:100%;padding:20px">
+    <p id="helpkicker" style="color:#c9a227"></p>
+    <h2 id="helptitle"></h2>
+    <p id="helpbody" style="white-space:pre-wrap"></p>
+    <div class="row">
+      <button id="helpback">Back</button>
+      <button id="helpnext">Next</button>
+      <button id="helpclose">Close</button>
+    </div>
+  </div>
+</div>
 
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.34";
+const APP_VERSION="1.0.0-rc.35";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
@@ -261,7 +277,39 @@ document.getElementById("dlupd").onclick=async()=>{
   }
 };
 document.getElementById("about").onclick=()=>say(true,"Auralith Host Console "+APP_VERSION+" · control-only · com.auralith.host.console");
-document.getElementById("help").onclick=()=>say(true,"Paste a public Railway Host QR URL, approve on desktop, then use poll/reaction controls.");
+document.getElementById("help").onclick=()=>openHelp(0);
+const TUTORIAL=[
+  ["Pair With Auralith","Paste a Host QR from the desktop. Pair, then Approve. Do not reuse an expired link."],
+  ["Remember This Host","Optional local session only. Not a permanent host token. Desktop revoke drops it."],
+  ["Connection states","CONNECTED can send commands. OFFLINE/REVOKED/unauthorized means pair again with a new QR."],
+  ["Poll controls","Start, End, Clear Votes, Clear + Restore, Reset, labels, Show Results. Clear Votes is a new round."],
+  ["Audience Reactions","Enable/Disable, Fireworks, Lightning, Rune, Meteor, Clear Active."],
+  ["Fireworks","Preset, Intensity, Shells, Pattern, Brightness, Smoke, Bloom, Duration, Preview."],
+  ["Roles","Full Host, Poll Moderator, Effects Operator, Reaction Moderator. Unknown commands are rejected."],
+  ["Updates","Host Console updates only itself from latest-host-console.json."]
+];
+let helpStep=0;
+function openHelp(i){
+  helpStep=i||0;
+  const box=document.getElementById("helpscrim");
+  box.style.display="flex";
+  renderHelp();
+}
+function renderHelp(){
+  const t=TUTORIAL[helpStep];
+  document.getElementById("helpkicker").textContent="Host Console "+APP_VERSION+" · "+(helpStep+1)+"/"+TUTORIAL.length;
+  document.getElementById("helptitle").textContent=t[0];
+  document.getElementById("helpbody").textContent=t[1];
+}
+document.getElementById("helpc").onclick=()=>openHelp(0);
+document.getElementById("helpback").onclick=()=>{ if(helpStep>0){helpStep--; renderHelp();}};
+document.getElementById("helpnext").onclick=()=>{ if(helpStep<TUTORIAL.length-1){helpStep++; renderHelp();} else document.getElementById("helpscrim").style.display="none"; };
+document.getElementById("helpclose").onclick=()=>document.getElementById("helpscrim").style.display="none";
+document.getElementById("resettut").onclick=()=>{ localStorage.removeItem("auralith.console.tutorial"); openHelp(0); };
+if(!localStorage.getItem("auralith.console.tutorial")){
+  localStorage.setItem("auralith.console.tutorial","1");
+  openHelp(0);
+}
 document.getElementById("exit").onclick=()=>window.close();
 try{
   const saved=JSON.parse(localStorage.getItem("auralith.consoleSession")||"null");

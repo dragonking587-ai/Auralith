@@ -1,4 +1,14 @@
 html,body,#root { margin:0; height:100%; background:#050509; color:#E8E6E3; font:13px/1.4 "Segoe UI",sans-serif; }
+.help-scrim { position:fixed; inset:0; background:rgba(0,0,0,.72); z-index:80; display:flex; align-items:center; justify-content:center; padding:24px; }
+.help-card { background:#120c08; border:1px solid #c9a227; color:#f4e4b0; max-width:560px; width:100%; padding:22px 24px; }
+.help-card.help-wide { max-width:860px; }
+.help-kicker { color:#c9a227; letter-spacing:.12em; font-size:11px; }
+.help-split { display:grid; grid-template-columns:220px 1fr; gap:16px; max-height:60vh; }
+.help-split nav { overflow:auto; display:flex; flex-direction:column; gap:4px; }
+.help-split nav button { text-align:left; }
+.help-split article { overflow:auto; }
+.hint { width:22px; height:22px; padding:0; border-radius:50%; color:#c9a227; border-color:#c9a227; }
+.coach { color:#c9a227; font-size:12px; margin:6px 0; }
 .app { display:grid; grid-template-rows:auto 1fr; height:100%; }
 .top, .side { background:#0b0c12; border-color:#2a2d3a; }
 .top { display:flex; gap:6px; align-items:center; padding:8px 12px; border-bottom:1px solid #2a2d3a; flex-wrap:wrap; }

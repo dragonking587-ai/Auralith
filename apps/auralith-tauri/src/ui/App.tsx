@@ -26,10 +26,11 @@ import { hostInstanceId } from "../scene/hostInstance";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 import { QrImage, QrModal } from "./QrPanel";
+import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.34";
+const APP_VERSION = "1.0.0-rc.35";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -202,6 +203,7 @@ export function App() {
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
   const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
+  const [helpMode, setHelpMode] = useState<"off" | "welcome" | "tour" | "help">(() => tutorialDone() ? "off" : "welcome");
   const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
   const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
   const [viewer, setViewer] = useState({ state: "STOPPED", port: 0, local_url: "", lan_url: "", lan_ip: "", health: "STOPPED", error: "", msg: "" });
@@ -1041,6 +1043,7 @@ export function App() {
         <button onClick={() => { void saveProjectFile(); }}>Save</button>
         <button onClick={() => { void openProjectFile(); }}>Open</button>
         <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
+        <button onClick={()=>setHelpMode("help")}>Help & Tutorials</button>
         <input id="proj" type="file" accept=".auralith,application/json" hidden onChange={async (e)=>{ const f=e.target.files?.[0]; e.target.value=""; if(!f) return; try { applyLoadedProject(JSON.parse(await f.text())); } catch(err){ setErr(String(err)); } }} />
         <span className="grp">EDIT</span>
         <button className={tool==="Shape"?"on":""} title="Add a shape target" onClick={() => setTool("Shape")}>Shape</button>
@@ -1507,6 +1510,7 @@ export function App() {
               <div className="row">
                 <button onClick={()=>{ pollVotes.current = new Map(); applyRt(clearVotes(pollRt, pollCfg)); relayAction("clearVotes"); }}>Clear Votes</button>
                 <button onClick={()=>{ pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRt, pollCfg))); relayAction("clearVotes"); }}>Clear Votes + Restore Effects</button>
+                <Hint text="Clear Votes starts a new round at 0–0. Viewers must vote again. Old votes should not return." />
               </div>
               <div className="row">
                 <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); relayAction("resetRound"); }}>Reset Poll</button>
@@ -1544,6 +1548,7 @@ export function App() {
                   <p>Public Room: {relayRoom || "none"} · Server: {relayStatus === "ONLINE" ? "ONLINE" : "OFFLINE"} · Poll: {pollRt.running && relayStatus === "ONLINE" ? "LIVE" : "STOPPED"}</p>
                   <label>Room Name
                     <input value={customRoom} onChange={(e)=>{ setCustomRoom(e.target.value.toUpperCase()); localStorage.setItem("auralith.roomName", e.target.value.toUpperCase()); }} placeholder="OBSIDIAN-WOLF" />
+                    <Hint text="Choose a room name, then Start Public Server. Stopping the server does not release the name." />
                   </label>
                   <p>Availability: {roomAvail || "—"}</p>
                   <div className="row">
@@ -1567,6 +1572,7 @@ export function App() {
                         setRoomAvail("RELEASED");
                       } catch (e) { setRelayErr(String(e)); }
                     }}>Release Room Name</button>
+                    <Hint text="Release Room Name is destructive. Only use it if you want another host to claim this name." />
                   </div>
                   <div className="row">
                     <button onClick={async ()=>{
@@ -1632,6 +1638,7 @@ export function App() {
                     }}>Start Public Server</button>
                     <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>
                     <button onClick={()=>setShowQr((v)=>!v)}>Show QR</button>
+                    <Hint text="Viewer QR is PUBLIC and safe on stream." />
                     <button onClick={()=>{ if (relayViewer) window.open(relayViewer, "_blank"); }}>Open Viewer Page</button>
                   </div>
                   {!!relayViewer && (
@@ -1688,6 +1695,7 @@ export function App() {
                     setShowHostQrModal(true);
                   }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>
+                <Hint text="Host QR is PRIVATE. Never show it on stream. Short-lived, one-time, requires Approve." />
                 <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
                 <button onClick={()=>{
                   setRemoteEnabled(true);
@@ -2134,6 +2142,13 @@ export function App() {
               </div>
               {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
               {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
+              <h3>HELP & TUTORIALS</h3>
+              <p className="coach">Viewer QR is PUBLIC. Host QR is PRIVATE. Clear Votes starts a new round.</p>
+              <div className="row">
+                <button onClick={()=>setHelpMode("tour")}>Start Tutorial</button>
+                <button onClick={()=>setHelpMode("help")}>Open Help Center</button>
+                <button onClick={()=>{ setTutorialDone(false); setHelpMode("welcome"); }}>Reset Tutorials</button>
+              </div>
               <h3>ABOUT</h3>
               <p>Auralith Reborn {APP_VERSION}</p>
               <p>80 effects registered</p>
@@ -2178,6 +2193,14 @@ export function App() {
           )}
         </aside>
       </div>
+      {helpMode !== "off" && (
+        <HelpOverlay
+          version={APP_VERSION}
+          mode={helpMode === "welcome" ? "welcome" : helpMode === "tour" ? "tour" : "help"}
+          onClose={() => setHelpMode("off")}
+          onOpenHelp={() => setHelpMode(helpMode === "tour" ? "help" : "tour")}
+        />
+      )}
     </div>
   );
 }
