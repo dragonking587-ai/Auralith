@@ -4,24 +4,54 @@
 <meta charset="utf-8"/>
 <title>Auralith Host Console</title>
 <style>
-body{font-family:Segoe UI,sans-serif;background:#120c08;color:#f4e4b0;margin:0;padding:16px 20px 40px}
-h1,h2{margin:12px 0 8px}
-input,select,button,textarea{margin:3px 4px 3px 0;padding:7px;background:#1b140c;color:#f4e4b0;border:1px solid #c9a227}
+:root{--bg:#070909;--gold:#d4af37;--ok:#3dcc7a;--danger:#c4453c}
+body{font-family:Segoe UI,sans-serif;background:#070909;color:#f4f1ea;margin:0;padding:0 0 48px}
+.top{padding:14px 18px;background:linear-gradient(#16120c,#0b0c0e);border-bottom:1px solid #8a6a24;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h1{margin:0;color:#d4af37;letter-spacing:.12em;font-size:22px}
+.sub{color:#8a6a24;letter-spacing:.16em;font-size:11px}
+.conn{border:1px solid #8a6a24;padding:8px 12px;background:#111619;min-width:240px}
+.nav{display:flex;gap:4px;flex-wrap:wrap;padding:8px 16px;background:#0a0c0e}
+.nav button{background:#12161a;border:1px solid #2a2418;color:#f4f1ea;padding:8px 12px}
+.nav button.on{border-color:#d4af37;color:#d4af37}
+.wrap{padding:12px 16px}
+.card{border:1px solid #8a6a24;background:#111619;padding:12px;margin:8px 0}
+h2{margin:0 0 8px;color:#d4af37;font-size:13px;letter-spacing:.12em}
+input,select,button,textarea{margin:3px 4px 3px 0;padding:7px;background:#161821;color:#f4f1ea;border:1px solid #3a3420}
 button{cursor:pointer}
 button:disabled{opacity:.45;cursor:not-allowed}
+button.danger{background:#3a1412;border-color:#c4453c}
 .row{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
-.ok{color:#7dffa0}.bad{color:#ff8a7a}
+.ok{color:#3dcc7a}.bad{color:#ff8a7a}
 #ack{min-height:1.4em}
 label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
+.panel{display:none}.panel.on{display:block}
+.sides{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.redbox{background:#2a1010;padding:10px;border:1px solid #7a3030}
+.greenbox{background:#102a16;padding:10px;border:1px solid #2a7a44}
+.foot{position:fixed;bottom:0;left:0;right:0;padding:6px 14px;background:#0a0c0e;border-top:1px solid #8a6a24;color:#9aa0a6;font-size:11px;display:flex;justify-content:space-between}
 </style>
 </head>
 <body>
-<h1>AURALITH HOST CONSOLE 1.0.0-rc.37</h1>
-<p id="st">Connection: OFFLINE</p>
-<p id="inst">Connected To: —</p>
-<p id="room">Room: —</p>
+<div class="top">
+  <div><h1>AURALITH HOST CONSOLE</h1><div class="sub">CONTROL THE MOMENT</div></div>
+  <div class="conn">
+    <div id="st">Connection: OFFLINE</div>
+    <div id="inst">Connected To: —</div>
+    <div id="room">Room: —</div>
+  </div>
+</div>
 <p id="ack"></p>
-
+<div class="nav">
+  <button class="on" data-tab="overview">Overview</button>
+  <button data-tab="polls">Polls</button>
+  <button data-tab="reactions">Reactions</button>
+  <button data-tab="fireworks">Fireworks</button>
+  <button data-tab="devices">Devices</button>
+  <button data-tab="settings">Settings</button>
+</div>
+<div class="wrap">
+<div class="panel on" id="panel-overview"><div class="card"><h2>OVERVIEW</h2><p>Use Polls, Reactions, and Fireworks after pairing. Live controls stay here; Main Auralith is the renderer.</p></div></div>
+<div class="panel" id="panel-polls">
 <h2>CONNECTION</h2>
 <input id="pair" style="width:100%" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/...?code="/>
 <div class="row">
@@ -33,7 +63,8 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
   <button id="cancel">Cancel Pairing</button>
 </div>
 
-<h2>POLL</h2>
+</div><div class="panel" id="panel-polls-extra"></div></div>
+<div class="panel on" id="panel-polls2"><div class="card"><h2>POLL</h2>
 <input id="question" placeholder="Question" style="width:70%"/>
 <input id="red" placeholder="RED label" size="10"/>
 <input id="green" placeholder="GREEN label" size="10"/>
@@ -110,10 +141,11 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
   </div>
 </div>
 
+<div class="foot"><span>Auralith Host Console</span><span>YOUR AUDIENCE · YOUR RULES · MAKE IT EPIC</span></div>
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.37";
+const APP_VERSION="1.0.0-rc.38";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
@@ -318,6 +350,13 @@ if(!localStorage.getItem("auralith.console.tutorial")){
   localStorage.setItem("auralith.console.tutorial","1");
   openHelp(0);
 }
+document.querySelectorAll(".nav button").forEach((b)=>b.onclick=()=>{
+  document.querySelectorAll(".nav button").forEach((x)=>x.classList.remove("on"));
+  b.classList.add("on");
+  const map={overview:"OVERVIEW",polls:"POLL",reactions:"AUDIENCE",fireworks:"FIREWORKS",devices:"CONNECTION",settings:"APP"};
+  const h=[...document.querySelectorAll("h2")].find((x)=>x.textContent.toUpperCase().includes(map[b.dataset.tab]||""));
+  if(h) h.scrollIntoView({behavior:"smooth",block:"start"});
+});
 document.getElementById("exit").onclick=()=>window.close();
 try{
   const saved=JSON.parse(localStorage.getItem("auralith.consoleSession")||"null");

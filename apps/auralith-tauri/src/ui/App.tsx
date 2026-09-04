@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.37";
+const APP_VERSION = "1.0.0-rc.38";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -202,7 +202,9 @@ export function App() {
   const [updateDetails, setUpdateDetails] = useState("");
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
-  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("effects");
+  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("output");
+  const [activity, setActivity] = useState<string[]>([]);
+  const logAct = (msg: string) => setActivity((rows) => [`${new Date().toLocaleTimeString()}  ${msg}`, ...rows].slice(0, 40));
   const [helpMode, setHelpMode] = useState<"off" | "welcome" | "tour" | "help">(() => tutorialDone() ? "off" : "welcome");
   const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
   const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
@@ -1037,7 +1039,10 @@ export function App() {
   return (
     <div className="app">
       <div className={`top ${clean ? "hidden" : ""}`}>
-        <span className="brand">AURALITH</span>
+        <span className="brand">AURALITH REBORN</span>
+        <span className="tagline">SEE THE MUSIC · FEEL THE POWER</span>
+        <button className="ghost" onClick={()=>setTab("settings")}>Settings</button>
+        <button className="ghost" onClick={()=>setHelpMode("help")}>Help</button>
         <span className="grp">PROJECT</span>
         <button onClick={() => document.getElementById("file")?.click()}>Load Image</button>
         <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
@@ -1080,6 +1085,15 @@ export function App() {
         <span className="grp">OUTPUT</span>
         <button onClick={() => setView("Preview")}>Preview</button>
         <button className="gold" onClick={() => setView("CleanCapture")}>Clean Capture</button>
+      </div>
+      <div className={`nav ${clean ? "hidden" : ""}`}>
+        {[
+          ["output","Home"],["effects","Editor"],["effects","Effects"],["effects","Scenes"],
+          ["audio","Audio"],["output","Output"],["output","Server"],["output","Devices"],["settings","About"]
+        ].map(([id,label]) => (
+          <button key={label} className={tab===id && ((label==="Home"||label==="Server"||label==="Devices"||label==="Output") ? tab==="output" : tab===id) ? "on" : (tab===id && (label==="Editor"||label==="Effects"||label==="Scenes") ? "on" : tab===id ? "on" : "")}
+            onClick={()=>setTab(id as typeof tab)}>{label}</button>
+        ))}
       </div>
       <div className={`stage ${clean ? "clean" : ""}`}>
         <div className="canvas-wrap" ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
@@ -1473,6 +1487,19 @@ export function App() {
               <p className="coach">Polls, reactions, and Fireworks are controlled in Auralith Host Console. This window stays the renderer and Public Server.</p>
               <p>Poll: {pollRt.running ? "LIVE" : "STOPPED"} · RED {pollRt.red} · GREEN {pollRt.green}</p>
               <p>Audience Reactions: {rxEngine.enabled ? "ENABLED" : "DISABLED"}</p>
+              <div className="card">
+                <h3>QUICK STATUS</h3>
+                <p><span className={`dot ${relayStatus==="ONLINE"?"on":"off"}`} /> Server: {relayStatus==="ONLINE"?"ONLINE":"OFFLINE"}</p>
+                <p>Room: {relayRoom || customRoom || "—"}</p>
+                <p>Poll: {pollRt.running ? "LIVE" : "STOPPED"}</p>
+                <p>Audience Reactions: {rxEngine.enabled ? "ENABLED" : "DISABLED"}</p>
+                <p>Connected Devices: {remoteDevices.length}</p>
+              </div>
+              <div className="card">
+                <h3>RECENT ACTIVITY</h3>
+                <div className="activity">{activity.length ? activity.map((row,i)=><div key={i}>{row}</div>) : <p className="muted">No events this session.</p>}</div>
+                <button onClick={()=>setActivity([])}>Clear Log</button>
+              </div>
               <h3>SCENE POLL MAPPING</h3>
               <p className="muted">Choose which existing effects RED/GREEN temporarily recolor. Live voting happens in Host Console.</p>
               {(() => {
@@ -1583,10 +1610,10 @@ export function App() {
                       try {
                         relayRef.current.onStatus = (s, err) => { setRelayStatus(s); setRelayErr(err); };
                         relayRef.current.onState = (st) => applyRelaySnapshot(st);
-                        relayRef.current.onReaction = (ev) => { try { rxEngine.ingest(ev); } catch {} };
+                        relayRef.current.onReaction = (ev) => { try { rxEngine.ingest(ev); logAct(`${ev.reactionId || "reaction"} triggered`); } catch {} };
                         relayRef.current.onRemote = (ev) => {
                           if (ev.type === "remote_pairing_request") setPendingRemote(ev);
-                          if (ev.type === "remote_pairing_approved") setRemoteDevices(ev.devices || []);
+                          if (ev.type === "remote_pairing_approved") { setRemoteDevices(ev.devices || []); logAct("Host Console connected"); }
                           if (ev.type === "remote_command") {
                             const c = String(ev.cmd || "");
                             const p = ev.params || {};
@@ -1638,6 +1665,8 @@ export function App() {
                         relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled), hostInstanceId: hostId });
                         const check = await relayRef.current.verifyLiveState(false);
                         if (!check.ok) throw new Error(check.error);
+                        logAct("Server started");
+                        logAct(`Room ${sess.room} is online`);
                       } catch (e) { setRelayStatus("ERROR"); setRelayErr(String(e)); }
                     }}>Start Public Server</button>
                     <button onClick={()=>{ if (relayViewer) navigator.clipboard.writeText(relayViewer).catch(()=>{}); }}>Copy Public Link</button>
@@ -2204,8 +2233,13 @@ export function App() {
           )}
         </aside>
       </div>
+      <div className={`foot ${clean ? "hidden" : ""}`}>
+        <span>Auralith Reborn {APP_VERSION}</span>
+        <span>RENDER · STREAM · CREATE · INSPIRE</span>
+        <span>{relayStatus==="ONLINE" ? "Connected to Auralith Live" : "Local"}</span>
+      </div>
       {helpMode !== "off" && (
-        <HelpOverlay
+        <HelpOverlay}
           version={APP_VERSION}
           mode={helpMode === "welcome" ? "welcome" : helpMode === "tour" ? "tour" : "help"}
           onClose={() => setHelpMode("off")}
