@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.38";
+const APP_VERSION = "1.0.0-rc.39";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1714,21 +1714,27 @@ export function App() {
                   }
                   fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
                     method:"POST",
-                    headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120 })
+                    headers:{
+                      "content-type":"application/json",
+                      authorization:"Bearer "+s.hostToken,
+                      "x-host-instance": hostId
+                    },
+                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120, hostInstanceId: hostId })
                   }).then(async (r)=>{
-                    const j = await r.json();
-                    if (!r.ok) throw new Error(j.error || "pairing failed");
+                    const j = await r.json().catch(()=>({}));
+                    if (!r.ok) throw new Error(j.error || j.message || ("pairing failed HTTP "+r.status));
                     const origin = publicRelayOrigin(s.baseUrl || relayUrl);
                     const qrUrl = rewritePublicPairingUrl(origin, String(j.qrUrl || j.pairingUrl || ""), j.pairingId);
                     if (!qrUrl || /tauri\.localhost|localhost|127\.0\.0\.1/i.test(qrUrl)) {
                       throw new Error("Pairing URL was not a public Railway HTTPS address.");
                     }
+                    setRelayErr("");
                     setHostPair({ ...j, qrUrl });
                     setShowHostQrModal(true);
                   }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>
                 <Hint text="Host QR is PRIVATE. Never show it on stream. Short-lived, one-time, requires Approve." />
+                {relayErr && <p className="warn">{relayErr}</p>}
                 <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
                 <button onClick={()=>{
                   setRemoteEnabled(true);
