@@ -44,6 +44,7 @@ type Room = {
   budget: Map<string, number[]>;
   remotesEnabled: boolean;
   ownerHostInstanceId: string;
+  instanceDisplayName: string;
 };
 
 
@@ -107,6 +108,7 @@ function token() {
 function publicState(r: Room) {
   return {
     room: r.code,
+    instance_name: r.instanceDisplayName || "Auralith Host",
     question: r.question,
     red_label: r.redLabel,
     green_label: r.greenLabel,
@@ -215,6 +217,9 @@ function applyHost(room: Room, body: any) {
   if (action === "enable_reactions" || action === "enableReactions") room.reactionsEnabled = true;
   if (action === "disable_remote_host" || action === "disableRemoteHost") room.remotesEnabled = false;
   if (action === "enable_remote_host" || action === "enableRemoteHost" || action === "startPoll") room.remotesEnabled = true;
+  if (action === "set_instance_name" || action === "setInstanceName") {
+    room.instanceDisplayName = String(body.name || body.instanceDisplayName || "Auralith Host").trim().slice(0, 40);
+  }
 }
 
 
@@ -333,7 +338,8 @@ const server = http.createServer(async (req, res) => {
       lastByViewer: new Map(),
       budget: new Map(),
       remotesEnabled: true,
-      ownerHostInstanceId: String(body.hostInstanceId || "")
+      ownerHostInstanceId: String(body.hostInstanceId || ""),
+      instanceDisplayName: String(body.instanceDisplayName || body.instanceName || "Auralith Host").trim().slice(0, 40)
     };
     const wanted = String(body.roomName || body.room || "").trim();
     if (wanted) {
@@ -384,7 +390,8 @@ const server = http.createServer(async (req, res) => {
           reactionsEnabled: true, allowedReactions: DEFAULT_REACTIONS.map((r)=>({...r})),
           viewerCooldownMs: 5000, globalCooldownMs: 1000, lastReactionAt: 0,
           lastByViewer: new Map(), budget: new Map(), remotesEnabled: true,
-          ownerHostInstanceId: claim.ownerHostInstanceId
+          ownerHostInstanceId: claim.ownerHostInstanceId,
+          instanceDisplayName: "Auralith Host"
         };
         rooms.set(code, room);
       }

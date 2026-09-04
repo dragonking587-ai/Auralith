@@ -66,7 +66,7 @@ export class PollRelayTransport {
     return !!(base || "").trim();
   }
 
-  async connectHost(baseUrl: string, meta: { question: string; redLabel: string; greenLabel: string; allowChange: boolean; roomName?: string; hostInstanceId?: string; startPoll?: boolean }) {
+  async connectHost(baseUrl: string, meta: { question: string; redLabel: string; greenLabel: string; allowChange: boolean; roomName?: string; hostInstanceId?: string; startPoll?: boolean; instanceDisplayName?: string }) {
     this.closed = false;
     const base = (baseUrl || "").trim().replace(/\/$/, "");
     if (/[<>]/.test(base) || /obsidian-service|your-service|your-worker/i.test(base)) {
@@ -87,7 +87,7 @@ export class PollRelayTransport {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         question: meta.question, redLabel: meta.redLabel, greenLabel: meta.greenLabel, allowChange: meta.allowChange,
-        roomName: meta.roomName, hostInstanceId: meta.hostInstanceId
+        roomName: meta.roomName, hostInstanceId: meta.hostInstanceId, instanceDisplayName: meta.instanceDisplayName
       })
     });
     const data = await res.json().catch(() => ({}));

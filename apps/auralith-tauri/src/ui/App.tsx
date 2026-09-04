@@ -22,7 +22,7 @@ import {
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
 import { PollRelayTransport, defaultRelayUrl, publicRelayOrigin, rewritePublicPairingUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
-import { hostFingerprint, hostInstanceId, resetHostInstance } from "../scene/hostInstance";
+import { hostFingerprint, hostInstanceId, instanceDisplayName, resetHostInstance, setInstanceDisplayName } from "../scene/hostInstance";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 import { QrImage, QrModal } from "./QrPanel";
@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.36";
+const APP_VERSION = "1.0.0-rc.37";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -215,6 +215,7 @@ export function App() {
   const [customRoom, setCustomRoom] = useState(() => localStorage.getItem("auralith.roomName") || "OBSIDIAN-WOLF");
   const [roomAvail, setRoomAvail] = useState("");
   const hostId = useMemo(() => hostInstanceId(), []);
+  const [instanceName, setInstanceName] = useState(() => instanceDisplayName());
   const [relayViewer, setRelayViewer] = useState("");
   const [showQr, setShowQr] = useState(false);
   const [showHostQrModal, setShowHostQrModal] = useState(false);
@@ -1457,9 +1458,23 @@ export function App() {
               <button className="gold" onClick={() => setView("CleanCapture")}>Open Clean Capture</button>
               <button onClick={() => setView("Edit")}>Close Clean Capture</button>
               <p>{project.width}×{project.height} · F11 / ESC</p>
-              <h3>AUDIENCE POLLS <span className="badge">TEST / LAN</span></h3>
-              <p className="muted">Temporary color overrides only. Base effect colors are never overwritten. Viewer page is same-machine TEST / LAN MODE — no public internet relay.</p>
-              <label>Question <input value={pollCfg.question} onChange={(e)=>setPollAndProject({...pollCfg, question:e.target.value})} /></label>
+              <h3>HOST INSTANCE</h3>
+              <label>Instance Name
+                <input value={instanceName} onChange={(e)=>setInstanceName(e.target.value.slice(0,40))} />
+              </label>
+              <button onClick={()=>{
+                const n = setInstanceDisplayName(instanceName);
+                setInstanceName(n);
+                relayRef.current.sendHost("set_instance_name", { name: n, hostInstanceId: hostId });
+              }}>Save Name</button>
+              <p>Fingerprint {hostFingerprint(hostId)}</p>
+              <p className="muted">Display name only. Tenant identity does not change when you rename.</p>
+              <h3>LIVE CONTROL</h3>
+              <p className="coach">Polls, reactions, and Fireworks are controlled in Auralith Host Console. This window stays the renderer and Public Server.</p>
+              <p>Poll: {pollRt.running ? "LIVE" : "STOPPED"} · RED {pollRt.red} · GREEN {pollRt.green}</p>
+              <p>Audience Reactions: {rxEngine.enabled ? "ENABLED" : "DISABLED"}</p>
+              <h3>SCENE POLL MAPPING</h3>
+              <p className="muted">Choose which existing effects RED/GREEN temporarily recolor. Live voting happens in Host Console.</p>
               {(() => {
                 const list = effectIndex(project);
                 const ids = new Set(list.map((x)=>x.id));
@@ -1502,19 +1517,8 @@ export function App() {
                   <option value="hold">Keep Winner Override Until Cleared</option>
                 </select>
               </label>
-              <p>RED {pollRt.red} · GREEN {pollRt.green} · {pollRt.running ? "LIVE" : "STOPPED"} · leader {pollRt.leader || "none"}</p>
               <div className="row">
-                <button onClick={()=>{ applyRt(startPoll(pollRt, pollCfg)); relayAction("startPoll"); }}>Start Poll</button>
-                <button onClick={()=>{ applyRt(endPoll(pollRt, pollCfg)); relayAction("endPoll"); }}>End Poll</button>
-              </div>
-              <div className="row">
-                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(clearVotes(pollRt, pollCfg)); relayAction("clearVotes"); }}>Clear Votes</button>
-                <button onClick={()=>{ pollVotes.current = new Map(); applyRt(restoreEffects(clearVotes(pollRt, pollCfg))); relayAction("clearVotes"); }}>Clear Votes + Restore Effects</button>
-                <Hint text="Clear Votes starts a new round at 0–0. Viewers must vote again. Old votes should not return." />
-              </div>
-              <div className="row">
-                <button onClick={()=>{ const n = resetPoll(pollCfg); pollVotes.current = n.votes; applyRt(n.rt); relayAction("resetRound"); }}>Reset Poll</button>
-                <button onClick={()=>{ navigator.clipboard.writeText(viewer.lan_url || viewer.local_url || "").catch(()=>{}); }}>Copy Viewer Link</button>
+                <button onClick={()=>{ navigator.clipboard.writeText(viewer.lan_url || viewer.local_url || relayViewer || "").catch(()=>{}); }}>Copy Viewer Link</button>
               </div>
               <div className="row">
                 <button onClick={async ()=>{
@@ -1625,7 +1629,7 @@ export function App() {
                         };
                         const sess = await relayRef.current.connectHost(relayUrl, {
                           question: pollCfg.question, redLabel: pollCfg.redLabel, greenLabel: pollCfg.greenLabel, allowChange: pollCfg.allowChange,
-                          roomName: customRoom, hostInstanceId: hostId, startPoll: false
+                          roomName: customRoom, hostInstanceId: hostId, startPoll: false, instanceDisplayName: instanceName
                         });
                         setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl); setShowQr(true);
                         localStorage.setItem("auralith.roomName", sess.room);
@@ -1761,13 +1765,11 @@ export function App() {
               <h4>AUDIENCE REACTIONS</h4>
               <p>Status: {rxEngine.enabled ? "ENABLED" : "DISABLED"} · Last: {rxEngine.last?.id || "—"}</p>
               <p>Fireworks {rxEngine.counts.fireworks} · Lightning {rxEngine.counts.lightning} · Rune {rxEngine.counts.rune_burst} · Meteor {rxEngine.counts.meteor_shower}</p>
+              <p className="muted">Enable, preview, and tune reactions in Host Console.</p>
               <div className="row">
-                <button onClick={()=>{ rxEngine.ingest({ reactionId: "fireworks", eventId: "preview-"+Date.now() }); }}>Preview Fireworks</button>
-                <button onClick={()=>{ rxEngine.enabled=false; relayRef.current.sendHost("disable_reactions"); }} >Disable Audience Reactions</button>
-                <button onClick={()=>{ rxEngine.enabled=true; relayRef.current.sendHost("enable_reactions"); relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, true) }); }}>Enable Reactions</button>
-                <button onClick={()=>rxEngine.clear()}>Clear Active Reactions</button>
+                <button onClick={()=>rxEngine.clear()}>Clear All Active Reactions</button>
               </div>
-              {rxEngine.slots.map((s,i)=>(
+              {false && rxEngine.slots.map((s,i)=>(
                 <div className="card" key={s.id}>
                   <label><input type="checkbox" defaultChecked={s.enabled} onChange={(e)=>{ s.enabled=e.target.checked; relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled) }); }} /> {s.label}</label>
                   <label>Viewer Label<input defaultValue={s.label} onBlur={(e)=>{ s.label=e.target.value||s.label; }} /></label>
