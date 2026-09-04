@@ -1688,6 +1688,11 @@ export function App() {
                   }).catch((e)=>setRelayErr(String(e)));
                 }}>Generate Host QR</button>
                 <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
+                <button onClick={()=>{
+                  setRemoteEnabled(true);
+                  relayRef.current.sendHost("enable_remote_host");
+                  setRelayErr("Remote host control is ON. Generate a new Host QR and Approve the Host Console again.");
+                }}>Enable All Remote Host Control</button>
                 <button onClick={()=>{ setRemoteEnabled(false); relayRef.current.sendHost("disable_remote_host"); }}>Disable All Remote Host Control</button>
                 <button onClick={()=>{ relayRef.current.sendHost("revoke_all"); setRemoteDevices([]); }}>Revoke All Devices</button>
               </div>
