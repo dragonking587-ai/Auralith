@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.41";
+const APP_VERSION = "1.0.0-rc.42";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1752,7 +1752,7 @@ export function App() {
                   </div>
                   <p style={{ wordBreak: "break-all" }}>{hostPair.qrUrl}</p>
                   <button onClick={()=>{ if (hostPair.qrUrl) navigator.clipboard.writeText(hostPair.qrUrl).catch(()=>{}); }}>Copy Host Pairing URL</button>
-                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste that URL in Auralith Remote Host Mode.</p>
+                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste this URL into Host Console → PAIR WITH AURALITH, then Approve here.</p>
                   <button onClick={()=>setShowHostQrModal(true)}>Show Host QR</button>
                 </div>
               )}

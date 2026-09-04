@@ -40,7 +40,20 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
     <div id="room">Room: —</div>
   </div>
 </div>
-<p id="ack"></p>
+<div class="card" style="margin:12px 16px 0">
+  <h2>PAIR WITH AURALITH</h2>
+  <p>On the desktop: Generate Host QR → Copy Pairing Link. Paste that Railway URL here. Then Approve on the desktop.</p>
+  <input id="pair" style="width:100%;box-sizing:border-box" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/...?code="/>
+  <div class="row">
+    <label class="chk"><input id="remember" type="checkbox"/> Remember This Host</label>
+    <button id="go">Pair With Auralith</button>
+    <button id="reconnect">Reconnect</button>
+    <button id="disconnect">Disconnect</button>
+    <button id="forget">Forget Host</button>
+    <button id="cancel">Cancel Pairing</button>
+  </div>
+</div>
+<p id="ack" style="padding:0 16px"></p>
 <div class="nav">
   <button class="on" data-tab="overview">Overview</button>
   <button data-tab="polls">Polls</button>
@@ -51,19 +64,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </div>
 <div class="wrap">
 <div class="panel on" id="panel-overview"><div class="card"><h2>OVERVIEW</h2><p>Use Polls, Reactions, and Fireworks after pairing. Live controls stay here; Main Auralith is the renderer.</p></div></div>
-<div class="panel" id="panel-polls">
-<h2>CONNECTION</h2>
-<input id="pair" style="width:100%" placeholder="https://obsidian-production-6e2e.up.railway.app/host/pair/...?code="/>
-<div class="row">
-  <label class="chk"><input id="remember" type="checkbox"/> Remember This Host</label>
-  <button id="go">Pair With Auralith</button>
-  <button id="reconnect">Reconnect</button>
-  <button id="disconnect">Disconnect</button>
-  <button id="forget">Forget Host</button>
-  <button id="cancel">Cancel Pairing</button>
-</div>
-
-</div><div class="panel" id="panel-polls-extra"></div></div>
+<div class="panel" id="panel-polls"></div>
 <div class="panel on" id="panel-polls2"><div class="card"><h2>POLL CONTROL</h2>
 <label>Question <input id="question" placeholder="Question" style="width:70%"/></label>
 <div class="row">
@@ -151,7 +152,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.41";
+const APP_VERSION="1.0.0-rc.42";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
