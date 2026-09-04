@@ -2239,7 +2239,7 @@ export function App() {
         <span>{relayStatus==="ONLINE" ? "Connected to Auralith Live" : "Local"}</span>
       </div>
       {helpMode !== "off" && (
-        <HelpOverlay}
+        <HelpOverlay
           version={APP_VERSION}
           mode={helpMode === "welcome" ? "welcome" : helpMode === "tour" ? "tour" : "help"}
           onClose={() => setHelpMode("off")}
