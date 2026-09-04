@@ -110,7 +110,17 @@ async function rawCmd(c, params){
     body:JSON.stringify({cmd:c, params: params||{}})
   });
   const out=await res.json().catch(()=>({error:"malformed_response"}));
-  if(!res.ok || out.error){ say(false, c+" failed: "+(out.error||("HTTP "+res.status))); return out; }
+  if(!res.ok || out.error){
+    const why = out.message || out.error || ("HTTP "+res.status);
+    if (out.error === "session_expired" || out.error === "revoked" || out.error === "unauthorized") {
+      token=""; say(false, c+" failed: "+why+" Pair again with a NEW Host QR.");
+    } else if (out.error === "remote_disabled") {
+      say(false, c+" failed: Remote host control is OFF on the desktop. Enable it, then pair again.");
+    } else {
+      say(false, c+" failed: "+why);
+    }
+    return out;
+  }
   say(true, c+" acknowledged");
   return out;
 }

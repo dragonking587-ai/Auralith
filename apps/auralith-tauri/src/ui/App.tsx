@@ -1624,6 +1624,7 @@ export function App() {
                         setRelayRoom(sess.room); setRelayViewer(sess.viewerUrl); setShowQr(true);
                         localStorage.setItem("auralith.roomName", sess.room);
                         setCustomRoom(sess.room);
+                        relayRef.current.sendHost("enable_remote_host");
                         relayRef.current.sendHost("set_allowed_reactions", { allowedReactions: publicAllowed(rxEngine.slots, rxEngine.enabled), hostInstanceId: hostId });
                         const check = await relayRef.current.verifyLiveState(false);
                         if (!check.ok) throw new Error(check.error);

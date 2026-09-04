@@ -133,6 +133,33 @@ export function revokeDevice(room: string, deviceId: string) {
   }
 }
 
+export function persistRemotes() {
+  try {
+    const fs = require("node:fs") as typeof import("node:fs");
+    const path = require("node:path") as typeof import("node:path");
+    const dataDir = process.env.DATA_DIR || (fs.existsSync("/data") ? "/data" : path.join(process.cwd(), "data"));
+    fs.mkdirSync(dataDir, { recursive: true });
+    const rows = [...remotes.values()].filter((r) => !r.revoked && Date.now() < r.expiresAt).map((r) => ({
+      token: r.token, room: r.room, role: r.role, deviceId: r.deviceId, deviceName: r.deviceName,
+      platform: r.platform, createdAt: r.createdAt, lastSeen: r.lastSeen, expiresAt: r.expiresAt
+    }));
+    fs.writeFileSync(path.join(dataDir, "remote-sessions.json"), JSON.stringify(rows));
+  } catch { /* */ }
+}
+
+export function restoreRemotes() {
+  try {
+    const fs = require("node:fs") as typeof import("node:fs");
+    const path = require("node:path") as typeof import("node:path");
+    const dataDir = process.env.DATA_DIR || (fs.existsSync("/data") ? "/data" : path.join(process.cwd(), "data"));
+    const rows = JSON.parse(fs.readFileSync(path.join(dataDir, "remote-sessions.json"), "utf8")) as any[];
+    for (const r of rows || []) {
+      if (!r?.token || Date.now() > Number(r.expiresAt || 0)) continue;
+      remotes.set(r.token, { ...r, revoked: false, sockets: new Set() });
+    }
+  } catch { /* */ }
+}
+
 export function sweepRemote() {
   const now = Date.now();
   for (const [id, p] of pairings) {

@@ -4,7 +4,7 @@ import { WebSocketServer, type WebSocket } from "ws";
 import { landingHtml, viewerHtml } from "./viewer.js";
 import {
   createPairing, publicPairing, parseRole, pairings, remotes, newId,
-  cmdAllowed, listDevices, revokeRoom, revokeDevice, sweepRemote, type HostRole
+  cmdAllowed, listDevices, revokeRoom, revokeDevice, sweepRemote, persistRemotes, restoreRemotes, type HostRole
 } from "./remote.js";
 import { availability, claimRoom, getClaim, releaseRoom, normalizeRoomName, storageInfo } from "./claims.js";
 
@@ -214,7 +214,7 @@ function applyHost(room: Room, body: any) {
   if (action === "disable_reactions" || action === "disableReactions") room.reactionsEnabled = false;
   if (action === "enable_reactions" || action === "enableReactions") room.reactionsEnabled = true;
   if (action === "disable_remote_host" || action === "disableRemoteHost") room.remotesEnabled = false;
-  if (action === "enable_remote_host" || action === "enableRemoteHost") room.remotesEnabled = true;
+  if (action === "enable_remote_host" || action === "enableRemoteHost" || action === "startPoll") room.remotesEnabled = true;
 }
 
 
@@ -451,6 +451,7 @@ const server = http.createServer(async (req, res) => {
           createdAt: Date.now(), lastSeen: Date.now(), expiresAt: Date.now() + 8 * 3600_000,
           revoked: false, sockets: new Set()
         });
+        persistRemotes();
         notifyHosts(room, { type: "remote_pairing_approved", pairingId: p.pairingId, devices: listDevices(room.code) });
         json(res, { ok: true, pairingId: p.pairingId, devices: listDevices(room.code) });
         return;
@@ -464,7 +465,7 @@ const server = http.createServer(async (req, res) => {
       }
       if (body.action === "revoke_device") { revokeDevice(room.code, String(body.deviceId || "")); json(res, { devices: listDevices(room.code) }); return; }
       if (body.action === "revoke_all" || body.action === "disable_remote_host") {
-        revokeRoom(room.code); room.remotesEnabled = body.action === "disable_remote_host" ? false : room.remotesEnabled;
+        revokeRoom(room.code); room.remotesEnabled = body.action === "disable_remote_host" ? false : room.remotesEnabled; persistRemotes();
         json(res, { devices: [] }); return;
       }
       if (body.action === "list_devices") { json(res, { devices: listDevices(room.code), remotesEnabled: room.remotesEnabled }); return; }
@@ -513,7 +514,11 @@ const server = http.createServer(async (req, res) => {
     const room = rooms.get(code);
     const auth = String(req.headers.authorization || "").replace(/^Bearer\s+/i, "");
     const sess = remotes.get(auth);
-    if (!room || !sess || sess.room !== code || sess.revoked || !room.remotesEnabled) { json(res, { error: "unauthorized" }, 401); return; }
+    if (!room) { json(res, { error: "room_offline", message: "Room is not live. Start Public Server on the desktop." }, 401); return; }
+    if (!sess) { json(res, { error: "session_expired", message: "Host Console session is gone. Generate a new Host QR and Approve again." }, 401); return; }
+    if (sess.room !== code) { json(res, { error: "tenant_mismatch" }, 403); return; }
+    if (sess.revoked) { json(res, { error: "revoked", message: "This Host Console was revoked. Generate a new Host QR." }, 401); return; }
+    if (!room.remotesEnabled) { json(res, { error: "remote_disabled", message: "Remote host control is disabled on the desktop. Click Enable All Remote Host Control, then pair again." }, 401); return; }
     const body = await readBody(req);
     const cmd = String(body.cmd || body.command || "");
     if (!cmdAllowed(sess.role, cmd)) { json(res, { error: "forbidden", cmd }, 403); return; }
@@ -593,6 +598,7 @@ setInterval(sweep, 60_000).unref();
 setInterval(sweepRemote, 15_000).unref();
 
 const port = Number(process.env.PORT || 8787);
+restoreRemotes();
 server.listen(port, "0.0.0.0", () => {
   console.log(`[relay] listening on 0.0.0.0:${port}`);
 });
