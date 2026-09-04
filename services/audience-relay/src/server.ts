@@ -132,7 +132,7 @@ function json(res: http.ServerResponse, data: unknown, status = 200) {
     "content-type": "application/json",
     "cache-control": "no-store",
     "access-control-allow-origin": "*",
-    "access-control-allow-headers": "content-type,authorization",
+    "access-control-allow-headers": "content-type,authorization,x-host-instance,x-host-token",
     "access-control-allow-methods": "GET,POST,OPTIONS"
   });
   res.end(body);
@@ -291,7 +291,7 @@ const server = http.createServer(async (req, res) => {
   if (req.method === "OPTIONS") {
     res.writeHead(204, {
       "access-control-allow-origin": "*",
-      "access-control-allow-headers": "content-type,authorization",
+      "access-control-allow-headers": "content-type,authorization,x-host-instance,x-host-token",
       "access-control-allow-methods": "GET,POST,OPTIONS"
     });
     res.end();

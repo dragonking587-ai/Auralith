@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.40";
+const APP_VERSION = "1.0.0-rc.41";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1712,12 +1712,12 @@ export function App() {
                     setRelayErr("Start Public Server first, then Generate Host QR.");
                     return;
                   }
-                  fetch(s.baseUrl+"/api/rooms/"+s.room+"/host", {
+                  const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                  fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
                     method:"POST",
                     headers:{
                       "content-type":"application/json",
-                      authorization:"Bearer "+s.hostToken,
-                      "x-host-instance": hostId
+                      authorization:"Bearer "+s.hostToken
                     },
                     body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120, hostInstanceId: hostId })
                   }).then(async (r)=>{
@@ -1731,7 +1731,7 @@ export function App() {
                     setRelayErr("");
                     setHostPair({ ...j, qrUrl });
                     setShowHostQrModal(true);
-                  }).catch((e)=>setRelayErr(String(e)));
+                  }).catch((e)=>setRelayErr("Host QR request failed: "+String(e?.message||e)+" — check Public Server is ONLINE and Railway is reachable."));
                 }}>Generate Host QR</button>
                 <Hint text="Host QR is PRIVATE. Never show it on stream. Short-lived, one-time, requires Approve." />
                 {relayErr && <p className="warn">{relayErr}</p>}
