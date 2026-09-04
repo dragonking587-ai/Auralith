@@ -64,10 +64,16 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 </div>
 
 </div><div class="panel" id="panel-polls-extra"></div></div>
-<div class="panel on" id="panel-polls2"><div class="card"><h2>POLL</h2>
-<input id="question" placeholder="Question" style="width:70%"/>
-<input id="red" placeholder="RED label" size="10"/>
-<input id="green" placeholder="GREEN label" size="10"/>
+<div class="panel on" id="panel-polls2"><div class="card"><h2>POLL CONTROL</h2>
+<label>Question <input id="question" placeholder="Question" style="width:70%"/></label>
+<div class="row">
+  <input id="red" placeholder="RED label" size="10"/>
+  <input id="green" placeholder="GREEN label" size="10"/>
+</div>
+<div class="sides">
+  <div class="redbox"><div>RED</div><div id="redlab">RED</div><div id="redn" style="font-size:32px;font-weight:700">0</div><div id="redp">0%</div></div>
+  <div class="greenbox"><div>GREEN</div><div id="greenlab">GREEN</div><div id="greenn" style="font-size:32px;font-weight:700">0</div><div id="greenp">0%</div></div>
+</div>
 <div class="row">
   <button id="start">Start Poll</button>
   <button id="end">End Poll</button>
@@ -79,7 +85,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
   <button id="setgreen">Apply GREEN Label</button>
   <button id="showres">Show Results</button>
 </div>
-<p>Start/Stop Public Server and Release Room Name stay on main Auralith (ownership admin).</p>
+<p>Start/Stop Public Server and Release Room Name stay on main Auralith.</p>
 
 <h2>AUDIENCE REACTIONS</h2>
 <div class="row">
@@ -145,7 +151,7 @@ label.chk{display:inline-flex;align-items:center;gap:6px;margin-right:10px}
 <script>
 const ORIGIN="https://obsidian-production-6e2e.up.railway.app";
 const MANIFEST="https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json";
-const APP_VERSION="1.0.0-rc.39";
+const APP_VERSION="1.0.0-rc.40";
 let token="", room="", role="", pairingAbort=false, pendingUpdate=null, busy=false, pairingBusy=false;
 const st=document.getElementById("st");
 const ack=document.getElementById("ack");
@@ -155,7 +161,17 @@ async function refreshOverview(){
   const s=await fetch(ORIGIN+"/api/rooms/"+encodeURIComponent(room)+"/state").then(r=>r.json()).catch(()=>({}));
   document.getElementById("inst").textContent="Connected To: "+(s.instance_name||"Auralith Host");
   document.getElementById("room").textContent="Room: "+(s.room||room);
+  const tot=Number(s.red||0)+Number(s.green||0);
+  const el=id=>document.getElementById(id);
+  if(el("redn")) el("redn").textContent=String(s.red||0);
+  if(el("greenn")) el("greenn").textContent=String(s.green||0);
+  if(el("redp")) el("redp").textContent=(tot?Math.round(s.red/tot*100):0)+"%";
+  if(el("greenp")) el("greenp").textContent=(tot?Math.round(s.green/tot*100):0)+"%";
+  if(el("redlab")) el("redlab").textContent=s.red_label||"RED";
+  if(el("greenlab")) el("greenlab").textContent=s.green_label||"GREEN";
 }
+setInterval(()=>{ if(token&&room) refreshOverview(); }, 2500);
+
 function blocked(u){return /tauri\.localhost|localhost|127\.0\.0\.1/.test(u)}
 function needPair(){if(!token||!room){say(false,"Pair with Auralith first.");return false}return true}
 async function rawCmd(c, params){

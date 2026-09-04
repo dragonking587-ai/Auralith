@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.39";
+const APP_VERSION = "1.0.0-rc.40";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -1467,7 +1467,7 @@ export function App() {
           )}
 
           {tab==="output" && (
-            <div className="pane">
+            <div className="pane dash">
               <h3>CLEAN OUTPUT</h3>
               <button className="gold" onClick={() => setView("CleanCapture")}>Open Clean Capture</button>
               <button onClick={() => setView("Edit")}>Close Clean Capture</button>

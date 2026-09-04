@@ -1,6 +1,6 @@
 [package]
 name = "auralith-tauri-preview"
-version = "1.0.0-rc.39"
+version = "1.0.0-rc.40"
 description = "Auralith Tauri Preview"
 authors = ["Auralith"]
 edition = "2021"
