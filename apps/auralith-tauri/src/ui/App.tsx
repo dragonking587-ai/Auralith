@@ -22,7 +22,7 @@ import {
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
 import { PollRelayTransport, defaultRelayUrl, publicRelayOrigin, rewritePublicPairingUrl, type RelayStatus, type RelayPublicState } from "../scene/pollRelay";
-import { hostInstanceId } from "../scene/hostInstance";
+import { hostFingerprint, hostInstanceId, resetHostInstance } from "../scene/hostInstance";
 import { ReactionEngine, publicAllowed } from "../scene/reactions";
 import { FIREWORK_PRESETS } from "../scene/fireworksSim";
 import { QrImage, QrModal } from "./QrPanel";
@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.35";
+const APP_VERSION = "1.0.0-rc.36";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -2149,6 +2149,15 @@ export function App() {
                 <button onClick={()=>setHelpMode("help")}>Open Help Center</button>
                 <button onClick={()=>{ setTutorialDone(false); setHelpMode("welcome"); }}>Reset Tutorials</button>
               </div>
+              <h3>HOST IDENTITY</h3>
+              <p>Host Fingerprint: {hostFingerprint(hostId)}</p>
+              <p>Room: {relayRoom || customRoom}</p>
+              <p className="muted">This PC is one isolated host tenant. Another install gets a different identity.</p>
+              <button className="danger" onClick={()=>{
+                if (!confirm("Resetting your Host Identity will disconnect Host Console and Host Remote sessions. You must pair again. Continue?")) return;
+                resetHostInstance();
+                location.reload();
+              }}>Reset Host Identity</button>
               <h3>ABOUT</h3>
               <p>Auralith Reborn {APP_VERSION}</p>
               <p>80 effects registered</p>

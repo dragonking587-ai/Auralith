@@ -33,6 +33,7 @@ export type Pairing = {
   pairingId: string;
   code: string;
   room: string;
+  ownerHostInstanceId: string;
   role: HostRole;
   expiresAt: number;
   used: boolean;
@@ -46,6 +47,7 @@ export type Pairing = {
 export type RemoteSession = {
   token: string;
   room: string;
+  ownerHostInstanceId: string;
   role: HostRole;
   deviceId: string;
   deviceName: string;
@@ -70,12 +72,13 @@ export function parseRole(v: any): HostRole {
   return (ROLES as string[]).includes(s) ? s as HostRole : "FULL_HOST";
 }
 
-export function createPairing(room: string, role: HostRole, ttlSec: number) {
+export function createPairing(room: string, role: HostRole, ttlSec: number, ownerHostInstanceId = "") {
   const ttl = Math.min(120, Math.max(60, ttlSec || 90));
   const p: Pairing = {
     pairingId: newId(),
     code: newCode(),
     room,
+    ownerHostInstanceId,
     role,
     expiresAt: Date.now() + ttl * 1000,
     used: false,
@@ -140,7 +143,7 @@ export function persistRemotes() {
     const dataDir = process.env.DATA_DIR || (fs.existsSync("/data") ? "/data" : path.join(process.cwd(), "data"));
     fs.mkdirSync(dataDir, { recursive: true });
     const rows = [...remotes.values()].filter((r) => !r.revoked && Date.now() < r.expiresAt).map((r) => ({
-      token: r.token, room: r.room, role: r.role, deviceId: r.deviceId, deviceName: r.deviceName,
+      token: r.token, room: r.room, ownerHostInstanceId: r.ownerHostInstanceId || "", role: r.role, deviceId: r.deviceId, deviceName: r.deviceName,
       platform: r.platform, createdAt: r.createdAt, lastSeen: r.lastSeen, expiresAt: r.expiresAt
     }));
     fs.writeFileSync(path.join(dataDir, "remote-sessions.json"), JSON.stringify(rows));

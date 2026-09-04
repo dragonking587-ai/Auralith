@@ -337,6 +337,7 @@ const server = http.createServer(async (req, res) => {
     };
     const wanted = String(body.roomName || body.room || "").trim();
     if (wanted) {
+      if (String(body.hostInstanceId || "").length < 16) { json(res, { error: "invalid_host_instance" }, 400); return; }
       const claimed = claimRoom(wanted, String(body.hostInstanceId || ""), room.hostToken, wanted);
       if (!claimed.ok) { json(res, { error: claimed.error }, claimed.error === "room_name_unavailable" ? 409 : 400); return; }
       room.code = claimed.claim.name;
@@ -426,12 +427,12 @@ const server = http.createServer(async (req, res) => {
       if (auth !== room.hostToken) { json(res, { error: "unauthorized" }, 401); return; }
       const body = await readBody(req);
       const inst = String(body.hostInstanceId || req.headers["x-host-instance"] || "");
-      if (room.ownerHostInstanceId && inst && inst !== room.ownerHostInstanceId) {
+      if (room.ownerHostInstanceId && inst !== room.ownerHostInstanceId) {
         json(res, { error: "tenant_mismatch" }, 403); return;
       }
       applyHost(room, body);
       if (body.action === "create_pairing") {
-        const p = createPairing(room.code, parseRole(body.role), Number(body.ttlSec || 90));
+        const p = createPairing(room.code, parseRole(body.role), Number(body.ttlSec || 90), room.ownerHostInstanceId);
         const origin = String(req.headers.origin || process.env.PUBLIC_ORIGIN || "https://obsidian-production-6e2e.up.railway.app");
         json(res, publicPairing(p, origin));
         return;
@@ -446,7 +447,8 @@ const server = http.createServer(async (req, res) => {
         p.approvedToken = token;
         p.deviceId = deviceId;
         remotes.set(token, {
-          token, room: room.code, role: p.role, deviceId,
+          token, room: room.code, ownerHostInstanceId: room.ownerHostInstanceId || p.ownerHostInstanceId || "",
+          role: p.role, deviceId,
           deviceName: p.deviceName || "Android", platform: p.platform || "android",
           createdAt: Date.now(), lastSeen: Date.now(), expiresAt: Date.now() + 8 * 3600_000,
           revoked: false, sockets: new Set()
@@ -517,6 +519,9 @@ const server = http.createServer(async (req, res) => {
     if (!room) { json(res, { error: "room_offline", message: "Room is not live. Start Public Server on the desktop." }, 401); return; }
     if (!sess) { json(res, { error: "session_expired", message: "Host Console session is gone. Generate a new Host QR and Approve again." }, 401); return; }
     if (sess.room !== code) { json(res, { error: "tenant_mismatch" }, 403); return; }
+    if (room.ownerHostInstanceId && sess.ownerHostInstanceId && sess.ownerHostInstanceId !== room.ownerHostInstanceId) {
+      json(res, { error: "tenant_mismatch" }, 403); return;
+    }
     if (sess.revoked) { json(res, { error: "revoked", message: "This Host Console was revoked. Generate a new Host QR." }, 401); return; }
     if (!room.remotesEnabled) { json(res, { error: "remote_disabled", message: "Remote host control is disabled on the desktop. Click Enable All Remote Host Control, then pair again." }, 401); return; }
     const body = await readBody(req);
@@ -583,7 +588,13 @@ server.on("upgrade", (req, socket, head) => {
       room.hosts.add(ws);
       room.hostSeen = Date.now();
       ws.on("message", (raw) => {
-        try { applyHost(room, JSON.parse(String(raw))); fanout(room); } catch { /* ignore */ }
+        try {
+          const body = JSON.parse(String(raw));
+          const inst = String(body.hostInstanceId || "");
+          if (room.ownerHostInstanceId && inst && inst !== room.ownerHostInstanceId) return;
+          applyHost(room, body);
+          fanout(room);
+        } catch { /* ignore */ }
       });
       ws.on("close", () => room.hosts.delete(ws));
     } else {
