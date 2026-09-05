@@ -17,6 +17,7 @@ export const MAIN_HELP: { id: string; title: string; body: string }[] = [
   { id: "start", title: "Getting Started", body: "Load an image, add targets, stack effects, then Start Public Server if you want audience voting. Use Help anytime. Reset Tutorials from Settings to see the walkthrough again." },
   { id: "workspace", title: "Main Workspace", body: "Canvas is the scene. Tools select Shapes, Props, Emitters, and Stamps. Inspector tabs are Effects, Audio, Output, and Settings." },
   { id: "load", title: "Load Scene", body: "Load Image opens a file picker. Props use PNG/WebP alpha as the effect silhouette. Shapes are geometry targets. Emitters and Stamps are point targets." },
+  { id: "resize", title: "Resize a Prop", body: "Select a Prop to see a gold box and eight handles. Drag a corner to scale proportionally. Drag an edge to change width or height only. Drag the Prop body to move it. Handles are editor-only and never appear in Clean Capture." },
   { id: "effects", title: "Effects", body: "Each stacked effect has its own accordion. Named sliders only. Audio mapping uses Bass / Low / Mid / High / Beat / Transient. Poll colors are runtime overrides." },
   { id: "save", title: "Save / Open", body: "Save writes the project including backdrop, targets, effects, poll config, and fireworks settings. Active fireworks, votes, and cooldowns are not saved." },
   { id: "clean", title: "Clean Output / Clean Capture", body: "This is the stream feed: backdrop + effects only. No editor chrome. No Host QR. ESC leaves fullscreen Clean Capture." },

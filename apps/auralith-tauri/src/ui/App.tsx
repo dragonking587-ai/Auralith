@@ -30,7 +30,7 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.43";
+const APP_VERSION = "1.0.0-rc.44";
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -532,11 +532,31 @@ export function App() {
     return canvasToScene(e.clientX - rect.left, e.clientY - rect.top, vp, proj.width, proj.height);
   };
   const hitTest = (e: { clientX: number; clientY: number }) => {
-    const wrap = wrapRef.current; if (!wrap) return null as null | { kind: "point"|"marker"|"seg"|"all"; id: string; index: number };
+    const wrap = wrapRef.current; if (!wrap) return null as null | { kind: "point"|"marker"|"seg"|"all"|"handle"; id: string; index: number; handle?: string };
     const rect = wrap.getBoundingClientRect();
     const proj = projectRef.current;
     const vp = currentVp(rect);
     const px = e.clientX - rect.left, py = e.clientY - rect.top;
+    if (sel) {
+      const pr = proj.regions.find((r) => r.id === sel && (r.kind === "Prop" || r.kind === "Shape"));
+      if (pr) {
+        const hw = (pr.width || pr.radius * 2) / 2;
+        const hh = (pr.height || pr.radius * 2) / 2;
+        const handles: [string, number, number][] = [
+          ["tl", pr.x - hw, pr.y - hh], ["t", pr.x, pr.y - hh], ["tr", pr.x + hw, pr.y - hh],
+          ["l", pr.x - hw, pr.y], ["r", pr.x + hw, pr.y],
+          ["bl", pr.x - hw, pr.y + hh], ["b", pr.x, pr.y + hh], ["br", pr.x + hw, pr.y + hh]
+        ];
+        for (const [name, hx, hy] of handles) {
+          const c = sceneToCanvas(hx, hy, vp, proj.width, proj.height);
+          if (Math.hypot(c.x - px, c.y - py) <= 12) return { kind: "handle", id: pr.id, index: -1, handle: name };
+        }
+        const spt = canvasToScene(px, py, vp, proj.width, proj.height);
+        if (Math.abs(spt.x - pr.x) <= hw && Math.abs(spt.y - pr.y) <= hh) {
+          return { kind: "all", id: pr.id, index: -1 };
+        }
+      }
+    }
     let bestPt: { id: string; index: number; d: number } | null = null;
     for (const r of proj.regions) {
       const pts = r.kind === "Trace" && r.points.length ? r.points : [{ x: r.x, y: r.y }];
@@ -557,6 +577,14 @@ export function App() {
       if (d <= 10 && (!bestSeg || d < bestSeg.d)) bestSeg = { id: r.id, d };
     }
     if (bestSeg) return { kind: "seg", id: bestSeg.id, index: -1 };
+    const sBody = canvasToScene(px, py, vp, proj.width, proj.height);
+    for (let i = proj.regions.length - 1; i >= 0; i--) {
+      const r = proj.regions[i]!;
+      if (r.kind !== "Prop" && r.kind !== "Shape") continue;
+      const hw = (r.width || r.radius * 2) / 2;
+      const hh = (r.height || r.radius * 2) / 2;
+      if (Math.abs(sBody.x - r.x) <= hw && Math.abs(sBody.y - r.y) <= hh) return { kind: "all", id: r.id, index: -1 };
+    }
     return null;
   };
   const runAssisted = async (mode: "click"|"box"|"brush", seed: {x:number;y:number;w?:number;h?:number;path?:{x:number;y:number}[]}) => {
@@ -621,11 +649,19 @@ export function App() {
       e.currentTarget.setPointerCapture(e.pointerId);
       const r = projectRef.current.regions.find((x) => x.id === hit.id)!;
       setSel(hit.id);
-      if (hit.kind === "point") {
+      if (hit.kind === "handle") {
+        setSelPt(null);
+        dragRef.current = {
+          id: hit.id, mode: "resize", handle: hit.handle, moved: false,
+          sx: s.x, sy: s.y,
+          bx: r.x, by: r.y, bw: r.width || r.radius * 2, bh: r.height || r.radius * 2,
+          points: r.points.map((p)=>({...p}))
+        } as any;
+      } else if (hit.kind === "point") {
         setSelPt(hit.index);
         const pt = r.points[hit.index] || { x: r.x, y: r.y };
         dragRef.current = { id: hit.id, ox: pt.x, oy: pt.y, sx: s.x, sy: s.y, moved: false, mode: "point", index: hit.index } as any;
-      } else if (toolRef.current === "Edit") {
+      } else if (toolRef.current === "Edit" || hit.kind === "all") {
         setSelPt(null);
         dragRef.current = { id: hit.id, ox: 0, oy: 0, sx: s.x, sy: s.y, moved: false, mode: "all", points: r.points.map((p)=>({...p})), rx: r.x, ry: r.y } as any;
       } else {
@@ -700,6 +736,35 @@ export function App() {
     if (!d.moved && Math.hypot(dx, dy) < 2) return;
     d.moved = true;
     const cur = projectRef.current;
+    if (d.mode === "resize") {
+      const MIN = 24;
+      let left = d.bx - d.bw / 2, right = d.bx + d.bw / 2, top = d.by - d.bh / 2, bottom = d.by + d.bh / 2;
+      const h = String(d.handle);
+      if (h.includes("l")) left = s.x;
+      if (h.includes("r")) right = s.x;
+      if (h.includes("t")) top = s.y;
+      if (h.includes("b")) bottom = s.y;
+      if (["tl","tr","bl","br"].includes(h) && !e.shiftKey) {
+        const ratio = (d.bw || 1) / (d.bh || 1);
+        let nw = Math.abs(right - left), nh = Math.abs(bottom - top);
+        if (nw / nh > ratio) nh = nw / ratio; else nw = nh * ratio;
+        if (h.includes("l")) left = right - nw; else right = left + nw;
+        if (h.includes("t")) top = bottom - nh; else bottom = top + nh;
+      }
+      let nw = Math.max(MIN, right - left);
+      let nh = Math.max(MIN, bottom - top);
+      if (right < left) { left = right - nw; }
+      if (bottom < top) { top = bottom - nh; }
+      const nx = left + nw / 2, ny = top + nh / 2;
+      setProject({
+        ...cur,
+        regions: cur.regions.map((r) => r.id !== d.id ? r : {
+          ...r, x: nx, y: ny, width: nw, height: nh, radius: Math.max(nw, nh) / 2,
+          points: [{ x: nx, y: ny }]
+        })
+      });
+      return;
+    }
     if (d.mode === "all") {
       setProject({
         ...cur,
@@ -744,6 +809,7 @@ export function App() {
     const before = { ...cur, regions: cur.regions.map((r) => {
       if (r.id !== d.id) return r;
       if (d.mode === "all") return { ...r, x: d.rx, y: d.ry, points: d.points };
+      if (d.mode === "resize") return { ...r, x: d.bx, y: d.by, width: d.bw, height: d.bh, radius: Math.max(d.bw, d.bh) / 2, points: d.points || [{ x: d.bx, y: d.by }] };
       if (d.mode === "point") {
         const pts = r.points.map((p,i)=> i===d.index ? { x: d.ox, y: d.oy } : p);
         return { ...r, points: pts, x: pts[0]?.x ?? r.x, y: pts[0]?.y ?? r.y };
@@ -1125,7 +1191,21 @@ export function App() {
                         const hh = ((r.height || r.radius*2) / project.height) * vp.h * 0.5 * (r.sy||1);
                         const sh = r.shape || "rect";
                         if (sh==="circle" || sh==="ellipse") return <ellipse cx={c.x} cy={c.y} rx={Math.abs(hw)} ry={Math.abs(hh)} fill="none" stroke={r.id===sel?"#D4AF37":"#9ad"} strokeWidth={2} />;
-                        return <rect x={c.x-hw} y={c.y-hh} width={Math.abs(hw)*2} height={Math.abs(hh)*2} fill="none" stroke={r.id===sel?"#D4AF37":"#9ad"} strokeWidth={2} rx={sh==="roundrect"?8:0} />;
+                        const box = <rect x={c.x-hw} y={c.y-hh} width={Math.abs(hw)*2} height={Math.abs(hh)*2} fill="none" stroke={r.id===sel?"#D4AF37":"#9ad"} strokeWidth={2} rx={sh==="roundrect"?8:0} />;
+                        if (r.id !== sel) return box;
+                        const hs = [
+                          [c.x-hw, c.y-hh], [c.x, c.y-hh], [c.x+hw, c.y-hh],
+                          [c.x-hw, c.y], [c.x+hw, c.y],
+                          [c.x-hw, c.y+hh], [c.x, c.y+hh], [c.x+hw, c.y+hh]
+                        ];
+                        return (
+                          <g>
+                            {box}
+                            {hs.map(([hx,hy],i)=>(
+                              <rect key={i} x={hx-5} y={hy-5} width={10} height={10} fill="#120c08" stroke="#D4AF37" strokeWidth={1.5} />
+                            ))}
+                          </g>
+                        );
                       })()}
                     </g>
                   );
