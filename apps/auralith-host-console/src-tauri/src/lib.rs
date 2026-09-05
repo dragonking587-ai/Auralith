@@ -2,6 +2,8 @@ use serde_json::{json, Value};
 use tauri::Manager;
 use tauri_plugin_updater::UpdaterExt;
 
+const APPROVED_THEME_CSS: &str = include_str!("../../web/approved-theme.css");
+
 #[tauri::command]
 async fn check_console_update(app: tauri::AppHandle) -> Result<Value, String> {
     let updater = app.updater_builder().build().map_err(|e| e.to_string())?;
@@ -39,6 +41,20 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let css_json = serde_json::to_string(APPROVED_THEME_CSS)
+                    .expect("Host Console theme should serialize");
+                let script = [
+                    "(()=>{const css=",
+                    &css_json,
+                    ";const apply=()=>{if(document.getElementById('auralith-approved-theme'))return;const s=document.createElement('style');s.id='auralith-approved-theme';s.textContent=css;(document.head||document.documentElement).appendChild(s);};if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply,{once:true});}else{apply();}})();",
+                ]
+                .concat();
+                let _ = window.eval(&script);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![check_console_update, install_console_update])
         .run(tauri::generate_context!())
         .expect("error while running Auralith Host Console");
