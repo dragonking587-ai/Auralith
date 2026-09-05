@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Auralith Host Console",
+  "productName": "Auralith Host Console Dark Gold UI Test",
   "version": "1.0.0-rc.43",
-  "identifier": "com.auralith.host.console",
+  "identifier": "com.auralith.host.console.darkgoldtest",
   "build": {
     "frontendDist": "../web"
   },
@@ -11,9 +11,11 @@
     "windows": [
       {
         "label": "main",
-        "title": "Auralith Host Console",
-        "width": 520,
-        "height": 780,
+        "title": "Auralith Host Console — Dark Gold UI Test",
+        "width": 900,
+        "height": 820,
+        "minWidth": 620,
+        "minHeight": 640,
         "resizable": true
       }
     ],
@@ -32,7 +34,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDdEODhERUE4RjBGNDZBOTUKUldTVmF2VHdxTjZJZlh2aHBSdC9aTjF0SWxOUTRKd2NxSlJReDdrK3lFU3BYRGZKT2RlVG5PSVAK",
       "endpoints": [
-        "https://github.com/dragonking587-ai/Auralith/releases/download/updater-latest/latest-host-console.json"
+        "https://example.invalid/auralith-host-console-dark-gold-ui-test/latest.json"
       ],
       "windows": { "installMode": "passive" }
     }
