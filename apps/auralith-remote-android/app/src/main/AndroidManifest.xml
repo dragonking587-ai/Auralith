@@ -13,11 +13,6 @@
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
-    <activity android:name="com.journeyapps.barcodescanner.CaptureActivity"
-      android:screenOrientation="portrait"
-      android:stateNotNeeded="true"
-      android:theme="@style/Theme.AuralithRemote"
-      android:windowSoftInputMode="stateAlwaysHidden" />
     <service android:name=".OverlayService" android:exported="false" android:foregroundServiceType="specialUse" />
   </application>
 </manifest>
