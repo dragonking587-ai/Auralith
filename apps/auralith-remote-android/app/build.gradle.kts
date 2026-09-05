@@ -9,8 +9,8 @@ android {
     applicationId = "app.auralith.remote"
     minSdk = 26
     targetSdk = 35
-    versionCode = 3
-    versionName = "1.0.0-remote.3"
+    versionCode = 4
+    versionName = "1.0.0-remote.4"
   }
   compileOptions {
     sourceCompatibility = JavaVersion.VERSION_17

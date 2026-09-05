@@ -15,16 +15,17 @@ object RelayConfig {
 }
 
 object UrlParse {
-  private val ROOM = Regex("([A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9])", RegexOption.IGNORE_CASE)
+  private val ROOM = Regex("^[A-Z0-9][A-Z0-9-]{1,30}[A-Z0-9]$", RegexOption.IGNORE_CASE)
   fun normalizeRoom(raw: String): String? {
     val t = raw.trim()
     if (t.isEmpty()) return null
     if (isBlockedHost(t)) return null
-    val fromPath = try {
+    if (ROOM.matches(t)) return t.uppercase()
+    return try {
       val u = android.net.Uri.parse(t)
-      u.pathSegments.lastOrNull()?.takeIf { it.matches(ROOM) }
+      val last = u.pathSegments.lastOrNull().orEmpty()
+      if (ROOM.matches(last)) last.uppercase() else null
     } catch (_: Exception) { null }
-    return (fromPath ?: ROOM.find(t.uppercase())?.groupValues?.get(1))?.uppercase()
   }
   fun isBlockedHost(raw: String): Boolean =
     raw.contains("tauri.localhost", true) ||

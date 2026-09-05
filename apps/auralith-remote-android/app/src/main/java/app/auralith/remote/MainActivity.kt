@@ -64,7 +64,7 @@ class MainActivity : Activity() {
       setTextColor(0xFFD4AF37.toInt())
       setOnClickListener { fn() }
     }
-    status = label("AURALITH REMOTE 1.0.0-remote.3")
+    status = label("AURALITH REMOTE 1.0.0-remote.4")
     diag = body("Public Relay:\n${RelayConfig.ORIGIN}\nRelay Status: $relayOnline")
     overlayStatus = body(overlayLine())
     val roomField = field("Room name or viewer URL (OBSIDIAN-WOLF)")

@@ -29,9 +29,9 @@ jobs:
           mkdir -p dist-apk
           APK=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
           test -n "$APK"
-          cp "$APK" dist-apk/Auralith-Remote-1.0.0-remote.3-debug.apk
+          cp "$APK" dist-apk/Auralith-Remote-1.0.0-remote.4-debug.apk
           cp "$APK" dist-apk/Auralith-Remote-debug.apk
-          sha256sum dist-apk/Auralith-Remote-1.0.0-remote.3-debug.apk | tee dist-apk/SHA256SUMS.txt
+          sha256sum dist-apk/Auralith-Remote-1.0.0-remote.4-debug.apk | tee dist-apk/SHA256SUMS.txt
       - uses: actions/upload-artifact@v4
         with:
           name: Auralith-Remote-debug
