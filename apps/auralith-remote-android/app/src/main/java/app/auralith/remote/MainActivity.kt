@@ -1,10 +1,15 @@
 package app.auralith.remote
 
+import android.Manifest
 import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.google.zxing.integration.android.IntentIntegrator
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
@@ -42,6 +47,9 @@ class MainActivity : Activity() {
   private lateinit var overlayStatus: TextView
   private lateinit var status: TextView
   private lateinit var diag: TextView
+  private lateinit var roomField: EditText
+  private lateinit var pairField: EditText
+  private var scanMode = "auto"
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
@@ -64,17 +72,18 @@ class MainActivity : Activity() {
       setTextColor(0xFFD4AF37.toInt())
       setOnClickListener { fn() }
     }
-    status = label("AURALITH REMOTE 1.0.0-remote.4")
+    status = label("AURALITH REMOTE 1.0.0-remote.5")
     diag = body("Public Relay:\n${RelayConfig.ORIGIN}\nRelay Status: $relayOnline")
     overlayStatus = body(overlayLine())
-    val roomField = field("Room name or viewer URL (OBSIDIAN-WOLF)")
-    val pairField = field("Paste Host pairing URL from desktop QR")
+    roomField = field("Room name or viewer URL (OBSIDIAN-WOLF)")
+    pairField = field("Paste Host pairing URL from desktop QR")
     intent?.data?.toString()?.let { pairField.setText(it) }
 
     root.addView(status)
     root.addView(label("VIEWER MODE — PUBLIC"))
     root.addView(body("Viewer QR is public. Join a room name or full Railway URL."))
     root.addView(roomField)
+    root.addView(btn("Scan Viewer QR") { startScan("viewer") })
     root.addView(btn("Join Room") { join(roomField.text.toString()) })
     root.addView(btn("Vote RED") { vote("red") })
     root.addView(btn("Vote GREEN") { vote("green") })
@@ -84,6 +93,7 @@ class MainActivity : Activity() {
     root.addView(label("HOST MODE — PRIVATE"))
     root.addView(body("Host QR is private, short-lived, one-time, and needs desktop Approve."))
     root.addView(pairField)
+    root.addView(btn("Scan Host QR") { startScan("host") })
     root.addView(btn("Claim Host QR") { claim(pairField.text.toString()) })
     root.addView(btn("Start Poll") { remote("poll_start") })
     root.addView(btn("End Poll") { remote("poll_end") })
@@ -128,6 +138,55 @@ class MainActivity : Activity() {
   override fun onResume() {
     super.onResume()
     if (::overlayStatus.isInitialized) refreshOverlay()
+  }
+
+  private fun startScan(mode: String) {
+    scanMode = mode
+    if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
+      ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 91)
+      return
+    }
+    IntentIntegrator(this).apply {
+      setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
+      setPrompt(if (mode == "host") "Scan Host QR (private pairing URL)" else if (mode == "viewer") "Scan Viewer QR (public room URL)" else "Scan Auralith QR")
+      setBeepEnabled(false)
+      setOrientationLocked(true)
+      setBarcodeImageEnabled(false)
+      initiateScan()
+    }
+  }
+
+  override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+    if (requestCode == 91 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) startScan(scanMode)
+    else Toast.makeText(this, "Camera permission is required to scan QR codes.", Toast.LENGTH_LONG).show()
+  }
+
+  override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+    val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
+    if (result == null) { super.onActivityResult(requestCode, resultCode, data); return }
+    val text = result.contents?.trim().orEmpty()
+    if (text.isEmpty()) { status.text = "Scan cancelled."; return }
+    handleScanned(text)
+  }
+
+  private fun handleScanned(text: String) {
+    status.text = "Scanned: $text"
+    if (text.contains("/host/pair/") || scanMode == "host") {
+      if (::pairField.isInitialized) pairField.setText(text)
+      if (text.contains("tauri.localhost") || text.contains("127.0.0.1")) {
+        status.text = "This Host QR used a local desktop address. Generate a new Host QR from Auralith Desktop."
+        return
+      }
+      claim(text)
+      return
+    }
+    val roomName = UrlParse.normalizeRoom(text)
+    if (roomName != null) {
+      if (::roomField.isInitialized) roomField.setText(roomName)
+      join(roomName)
+      return
+    }
+    status.text = "QR was not a Viewer room URL or Host pairing URL."
   }
 
   private fun overlayLine(): String {

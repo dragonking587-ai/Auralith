@@ -5,13 +5,19 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
   <uses-permission android:name="android.permission.CAMERA" />
-  <application android:label="Auralith Remote" android:usesCleartextTraffic="false">
-    <activity android:name=".MainActivity" android:exported="true" android:theme="@android:style/Theme.DeviceDefault.NoActionBar">
+  <uses-feature android:name="android.hardware.camera" android:required="false" />
+  <application android:label="Auralith Remote" android:usesCleartextTraffic="false" android:theme="@style/Theme.AuralithRemote">
+    <activity android:name=".MainActivity" android:exported="true" android:theme="@style/Theme.AuralithRemote">
       <intent-filter>
         <action android:name="android.intent.action.MAIN" />
         <category android:name="android.intent.category.LAUNCHER" />
       </intent-filter>
     </activity>
+    <activity android:name="com.journeyapps.barcodescanner.CaptureActivity"
+      android:screenOrientation="portrait"
+      android:stateNotNeeded="true"
+      android:theme="@style/Theme.AuralithRemote"
+      android:windowSoftInputMode="stateAlwaysHidden" />
     <service android:name=".OverlayService" android:exported="false" android:foregroundServiceType="specialUse" />
   </application>
 </manifest>
