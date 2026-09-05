@@ -215,5 +215,5 @@ export class PollRelayTransport {
 }
 
 export function defaultRelayUrl() {
-  return localStorage.getItem("auralith.relayUrl") || "";
+  return localStorage.getItem("auralith.relayUrl") || "https://obsidian-production-6e2e.up.railway.app";
 }
