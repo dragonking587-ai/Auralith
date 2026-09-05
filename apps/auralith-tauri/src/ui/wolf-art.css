@@ -1,0 +1,43 @@
+.top {
+  position: relative;
+  padding-left: 190px;
+  background-image:
+    linear-gradient(90deg, rgba(5,6,7,.04) 0 165px, rgba(5,6,7,.76) 218px, transparent 360px),
+    url('/ui/wolf-header-main.webp'),
+    linear-gradient(90deg, rgba(217,184,75,.065), transparent 20%, transparent 78%, rgba(217,184,75,.035)),
+    linear-gradient(180deg,#15120d 0%,#0b0d0f 55%,#090b0d 100%);
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
+  background-position: left center, left center, center, center;
+  background-size: 250px 100%, 175px 90px, 100% 100%, 100% 100%;
+}
+.top::before {
+  content: "";
+  position: absolute;
+  left: 174px;
+  top: 8px;
+  bottom: 8px;
+  width: 1px;
+  background: linear-gradient(transparent, rgba(217,184,75,.6), transparent);
+  box-shadow: 0 0 12px rgba(217,184,75,.18);
+  pointer-events: none;
+}
+.brand { padding-left: 0; }
+.brand::before { display: none; }
+
+@media (max-width: 1280px) {
+  .top {
+    padding-left: 142px;
+    background-size: 210px 100%, 132px 68px, 100% 100%, 100% 100%;
+  }
+  .top::before { left: 133px; }
+}
+@media (max-width: 980px) {
+  .top {
+    padding-left: 16px;
+    background-image:
+      linear-gradient(90deg, rgba(217,184,75,.065), transparent 20%, transparent 78%, rgba(217,184,75,.035)),
+      linear-gradient(180deg,#15120d 0%,#0b0d0f 55%,#090b0d 100%);
+    background-size: 100% 100%, 100% 100%;
+  }
+  .top::before { display: none; }
+}
