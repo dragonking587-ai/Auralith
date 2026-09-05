@@ -1,0 +1,91 @@
+name: Auralith Dark Gold UI Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ui/approved-dark-gold-test]
+    paths:
+      - "apps/auralith-tauri/src/ui/**"
+      - "apps/auralith-host-console/**"
+      - ".github/workflows/ui-dark-gold-test.yml"
+
+jobs:
+  main-ui-test:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/auralith-tauri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install frontend dependencies
+        run: npm install --include=dev --registry https://registry.npmjs.org
+      - name: Build virtual camera DLL
+        working-directory: apps/auralith-tauri/vcam
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "Visual Studio C++ toolchain not found" }
+          $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvars64.bat"
+          cmd /c "`"$vcvars`" && cl /nologo /LD /EHsc /O2 /DUNICODE /D_UNICODE auralith_reborn_vcam.cpp /link /DEF:auralith_reborn_vcam.def strmiids.lib ole32.lib oleaut32.lib uuid.lib kernel32.lib user32.lib advapi32.lib"
+      - name: Stage virtual camera resource
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
+      - name: Build Auralith Reborn UI test installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
+      - name: Collect Main UI test installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ui-test-dist | Out-Null
+          $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "Main UI test NSIS installer not found" }
+          Copy-Item $exe.FullName "ui-test-dist/Auralith-Reborn-Dark-Gold-UI-Test.exe"
+          Get-FileHash "ui-test-dist/Auralith-Reborn-Dark-Gold-UI-Test.exe" -Algorithm SHA256 | Out-File "ui-test-dist/SHA256.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auralith-Reborn-Dark-Gold-UI-Test
+          path: apps/auralith-tauri/ui-test-dist/*
+
+  host-console-ui-test:
+    runs-on: windows-latest
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: apps/auralith-host-console
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install Host Console dependencies
+        run: npm install --include=dev --registry https://registry.npmjs.org
+      - name: Build Host Console UI test installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
+      - name: Collect Host Console UI test installer
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force ui-test-dist | Out-Null
+          $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle/nsis -Filter *.exe | Select-Object -First 1
+          if (-not $exe) { throw "Host Console UI test NSIS installer not found" }
+          Copy-Item $exe.FullName "ui-test-dist/Auralith-Host-Console-Dark-Gold-UI-Test.exe"
+          Get-FileHash "ui-test-dist/Auralith-Host-Console-Dark-Gold-UI-Test.exe" -Algorithm SHA256 | Out-File "ui-test-dist/SHA256.txt"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auralith-Host-Console-Dark-Gold-UI-Test
+          path: apps/auralith-host-console/ui-test-dist/*
