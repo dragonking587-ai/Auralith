@@ -17,6 +17,21 @@
   text-shadow:0 0 12px rgba(255,205,80,.42) !important;
 }
 
+/* The approved Home reference has a clean branding header. Editing controls return on Editor/Effects/etc. */
+.app[data-page="home"] .top {
+  min-height:95px !important;
+  padding:0 !important;
+  background-size:330px 95px,190px 96px,100% 100%,100% 100% !important;
+}
+.app[data-page="home"] .top::before { height:78px; }
+.app[data-page="home"] .top::after { top:auto; bottom:0; }
+.app[data-page="home"] .top > .grp,
+.app[data-page="home"] .top > button:not(.ghost),
+.app[data-page="home"] .top > select,
+.app[data-page="home"] .top > label.chk {
+  display:none !important;
+}
+
 .app[data-page="home"] .stage:not(.clean) {
   grid-template-columns:minmax(360px,46%) minmax(0,54%);
   grid-template-rows:minmax(0,1fr);
@@ -117,6 +132,7 @@
   }
 }
 @media(max-width:900px){
+  .app[data-page="home"] .top { min-height:82px !important; background-size:250px 82px,160px 82px,100% 100% !important; }
   .app[data-page="home"] .stage:not(.clean){
     grid-template-columns:1fr;
     grid-template-rows:minmax(320px,54%) minmax(260px,46%);
@@ -124,5 +140,3 @@
   .app[data-page="home"] .stage:not(.clean) > .canvas-wrap{grid-column:1;grid-row:1}
   .app[data-page="home"] .stage:not(.clean) > .side{grid-column:1;grid-row:2}
 }
-
-/* Build marker: latest reference chrome import is included in this UI-test commit. */
