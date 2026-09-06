@@ -6,6 +6,7 @@
 - Upgraded **Magic Energy** into Auralith’s first experimental cinematic-realism effect.
 - Added a layered procedural energy core, outer shell, plasma volume, tendrils/filaments, orbiting energy ribbons, electrical arcs, sparks, atmospheric haze, and expanding transient shockwaves.
 - Added three clearly labeled experimental quality modes: **Performance (Experimental)**, **High (Experimental)**, and **Cinematic (Experimental)**.
+- Cleaned up the Magic Energy controls so the experimental notice, quality selector, and audio-response sliders remain readable and properly aligned in the side panel.
 
 ### 🎵 Deeper Audio Interaction
 Magic Energy now responds to different parts of the music independently instead of making the whole effect pulse the same way:
