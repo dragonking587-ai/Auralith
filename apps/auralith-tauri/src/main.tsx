@@ -6,6 +6,7 @@ import { HostPage } from "./ui/HostPage";
 import "./ui/styles.css";
 import "./ui/wolf-art.css";
 import "./ui/reference-layout.css";
+import "./ui/effect-controls-cleanup.css";
 import "./ui/referenceChrome";
 
 console.log("REACT_ROOT_FOUND");
