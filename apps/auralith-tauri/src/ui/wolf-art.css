@@ -1,43 +1,211 @@
 .top {
   position: relative;
-  padding-left: 190px;
+  min-height: 148px;
+  padding: 104px 14px 10px !important;
+  gap: 6px !important;
+  align-content: flex-start;
+  overflow: hidden;
   background-image:
-    linear-gradient(90deg, rgba(5,6,7,.04) 0 165px, rgba(5,6,7,.76) 218px, transparent 360px),
-    url('/ui/wolf-header-main.webp'),
-    linear-gradient(90deg, rgba(217,184,75,.065), transparent 20%, transparent 78%, rgba(217,184,75,.035)),
-    linear-gradient(180deg,#15120d 0%,#0b0d0f 55%,#090b0d 100%);
-  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat;
-  background-position: left center, left center, center, center;
-  background-size: 250px 100%, 175px 90px, 100% 100%, 100% 100%;
+    linear-gradient(90deg, rgba(5,6,7,.03) 0 175px, rgba(5,6,7,.72) 208px, rgba(5,6,7,.96) 285px, rgba(5,6,7,.985) 100%),
+    url('../assets/wolf-header-main.webp'),
+    radial-gradient(circle at 31% 18%, rgba(238,185,63,.10), transparent 26%),
+    linear-gradient(180deg,#0d0c0a 0%,#07090a 68%,#050607 100%) !important;
+  background-repeat: no-repeat, no-repeat, no-repeat, no-repeat !important;
+  background-position: left top, 0 2px, center, center !important;
+  background-size: 330px 100px, 198px 100px, 100% 100%, 100% 100% !important;
+  border-bottom: 1px solid rgba(217,184,75,.82) !important;
+  box-shadow: 0 10px 32px rgba(0,0,0,.46), inset 0 -1px 0 rgba(255,220,125,.06) !important;
 }
 .top::before {
   content: "";
   position: absolute;
-  left: 174px;
+  left: 196px;
   top: 8px;
-  bottom: 8px;
+  height: 82px;
   width: 1px;
-  background: linear-gradient(transparent, rgba(217,184,75,.6), transparent);
-  box-shadow: 0 0 12px rgba(217,184,75,.18);
+  background: linear-gradient(transparent, rgba(244,208,104,.72), transparent);
+  box-shadow: 0 0 16px rgba(217,184,75,.26);
   pointer-events: none;
 }
-.brand { padding-left: 0; }
-.brand::before { display: none; }
+.top::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 94px;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(217,184,75,.74), rgba(217,184,75,.18) 32%, rgba(217,184,75,.06) 72%, rgba(217,184,75,.42));
+  pointer-events: none;
+}
+.brand {
+  position: absolute !important;
+  left: 218px;
+  top: 11px;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #f1d77e !important;
+  font-family: Georgia, "Times New Roman", serif !important;
+  font-size: 37px !important;
+  line-height: 1.05 !important;
+  font-weight: 500 !important;
+  letter-spacing: .045em !important;
+  text-transform: none !important;
+  text-shadow: 0 0 22px rgba(238,190,72,.25), 0 1px 0 #5a431d !important;
+  z-index: 2;
+}
+.brand::before { display: none !important; }
+.tagline {
+  position: absolute !important;
+  left: 237px;
+  top: 59px;
+  margin: 0 !important;
+  color: #d4b96d !important;
+  font-size: 10px !important;
+  letter-spacing: .31em !important;
+  white-space: nowrap;
+  text-transform: uppercase;
+  z-index: 2;
+}
+.top > button.ghost {
+  position: absolute !important;
+  top: 16px;
+  min-width: 68px;
+  min-height: 34px;
+  background: linear-gradient(180deg,#141719,#0b0e10) !important;
+  border-color: rgba(217,184,75,.38) !important;
+  color: #ece8dd !important;
+  z-index: 3;
+}
+.top > button.ghost:first-of-type { right: 86px; }
+.top > button.ghost:nth-of-type(2) { right: 12px; }
+.top > .grp,
+.top > button:not(.ghost),
+.top > select,
+.top > label.chk {
+  position: relative;
+  z-index: 2;
+}
+.top > .grp:first-of-type { margin-left: 0 !important; }
+.top > .grp {
+  color: #c3a65d !important;
+  font-size: 8px !important;
+  letter-spacing: .17em !important;
+}
+.top > button:not(.ghost), .top > select {
+  min-height: 31px !important;
+  padding: 5px 9px !important;
+  background: linear-gradient(180deg,#171b1d,#0f1214) !important;
+  border-color: #544524 !important;
+}
+
+.nav {
+  min-height: 64px !important;
+  padding: 5px 12px 6px !important;
+  gap: 3px !important;
+  background: linear-gradient(180deg,#090b0d 0%,#060809 100%) !important;
+  border-bottom: 1px solid rgba(217,184,75,.46) !important;
+}
+.nav button {
+  min-width: 82px !important;
+  min-height: 53px !important;
+  padding: 25px 11px 7px !important;
+  border-radius: 4px !important;
+  font-size: 10px !important;
+  letter-spacing: .02em !important;
+  text-transform: none !important;
+  background: linear-gradient(180deg,#12171a,#0b0f11) !important;
+  border: 1px solid #3a321f !important;
+  color: #e6e1d5 !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018);
+}
+.nav button::before {
+  position: absolute;
+  left: 50%;
+  top: 5px;
+  transform: translateX(-50%);
+  color: #d8d3c9;
+  font-size: 19px;
+  line-height: 1;
+  text-shadow: 0 0 11px rgba(217,184,75,.10);
+}
+.nav button:nth-child(1)::before { content: "⌂"; }
+.nav button:nth-child(2)::before { content: "✎"; }
+.nav button:nth-child(3)::before { content: "✣"; }
+.nav button:nth-child(4)::before { content: "▣"; }
+.nav button:nth-child(5)::before { content: "♪"; }
+.nav button:nth-child(6)::before { content: "▤"; }
+.nav button:nth-child(7)::before { content: "⚙"; }
+.nav button:nth-child(8)::before { content: "⌘"; }
+.nav button:nth-child(9)::before { content: "ⓘ"; }
+.nav button.on {
+  color: #ffe69a !important;
+  border-color: #e0ba45 !important;
+  background: linear-gradient(180deg,#2a2110,#17150f) !important;
+  box-shadow: 0 0 0 1px rgba(238,194,67,.22), 0 0 18px rgba(217,184,75,.18), inset 0 0 18px rgba(217,184,75,.08) !important;
+}
+.nav button.on::before { color: #ffd66b; text-shadow: 0 0 12px rgba(255,205,80,.42); }
+/* The legacy tab model marks multiple buttons active. Keep only one visual active tile per legacy tab until the structural nav pass. */
+.nav button:nth-child(3).on,
+.nav button:nth-child(4).on,
+.nav button:nth-child(6).on,
+.nav button:nth-child(7).on,
+.nav button:nth-child(8).on {
+  color: #e6e1d5 !important;
+  border-color: #3a321f !important;
+  background: linear-gradient(180deg,#12171a,#0b0f11) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.018) !important;
+}
+.nav button:nth-child(3).on::before,
+.nav button:nth-child(4).on::before,
+.nav button:nth-child(6).on::before,
+.nav button:nth-child(7).on::before,
+.nav button:nth-child(8).on::before { color:#d8d3c9; text-shadow:none; }
+
+.canvas-wrap {
+  margin: 12px 10px 12px 12px;
+  border: 1px solid rgba(217,184,75,.62) !important;
+  border-radius: 5px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.42), inset 0 0 0 1px rgba(255,221,125,.025);
+}
+.side {
+  margin: 12px 12px 12px 2px;
+  border: 1px solid rgba(217,184,75,.52) !important;
+  border-radius: 5px;
+  box-shadow: 0 14px 34px rgba(0,0,0,.40);
+}
+.side h3, .pane h3 {
+  color:#f1d77e !important;
+}
+.card {
+  border-color: rgba(217,184,75,.52) !important;
+  border-radius: 5px !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.015), 0 8px 20px rgba(0,0,0,.18) !important;
+}
 
 @media (max-width: 1280px) {
-  .top {
-    padding-left: 142px;
-    background-size: 210px 100%, 132px 68px, 100% 100%, 100% 100%;
-  }
-  .top::before { left: 133px; }
+  .top { min-height: 140px; padding-top: 98px !important; background-size: 280px 94px, 182px 92px, 100% 100%, 100% 100% !important; }
+  .top::before { left: 181px; height: 76px; }
+  .top::after { top: 88px; }
+  .brand { left: 199px; top: 12px; font-size: 31px !important; }
+  .tagline { left: 208px; top: 54px; font-size: 9px !important; }
+  .nav button { min-width: 72px !important; }
 }
 @media (max-width: 980px) {
   .top {
-    padding-left: 16px;
+    min-height: 132px;
+    padding-top: 88px !important;
     background-image:
-      linear-gradient(90deg, rgba(217,184,75,.065), transparent 20%, transparent 78%, rgba(217,184,75,.035)),
-      linear-gradient(180deg,#15120d 0%,#0b0d0f 55%,#090b0d 100%);
-    background-size: 100% 100%, 100% 100%;
+      linear-gradient(90deg,rgba(5,6,7,.12),rgba(5,6,7,.92) 165px,rgba(5,6,7,.99) 260px),
+      url('../assets/wolf-header-main.webp'),
+      linear-gradient(180deg,#0d0c0a,#050607) !important;
+    background-size: 235px 84px, 165px 83px, 100% 100% !important;
   }
-  .top::before { display: none; }
+  .top::before { left:164px; height:68px; }
+  .top::after { top:80px; }
+  .brand { left:178px; top:14px; font-size:25px !important; }
+  .tagline { left:181px; top:49px; font-size:8px !important; letter-spacing:.20em !important; }
+  .top > button.ghost { display:none; }
+  .nav { overflow-x:auto; flex-wrap:nowrap !important; }
+  .canvas-wrap { margin-right:6px; }
+  .side { margin-left:0; }
 }
