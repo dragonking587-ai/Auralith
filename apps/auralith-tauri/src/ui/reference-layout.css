@@ -124,3 +124,5 @@
   .app[data-page="home"] .stage:not(.clean) > .canvas-wrap{grid-column:1;grid-row:1}
   .app[data-page="home"] .stage:not(.clean) > .side{grid-column:1;grid-row:2}
 }
+
+/* Build marker: latest reference chrome import is included in this UI-test commit. */
