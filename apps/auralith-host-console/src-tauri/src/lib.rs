@@ -3,6 +3,7 @@ use tauri::Manager;
 use tauri_plugin_updater::UpdaterExt;
 
 const APPROVED_THEME_CSS: &str = include_str!("../../web/approved-theme.css");
+const WOLF_ART_CSS: &str = include_str!("../../web/wolf-art.css");
 
 #[tauri::command]
 async fn check_console_update(app: tauri::AppHandle) -> Result<Value, String> {
@@ -43,12 +44,13 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .setup(|app| {
             if let Some(window) = app.get_webview_window("main") {
-                let css_json = serde_json::to_string(APPROVED_THEME_CSS)
+                let css = [APPROVED_THEME_CSS, "\n", WOLF_ART_CSS].concat();
+                let css_json = serde_json::to_string(&css)
                     .expect("Host Console theme should serialize");
                 let script = [
                     "(()=>{const css=",
                     &css_json,
-                    ";const apply=()=>{if(document.getElementById('auralith-approved-theme'))return;const s=document.createElement('style');s.id='auralith-approved-theme';s.textContent=css;(document.head||document.documentElement).appendChild(s);};if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply,{once:true});}else{apply();}})();",
+                    ";const apply=()=>{const old=document.getElementById('auralith-approved-theme');if(old)old.remove();const s=document.createElement('style');s.id='auralith-approved-theme';s.textContent=css;(document.head||document.documentElement).appendChild(s);};if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply,{once:true});}else{apply();}})();",
                 ]
                 .concat();
                 let _ = window.eval(&script);
