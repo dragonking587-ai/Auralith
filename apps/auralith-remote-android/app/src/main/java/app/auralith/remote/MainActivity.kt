@@ -31,6 +31,7 @@ class MainActivity : Activity() {
     .callTimeout(15, TimeUnit.SECONDS)
     .connectTimeout(12, TimeUnit.SECONDS)
     .build()
+
   private var room = ""
   private var instanceName = ""
   private var viewerId = "v-" + System.currentTimeMillis().toString(36)
@@ -38,49 +39,62 @@ class MainActivity : Activity() {
   private var hostRole: String? = null
   private var remoteWs: WebSocket? = null
   private var relayOnline = "UNKNOWN"
-  private var lastViewer = "—"
-  private var lastHost = "—"
   private var roundId = ""
   private var stateVersion = 0
   private var votedRound: String? = null
   private var skipOverlay = false
   private lateinit var overlayStatus: TextView
   private lateinit var status: TextView
-  private lateinit var diag: TextView
   private lateinit var roomField: EditText
   private lateinit var pairField: EditText
   private var scanMode = "auto"
 
   override fun onCreate(savedInstanceState: Bundle?) {
     super.onCreate(savedInstanceState)
+
     val root = LinearLayout(this).apply {
       orientation = LinearLayout.VERTICAL
       setPadding(28, 28, 28, 28)
       setBackgroundColor(0xFF070909.toInt())
     }
-    fun label(t: String) = TextView(this).apply { text = t; setTextColor(0xFFD9B84B.toInt()); textSize = 15f; setPadding(0, 10, 0, 6) }
-    fun body(t: String) = TextView(this).apply { text = t; setTextColor(0xFFF4F1EA.toInt()); textSize = 14f }
+
+    fun label(t: String) = TextView(this).apply {
+      text = t
+      setTextColor(0xFFD9B84B.toInt())
+      textSize = 15f
+      setPadding(0, 10, 0, 6)
+    }
+
+    fun body(t: String) = TextView(this).apply {
+      text = t
+      setTextColor(0xFFF4F1EA.toInt())
+      textSize = 14f
+    }
+
     fun field(hint: String) = EditText(this).apply {
       this.hint = hint
       setTextColor(0xFFF4F1EA.toInt())
       setHintTextColor(0x88D9B84B.toInt())
       setBackgroundColor(0xFF161821.toInt())
     }
+
     fun btn(t: String, fn: () -> Unit) = Button(this).apply {
       text = t
       setBackgroundColor(0xFF16120C.toInt())
       setTextColor(0xFFD9B84B.toInt())
       setOnClickListener { fn() }
     }
-    status = label("AURALITH REMOTE ${BuildConfig.VERSION_NAME}")
-    diag = body("Public Relay:\n${RelayConfig.ORIGIN}\nRelay Status: $relayOnline")
+
+    status = body("Ready · Connecting to Auralith server…")
     overlayStatus = body(overlayLine())
     roomField = field("Room name or viewer URL (OBSIDIAN-WOLF)")
     pairField = field("Paste Host pairing URL from desktop QR")
     intent?.data?.toString()?.let { pairField.setText(it) }
 
+    root.addView(label("AURALITH REMOTE ${BuildConfig.VERSION_NAME}"))
+    root.addView(body("CONTROL THE MOMENT · ${BuildConfig.VERSION_NAME.uppercase()} COMPANION"))
     root.addView(status)
-    root.addView(body("CONTROL THE MOMENT · RC.45 COMPANION"))
+
     root.addView(label("VIEWER MODE — PUBLIC"))
     root.addView(body("Viewer QR is public. Join a room name or full Railway URL."))
     root.addView(roomField)
@@ -117,7 +131,10 @@ class MainActivity : Activity() {
     ))
     root.addView(btn("OPEN APP SETTINGS") { openAppSettings() })
     root.addView(btn("OPEN OVERLAY SETTINGS") { openOverlaySettings() })
-    root.addView(btn("CHECK AGAIN") { refreshOverlay(); Toast.makeText(this, overlayLine(), Toast.LENGTH_SHORT).show() })
+    root.addView(btn("CHECK AGAIN") {
+      refreshOverlay()
+      Toast.makeText(this, overlayLine(), Toast.LENGTH_SHORT).show()
+    })
     root.addView(btn("ENABLE FLOATING BUBBLE") { startBubble() })
     root.addView(btn("CONTINUE WITHOUT FLOATING BUBBLE") {
       skipOverlay = true
@@ -129,10 +146,12 @@ class MainActivity : Activity() {
       "Viewer QR = PUBLIC.\nHost QR = PRIVATE.\n" +
         "Instance name is display only.\nClear Votes starts a new round. Old votes must not return."
     ))
-    root.addView(label("DIAGNOSTICS"))
-    root.addView(diag)
-    root.addView(btn("Test Relay Connection") { testHealth() })
-    setContentView(ScrollView(this).apply { addView(root); setBackgroundColor(0xFF070909.toInt()) })
+
+    setContentView(ScrollView(this).apply {
+      addView(root)
+      setBackgroundColor(0xFF070909.toInt())
+    })
+
     intent?.data?.toString()?.takeIf { it.contains("/host/pair/") }?.let { claim(it) }
     testHealth()
     refreshOverlay()
@@ -149,9 +168,14 @@ class MainActivity : Activity() {
       ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.CAMERA), 91)
       return
     }
+
     IntentIntegrator(this).apply {
       setDesiredBarcodeFormats(IntentIntegrator.QR_CODE)
-      setPrompt(if (mode == "host") "Scan Host QR (private pairing URL)" else if (mode == "viewer") "Scan Viewer QR (public room URL)" else "Scan Auralith QR")
+      setPrompt(
+        if (mode == "host") "Scan Host QR (private pairing URL)"
+        else if (mode == "viewer") "Scan Viewer QR (public room URL)"
+        else "Scan Auralith QR"
+      )
       setBeepEnabled(false)
       setOrientationLocked(true)
       setBarcodeImageEnabled(false)
@@ -160,36 +184,49 @@ class MainActivity : Activity() {
   }
 
   override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
-    if (requestCode == 91 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) startScan(scanMode)
-    else Toast.makeText(this, "Camera permission is required to scan QR codes.", Toast.LENGTH_LONG).show()
+    if (requestCode == 91 && grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+      startScan(scanMode)
+    } else {
+      Toast.makeText(this, "Camera permission is required to scan QR codes.", Toast.LENGTH_LONG).show()
+    }
   }
 
   override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
     val result = IntentIntegrator.parseActivityResult(requestCode, resultCode, data)
-    if (result == null) { super.onActivityResult(requestCode, resultCode, data); return }
+    if (result == null) {
+      super.onActivityResult(requestCode, resultCode, data)
+      return
+    }
+
     val text = result.contents?.trim().orEmpty()
-    if (text.isEmpty()) { status.text = "Scan cancelled."; return }
+    if (text.isEmpty()) {
+      status.text = "Scan cancelled."
+      return
+    }
     handleScanned(text)
   }
 
   private fun handleScanned(text: String) {
-    status.text = "Scanned: $text"
+    status.text = "QR scanned · Connecting…"
+
     if (text.contains("/host/pair/") || scanMode == "host") {
       if (::pairField.isInitialized) pairField.setText(text)
       if (text.contains("tauri.localhost") || text.contains("127.0.0.1")) {
-        status.text = "This Host QR used a local desktop address. Generate a new Host QR from Auralith Desktop."
+        status.text = "That Host QR is local-only. Generate a new Host QR from Auralith Desktop."
         return
       }
       claim(text)
       return
     }
+
     val roomName = UrlParse.normalizeRoom(text)
     if (roomName != null) {
       if (::roomField.isInitialized) roomField.setText(roomName)
       join(roomName)
       return
     }
-    status.text = "QR was not a Viewer room URL or Host pairing URL."
+
+    status.text = "That QR is not a valid Auralith Viewer or Host QR."
   }
 
   private fun overlayLine(): String {
@@ -212,11 +249,11 @@ class MainActivity : Activity() {
 
   private fun startBubble() {
     if (skipOverlay) {
-      status.text = "Floating bubble skipped. Use in-app host controls."
+      status.text = "Floating bubble skipped · Use the in-app Host controls."
       return
     }
     if (!Settings.canDrawOverlays(this)) {
-      status.text = "Display over other apps is NOT ALLOWED. Use Open Overlay Settings."
+      status.text = "Overlay access is not enabled yet."
       openOverlaySettings()
       return
     }
@@ -224,15 +261,13 @@ class MainActivity : Activity() {
       status.text = "Join a room or pair as Host first."
       return
     }
-    startService(Intent(this, OverlayService::class.java).putExtra("room", room).putExtra("vid", viewerId))
-    status.text = "Floating bubble started."
-  }
 
-  private fun refreshDiag() {
-    diag.text = "Public Relay:\n${RelayConfig.ORIGIN}\nRelay Status: $relayOnline\n" +
-      "Instance: ${instanceName.ifBlank { "—" }}\nRoom: ${room.ifBlank { "—" }}\nRole: ${hostRole ?: "viewer"}\n" +
-      "roundId: ${roundId.ifBlank { "—" }}  stateVersion: $stateVersion\n" +
-      "Last Viewer Join: $lastViewer\nLast Host Pair: $lastHost"
+    startService(
+      Intent(this, OverlayService::class.java)
+        .putExtra("room", room)
+        .putExtra("vid", viewerId)
+    )
+    status.text = "Floating Host control enabled."
   }
 
   private fun applyState(j: JSONObject) {
@@ -246,61 +281,101 @@ class MainActivity : Activity() {
   }
 
   private fun join(raw: String) {
+    status.text = "Joining room…"
     thread {
       try {
         if (UrlParse.isBlockedHost(raw)) {
-          lastViewer = "blocked local URL"
-          runOnUiThread { status.text = "That address is not a public Railway room."; refreshDiag() }
+          runOnUiThread { status.text = "That address is not a public Auralith room." }
           return@thread
         }
+
         val code = UrlParse.normalizeRoom(raw)
         if (code == null) {
-          lastViewer = "invalid room"
-          runOnUiThread { status.text = "Enter a custom room name or full Railway viewer URL."; refreshDiag() }
+          runOnUiThread { status.text = "Enter a valid room name or scan the Viewer QR." }
           return@thread
         }
+
         val req = Request.Builder().url(RelayConfig.roomStateUrl(code)).build()
         http.newCall(req).execute().use { res ->
           if (!res.isSuccessful) {
-            lastViewer = "HTTP ${res.code}"
-            runOnUiThread { status.text = "Join failed: HTTP ${res.code}"; refreshDiag() }
+            runOnUiThread { status.text = "Room unavailable · Check the room name and try again." }
             return@thread
           }
+
           val j = JSONObject(res.body?.string() ?: "{}")
           room = code
           applyState(j)
-          lastViewer = "SUCCESS $code"
-          runOnUiThread { status.text = "CONNECTED $code · ${instanceName.ifBlank { "room" }}"; refreshDiag() }
+          runOnUiThread {
+            status.text = "Connected · $code · ${instanceName.ifBlank { "Auralith room" }}"
+          }
         }
-      } catch (e: Exception) {
-        lastViewer = e.javaClass.simpleName
-        runOnUiThread { status.text = "Join failed: ${e.message}"; refreshDiag() }
+      } catch (_: Exception) {
+        runOnUiThread { status.text = "Could not join the room · Check your connection and try again." }
       }
     }
   }
 
   private fun vote(option: String) {
-    if (room.isEmpty()) { status.text = "Join a room first"; return }
-    if (votedRound != null && votedRound == roundId) {
-      status.text = "Already voted this round. Clear Votes starts a new round."
+    if (room.isEmpty()) {
+      status.text = "Join a room first."
       return
     }
+    if (votedRound != null && votedRound == roundId) {
+      status.text = "You already voted this round."
+      return
+    }
+
     thread {
-      val body = JSONObject().put("option", option).put("viewerSessionId", viewerId).put("roundId", roundId).toString()
-      val out = post(RelayConfig.voteUrl(room), body)
-      val j = JSONObject(if (out.isBlank()) "{}" else out)
-      if (j.optBoolean("ok", true) && !j.has("error")) votedRound = roundId
-      runOnUiThread { status.text = "Voted $option · $out"; refreshDiag() }
+      try {
+        val body = JSONObject()
+          .put("option", option)
+          .put("viewerSessionId", viewerId)
+          .put("roundId", roundId)
+          .toString()
+        val out = post(RelayConfig.voteUrl(room), body)
+        val j = JSONObject(if (out.isBlank()) "{}" else out)
+        val ok = j.optBoolean("ok", !j.has("error")) && !j.has("error")
+        if (ok) votedRound = roundId
+        runOnUiThread {
+          status.text = if (ok) "Vote recorded · ${option.uppercase()}" else "Vote could not be recorded · Please try again."
+        }
+      } catch (_: Exception) {
+        runOnUiThread { status.text = "Vote could not be recorded · Please try again." }
+      }
     }
   }
 
   private fun react(id: String) {
-    if (room.isEmpty()) { status.text = "Join a room first"; return }
-    thread {
-      val body = JSONObject().put("reactionId", id).put("viewerSessionId", viewerId).put("type", "reaction").toString()
-      val out = post(RelayConfig.reactUrl(room), body)
-      runOnUiThread { status.text = "Reaction $id · $out" }
+    if (room.isEmpty()) {
+      status.text = "Join a room first."
+      return
     }
+
+    thread {
+      try {
+        val body = JSONObject()
+          .put("reactionId", id)
+          .put("viewerSessionId", viewerId)
+          .put("type", "reaction")
+          .toString()
+        val out = post(RelayConfig.reactUrl(room), body)
+        val j = JSONObject(if (out.isBlank()) "{}" else out)
+        val ok = j.optBoolean("ok", !j.has("error")) && !j.has("error")
+        runOnUiThread {
+          status.text = if (ok) "${reactionLabel(id)} sent." else "${reactionLabel(id)} is unavailable right now."
+        }
+      } catch (_: Exception) {
+        runOnUiThread { status.text = "${reactionLabel(id)} is unavailable right now." }
+      }
+    }
+  }
+
+  private fun reactionLabel(id: String): String = when (id) {
+    "fireworks" -> "Fireworks"
+    "lightning" -> "Lightning"
+    "rune_burst" -> "Rune Burst"
+    "meteor_shower" -> "Meteor Shower"
+    else -> "Reaction"
   }
 
   private fun claim(url: String) {
@@ -308,42 +383,41 @@ class MainActivity : Activity() {
       try {
         val parsed = UrlParse.parsePairing(url)
         if (parsed == null) {
-          lastHost = "bad pairing URL"
-          runOnUiThread { status.text = "Need a Host pairing URL with /host/pair/ID?code=..."; refreshDiag() }
+          runOnUiThread { status.text = "Scan or paste a valid Host pairing QR first." }
           return@thread
         }
         if (parsed.blocked || !parsed.originOk) {
-          lastHost = "tauri.localhost rejected"
           runOnUiThread {
-            status.text = "This Host QR was generated with an invalid local desktop address. Generate a new Host QR from the updated Auralith Desktop."
-            refreshDiag()
+            status.text = "That Host QR is local-only. Generate a new Host QR from Auralith Desktop."
           }
           return@thread
         }
-        runOnUiThread { status.text = "CLAIMING…" }
-        val body = JSONObject().put("code", parsed.code).put("deviceName", android.os.Build.MODEL).put("platform", "android").toString()
+
+        runOnUiThread { status.text = "Requesting Host access…" }
+        val body = JSONObject()
+          .put("code", parsed.code)
+          .put("deviceName", android.os.Build.MODEL)
+          .put("platform", "android")
+          .toString()
         val claimed = post(RelayConfig.claimUrl(parsed.id), body)
         val cj = JSONObject(if (claimed.isBlank()) "{}" else claimed)
         if (cj.has("error")) {
-          lastHost = cj.optString("error")
-          runOnUiThread { status.text = "Claim failed: $lastHost"; refreshDiag() }
+          runOnUiThread { status.text = "Host pairing request was not accepted." }
           return@thread
         }
-        lastHost = "WAITING APPROVAL"
-        runOnUiThread { status.text = "Waiting for desktop approval…"; refreshDiag() }
+
+        runOnUiThread { status.text = "Waiting for desktop approval…" }
         repeat(45) {
           Thread.sleep(2000)
           val st = get(RelayConfig.statusUrl(parsed.id))
           val j = JSONObject(if (st.isBlank()) "{}" else st)
           when (j.optString("status")) {
             "denied" -> {
-              lastHost = "DENIED"
-              runOnUiThread { status.text = "Desktop denied pairing."; refreshDiag() }
+              runOnUiThread { status.text = "Host pairing was denied on the desktop." }
               return@thread
             }
             "expired" -> {
-              lastHost = "EXPIRED"
-              runOnUiThread { status.text = "Pairing expired. Generate a new Host QR."; refreshDiag() }
+              runOnUiThread { status.text = "Host pairing expired · Generate a new Host QR." }
               return@thread
             }
             "approved" -> {
@@ -351,8 +425,7 @@ class MainActivity : Activity() {
                 hostToken = j.getString("token")
                 hostRole = j.optString("role")
                 room = j.optString("roomId")
-                lastHost = "SUCCESS"
-                runOnUiThread { status.text = "HOST REMOTE CONNECTED · $hostRole · $room"; refreshDiag() }
+                runOnUiThread { status.text = "Host Remote connected · $room" }
                 openRemoteSocket(room, hostToken!!)
                 join(room)
                 return@thread
@@ -360,11 +433,10 @@ class MainActivity : Activity() {
             }
           }
         }
-        lastHost = "timeout"
-        runOnUiThread { status.text = "Timed out waiting for desktop Approve."; refreshDiag() }
-      } catch (e: Exception) {
-        lastHost = e.javaClass.simpleName
-        runOnUiThread { status.text = "Pair failed: ${e.message}"; refreshDiag() }
+
+        runOnUiThread { status.text = "Host approval timed out · Generate a new Host QR and try again." }
+      } catch (_: Exception) {
+        runOnUiThread { status.text = "Host pairing failed · Please try again." }
       }
     }
   }
@@ -376,41 +448,79 @@ class MainActivity : Activity() {
         Request.Builder().url(RelayConfig.remoteWs(roomId, token)).build(),
         object : WebSocketListener() {}
       )
-    } catch (_: Exception) { }
+    } catch (_: Exception) {
+    }
   }
 
   private fun remote(cmd: String) {
     val tok = hostToken
-    if (tok == null || room.isEmpty()) { status.text = "Host remote is not connected."; return }
-    thread {
-      val body = JSONObject().put("cmd", cmd).toString()
-      val req = Request.Builder().url(RelayConfig.remoteCmdUrl(room))
-        .addHeader("authorization", "Bearer $tok")
-        .post(body.toRequestBody("application/json".toMediaType())).build()
-      val out = http.newCall(req).execute().use { it.body?.string().orEmpty() }
-      if (cmd.contains("clear")) votedRound = null
-      runOnUiThread { status.text = "Sent $cmd · $out" }
+    if (tok == null || room.isEmpty()) {
+      status.text = "Host Remote is not connected."
+      return
     }
+
+    thread {
+      try {
+        val body = JSONObject().put("cmd", cmd).toString()
+        val req = Request.Builder().url(RelayConfig.remoteCmdUrl(room))
+          .addHeader("authorization", "Bearer $tok")
+          .post(body.toRequestBody("application/json".toMediaType()))
+          .build()
+
+        val result = http.newCall(req).execute().use { res ->
+          val raw = res.body?.string().orEmpty()
+          val serverError = runCatching { JSONObject(if (raw.isBlank()) "{}" else raw).optString("error") }.getOrDefault("")
+          res.isSuccessful && serverError.isBlank()
+        }
+
+        if (cmd.contains("clear") && result) votedRound = null
+        runOnUiThread {
+          status.text = if (result) "${remoteLabel(cmd)} sent." else "${remoteLabel(cmd)} could not be sent."
+        }
+      } catch (_: Exception) {
+        runOnUiThread { status.text = "${remoteLabel(cmd)} could not be sent." }
+      }
+    }
+  }
+
+  private fun remoteLabel(cmd: String): String = when (cmd) {
+    "poll_start" -> "Start Poll"
+    "poll_end" -> "End Poll"
+    "poll_clear" -> "Clear Votes"
+    "poll_clear_restore" -> "Clear + Restore"
+    "fireworks_preview" -> "Preview Fireworks"
+    else -> "Host command"
   }
 
   private fun testHealth() {
     thread {
-      try {
+      relayOnline = try {
         val req = Request.Builder().url(RelayConfig.healthUrl()).build()
-        http.newCall(req).execute().use { res ->
-          relayOnline = if (res.isSuccessful) "ONLINE" else "HTTP ${res.code}"
-        }
-      } catch (e: Exception) {
-        relayOnline = "OFFLINE ${e.javaClass.simpleName}"
+        http.newCall(req).execute().use { res -> if (res.isSuccessful) "ONLINE" else "OFFLINE" }
+      } catch (_: Exception) {
+        "OFFLINE"
       }
-      runOnUiThread { refreshDiag(); status.text = "Relay $relayOnline" }
+
+      runOnUiThread {
+        if (room.isEmpty() && hostToken == null) {
+          status.text = if (relayOnline == "ONLINE") {
+            "Ready · Auralith server online"
+          } else {
+            "Auralith server unavailable · Check your connection"
+          }
+        }
+      }
     }
   }
 
   private fun post(url: String, body: String): String {
-    val req = Request.Builder().url(url).post(body.toRequestBody("application/json".toMediaType())).build()
+    val req = Request.Builder()
+      .url(url)
+      .post(body.toRequestBody("application/json".toMediaType()))
+      .build()
     return http.newCall(req).execute().use { it.body?.string() ?: "{}" }
   }
+
   private fun get(url: String): String {
     val req = Request.Builder().url(url).build()
     return http.newCall(req).execute().use { it.body?.string() ?: "{}" }
