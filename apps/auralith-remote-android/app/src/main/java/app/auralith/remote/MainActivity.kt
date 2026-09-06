@@ -58,21 +58,21 @@ class MainActivity : Activity() {
       setPadding(28, 28, 28, 28)
       setBackgroundColor(0xFF070909.toInt())
     }
-    fun label(t: String) = TextView(this).apply { text = t; setTextColor(0xFFD4AF37.toInt()); textSize = 15f; setPadding(0, 10, 0, 6) }
+    fun label(t: String) = TextView(this).apply { text = t; setTextColor(0xFFD9B84B.toInt()); textSize = 15f; setPadding(0, 10, 0, 6) }
     fun body(t: String) = TextView(this).apply { text = t; setTextColor(0xFFF4F1EA.toInt()); textSize = 14f }
     fun field(hint: String) = EditText(this).apply {
       this.hint = hint
       setTextColor(0xFFF4F1EA.toInt())
-      setHintTextColor(0x88D4AF37.toInt())
+      setHintTextColor(0x88D9B84B.toInt())
       setBackgroundColor(0xFF161821.toInt())
     }
     fun btn(t: String, fn: () -> Unit) = Button(this).apply {
       text = t
       setBackgroundColor(0xFF16120C.toInt())
-      setTextColor(0xFFD4AF37.toInt())
+      setTextColor(0xFFD9B84B.toInt())
       setOnClickListener { fn() }
     }
-    status = label("AURALITH REMOTE 1.0.0-remote.5")
+    status = label("AURALITH REMOTE ${BuildConfig.VERSION_NAME}")
     diag = body("Public Relay:\n${RelayConfig.ORIGIN}\nRelay Status: $relayOnline")
     overlayStatus = body(overlayLine())
     roomField = field("Room name or viewer URL (OBSIDIAN-WOLF)")
@@ -80,6 +80,7 @@ class MainActivity : Activity() {
     intent?.data?.toString()?.let { pairField.setText(it) }
 
     root.addView(status)
+    root.addView(body("CONTROL THE MOMENT · RC.45 COMPANION"))
     root.addView(label("VIEWER MODE — PUBLIC"))
     root.addView(body("Viewer QR is public. Join a room name or full Railway URL."))
     root.addView(roomField)
@@ -104,13 +105,15 @@ class MainActivity : Activity() {
     root.addView(label("FLOATING HOST CONTROL SETUP"))
     root.addView(overlayStatus)
     root.addView(body(
-      "Sideloaded APKs on modern Android may need Allow restricted settings before overlay works.\n\n" +
-        "1. Settings → Apps → Auralith Remote\n" +
-        "2. Three-dot menu → Allow restricted settings (if shown)\n" +
-        "3. Settings → Special app access → Display over other apps\n" +
-        "4. Enable Auralith Remote\n" +
-        "5. Return here → Check Again\n\n" +
-        "Pixel / stock Android example uses that path. OEM menus vary."
+      "Sideloaded APKs on Android 13+ may need Allow restricted settings before Display over other apps can be enabled.\n\n" +
+        "1. Open Android Settings → Apps\n" +
+        "2. Tap Auralith Remote (or See all apps → Auralith Remote)\n" +
+        "3. Tap ⋮ in the TOP-RIGHT corner\n" +
+        "4. Tap Allow restricted settings and confirm if prompted\n" +
+        "5. Go to Settings → Apps → Special app access → Display over other apps\n" +
+        "6. Tap Auralith Remote → Allow display over other apps\n" +
+        "7. Return here → CHECK AGAIN → ENABLE FLOATING BUBBLE\n\n" +
+        "Only enable restricted settings for an APK downloaded from the official Auralith GitHub release. Pixel / stock Android uses this path; OEM menus can vary."
     ))
     root.addView(btn("OPEN APP SETTINGS") { openAppSettings() })
     root.addView(btn("OPEN OVERLAY SETTINGS") { openOverlaySettings() })
@@ -192,7 +195,7 @@ class MainActivity : Activity() {
   private fun overlayLine(): String {
     val allowed = Settings.canDrawOverlays(this)
     return "OVERLAY ACCESS: ${if (allowed) "ALLOWED" else "NOT ALLOWED"}\n" +
-      "Restricted settings: Android may require Allow restricted settings before overlay can be enabled."
+      "If blocked: Settings → Apps → Auralith Remote → ⋮ → Allow restricted settings, then enable Display over other apps."
   }
 
   private fun refreshOverlay() {

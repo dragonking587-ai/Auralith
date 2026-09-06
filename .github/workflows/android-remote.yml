@@ -1,4 +1,5 @@
 name: Build Auralith Remote Android
+
 on:
   workflow_dispatch:
   push:
@@ -6,6 +7,10 @@ on:
     paths:
       - "apps/auralith-remote-android/**"
       - ".github/workflows/android-remote.yml"
+
+permissions:
+  contents: write
+
 jobs:
   apk:
     runs-on: ubuntu-latest
@@ -14,25 +19,138 @@ jobs:
         working-directory: apps/auralith-remote-android
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: "17"
+
       - uses: android-actions/setup-android@v3
+
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: "8.9"
-      - name: Assemble debug APK
+
+      - name: Read Android companion version
+        id: ver
+        shell: bash
+        run: |
+          VERSION=$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)
+          test -n "$VERSION"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Android companion version: $VERSION"
+
+      - name: Assemble installable debug APK
         run: gradle assembleDebug --no-daemon
-      - name: Collect APK
+
+      - name: Collect APK and Android installation guide
+        shell: bash
         run: |
           mkdir -p dist-apk
-          APK=$(find app/build/outputs/apk -name "*.apk" | head -n 1)
+          APK=$(find app/build/outputs/apk/debug -name "*.apk" | head -n 1)
           test -n "$APK"
-          cp "$APK" dist-apk/Auralith-Remote-1.0.0-remote.5-debug.apk
-          cp "$APK" dist-apk/Auralith-Remote-debug.apk
-          sha256sum dist-apk/Auralith-Remote-1.0.0-remote.5-debug.apk | tee dist-apk/SHA256SUMS.txt
+          VERSION="${{ steps.ver.outputs.version }}"
+          OUT="dist-apk/Auralith-Remote-$VERSION.apk"
+          cp "$APK" "$OUT"
+
+          cat > dist-apk/ANDROID-INSTALLATION.txt <<'EOF'
+          AURALITH REMOTE — ANDROID INSTALLATION
+
+          Download the APK only from the official dragonking587-ai/Auralith GitHub release.
+
+          INSTALL
+          1. Download the Auralith Remote APK from the matching Auralith release.
+          2. Open the APK on Android.
+          3. If Android asks, allow your browser or file manager to install unknown apps for this installation.
+          4. Install and launch Auralith Remote.
+
+          ANDROID 13+ — ALLOW RESTRICTED SETTINGS
+          A sideloaded APK may be blocked from enabling Display over other apps until you explicitly allow restricted settings.
+
+          1. Open Android Settings.
+          2. Tap Apps.
+          3. Tap Auralith Remote. If necessary, tap See all apps first.
+          4. On the Auralith Remote App info screen, tap the three-dot menu (⋮) in the TOP-RIGHT corner.
+          5. Tap Allow restricted settings.
+          6. Confirm with your PIN, pattern, fingerprint, or other device authentication if Android asks.
+          7. Go back to Settings → Apps → Special app access → Display over other apps.
+          8. Select Auralith Remote and enable Allow display over other apps.
+          9. Return to Auralith Remote, tap CHECK AGAIN, then ENABLE FLOATING BUBBLE.
+
+          Only allow restricted settings when you trust the APK source. Pixel / stock Android uses the path above; other Android manufacturers may rename or move the Special app access menu.
+
+          NOTE ABOUT THIS CI APK
+          This APK is debug-signed for sideload testing. If Android refuses to install it over an older Auralith Remote build because the signing certificate differs, uninstall the older Auralith Remote APK first and then install this version.
+          EOF
+
+          sed -i 's/^          //' dist-apk/ANDROID-INSTALLATION.txt
+          sha256sum "$OUT" | tee dist-apk/SHA256SUMS-ANDROID.txt
+          ls -lh dist-apk
+
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Remote-debug
+          name: Auralith-Remote-${{ steps.ver.outputs.version }}
           path: apps/auralith-remote-android/dist-apk/*
+
+      - name: Attach Android APK and instructions to matching Auralith release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          VERSION="${{ steps.ver.outputs.version }}"
+          TAG="${{ steps.ver.outputs.tag }}"
+          REPO="dragonking587-ai/Auralith"
+          APK="dist-apk/Auralith-Remote-$VERSION.apk"
+
+          if ! gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "::error::Matching release $TAG does not exist. Publish the desktop release first, then rerun this Android workflow."
+            exit 1
+          fi
+
+          gh release upload "$TAG" \
+            "$APK" \
+            dist-apk/ANDROID-INSTALLATION.txt \
+            dist-apk/SHA256SUMS-ANDROID.txt \
+            --repo "$REPO" --clobber
+
+          BODY_FILE=$(mktemp)
+          gh release view "$TAG" --repo "$REPO" --json body -q .body > "$BODY_FILE"
+          MARKER="## 📱 Android Companion App"
+
+          if ! grep -Fq "$MARKER" "$BODY_FILE"; then
+            cat >> "$BODY_FILE" <<EOF
+
+          ## 📱 Android Companion App
+
+          Auralith Remote has been updated to **$VERSION** to match the desktop RC.45 generation.
+
+          - Viewer QR joining, room voting, and approved audience reactions remain available.
+          - Private Host QR pairing and approved Host Remote controls remain available.
+          - The Android companion keeps the dark black-and-gold Auralith visual direction.
+          - The floating Host control includes in-app guidance for Android restricted settings and Display over other apps.
+          - Android APK: **Auralith-Remote-$VERSION.apk**
+
+          ### Android 13+ — Allow restricted settings
+
+          If Android blocks the floating overlay permission after sideloading the APK:
+
+          1. Open **Settings → Apps → Auralith Remote**.
+          2. Tap the **three-dot menu (⋮) in the top-right corner**.
+          3. Tap **Allow restricted settings** and confirm if prompted.
+          4. Go to **Settings → Apps → Special app access → Display over other apps**.
+          5. Select **Auralith Remote** and enable **Allow display over other apps**.
+          6. Return to Auralith Remote and tap **CHECK AGAIN**, then **ENABLE FLOATING BUBBLE**.
+
+          Only enable restricted settings for the Auralith APK downloaded from this official GitHub release. Manufacturer menu names can vary slightly.
+
+          **Sideload note:** this CI APK is debug-signed. If Android reports a signing conflict with an older companion APK, uninstall the older Auralith Remote app first and then install this APK.
+          EOF
+            sed -i 's/^          //' "$BODY_FILE"
+            gh release edit "$TAG" --repo "$REPO" --notes-file "$BODY_FILE"
+            echo "Added Android companion installation instructions to $TAG release notes."
+          else
+            echo "Android companion release-note section already exists; leaving it unchanged."
+          fi
+
+          gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name'

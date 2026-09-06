@@ -1,7 +1,9 @@
 <resources>
   <style name="Theme.AuralithRemote" parent="Theme.AppCompat.NoActionBar">
     <item name="android:windowBackground">#070909</item>
-    <item name="colorPrimary">#D4AF37</item>
-    <item name="colorAccent">#D4AF37</item>
+    <item name="colorPrimary">#D9B84B</item>
+    <item name="colorAccent">#D9B84B</item>
+    <item name="android:navigationBarColor">#050607</item>
+    <item name="android:statusBarColor">#050607</item>
   </style>
 </resources>
