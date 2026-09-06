@@ -1,0 +1,142 @@
+/* Reference-image structural polish layered on top of the existing functional UI. */
+.nav button.on {
+  color:#e6e1d5 !important;
+  border-color:#3a321f !important;
+  background:linear-gradient(180deg,#12171a,#0b0f11) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.018) !important;
+}
+.nav button.on::before { color:#d8d3c9 !important; text-shadow:none !important; }
+.nav button.ref-active {
+  color:#ffe69a !important;
+  border-color:#e0ba45 !important;
+  background:linear-gradient(180deg,#2a2110,#17150f) !important;
+  box-shadow:0 0 0 1px rgba(238,194,67,.22),0 0 18px rgba(217,184,75,.18),inset 0 0 18px rgba(217,184,75,.08) !important;
+}
+.nav button.ref-active::before {
+  color:#ffd66b !important;
+  text-shadow:0 0 12px rgba(255,205,80,.42) !important;
+}
+
+/* The approved Home reference has a clean branding header. Editing controls return on Editor/Effects/etc. */
+.app[data-page="home"] .top {
+  min-height:95px !important;
+  padding:0 !important;
+  background-size:330px 95px,190px 96px,100% 100%,100% 100% !important;
+}
+.app[data-page="home"] .top::before { height:78px; }
+.app[data-page="home"] .top::after { top:auto; bottom:0; }
+.app[data-page="home"] .top > .grp,
+.app[data-page="home"] .top > button:not(.ghost),
+.app[data-page="home"] .top > select,
+.app[data-page="home"] .top > label.chk {
+  display:none !important;
+}
+
+.app[data-page="home"] .stage:not(.clean) {
+  grid-template-columns:minmax(360px,46%) minmax(0,54%);
+  grid-template-rows:minmax(0,1fr);
+  gap:12px;
+  padding:12px;
+  background:
+    radial-gradient(circle at 80% 18%,rgba(217,184,75,.035),transparent 28%),
+    linear-gradient(180deg,#060809,#050607);
+}
+.app[data-page="home"] .stage:not(.clean) > .side {
+  grid-column:1;
+  grid-row:1;
+  margin:0;
+  border:1px solid rgba(217,184,75,.62) !important;
+  background:
+    linear-gradient(145deg,rgba(217,184,75,.025),transparent 30%),
+    linear-gradient(180deg,#0c1012,#080b0d) !important;
+  box-shadow:0 16px 38px rgba(0,0,0,.42),inset 0 1px 0 rgba(255,255,255,.015);
+}
+.app[data-page="home"] .stage:not(.clean) > .canvas-wrap {
+  grid-column:2;
+  grid-row:1;
+  margin:0;
+  border:1px solid rgba(217,184,75,.66) !important;
+  background:linear-gradient(180deg,#0c1012,#050607) !important;
+  box-shadow:0 16px 38px rgba(0,0,0,.44),inset 0 1px 0 rgba(255,255,255,.015);
+  padding-top:37px;
+}
+.app[data-page="home"] .stage:not(.clean) > .canvas-wrap::before {
+  content:"⚙  VISUAL PREVIEW";
+  position:absolute;
+  z-index:12;
+  left:0;right:0;top:0;
+  height:37px;
+  display:flex;
+  align-items:center;
+  padding:0 13px;
+  color:#f1d77e;
+  font-size:10px;
+  font-weight:700;
+  letter-spacing:.13em;
+  background:linear-gradient(180deg,#121619,#0b0e10);
+  border-bottom:1px solid rgba(217,184,75,.44);
+  box-shadow:0 7px 20px rgba(0,0,0,.22);
+}
+.app[data-page="home"] .stage:not(.clean) > .canvas-wrap::after {
+  top:49px;
+  inset-inline:12px;
+  bottom:12px;
+  border-color:rgba(217,184,75,.11);
+}
+.app[data-page="home"] .stage:not(.clean) canvas#gl {
+  height:100%;
+  border-top:0;
+}
+.app[data-page="home"] .stage:not(.clean) .pane {
+  padding:10px 11px 24px;
+  gap:7px;
+}
+.app[data-page="home"] .stage:not(.clean) .card {
+  background:
+    linear-gradient(145deg,rgba(217,184,75,.032),transparent 38%),
+    linear-gradient(180deg,#111719,#0b0f11) !important;
+  border-color:rgba(217,184,75,.58) !important;
+}
+.app[data-page="home"] .stage:not(.clean) .card::before {
+  opacity:.78;
+}
+.app[data-page="home"] .stage:not(.clean) .statusstrip {
+  left:15px;
+  bottom:14px;
+  border-color:rgba(217,184,75,.26);
+}
+
+/* Keep editing pages spacious and canvas-led, while preserving the same reference chrome. */
+.app[data-page="editor"] .stage:not(.clean),
+.app[data-page="effects"] .stage:not(.clean),
+.app[data-page="scenes"] .stage:not(.clean),
+.app[data-page="audio"] .stage:not(.clean),
+.app[data-page="output"] .stage:not(.clean),
+.app[data-page="server"] .stage:not(.clean),
+.app[data-page="devices"] .stage:not(.clean),
+.app[data-page="about"] .stage:not(.clean) {
+  background:linear-gradient(180deg,#060809,#050607);
+}
+
+.foot {
+  border-top-color:rgba(217,184,75,.52) !important;
+  background:
+    radial-gradient(circle at 50% 100%,rgba(217,184,75,.07),transparent 36%),
+    linear-gradient(180deg,#0a0d0f,#050607) !important;
+  letter-spacing:.08em;
+}
+
+@media(max-width:1180px){
+  .app[data-page="home"] .stage:not(.clean){
+    grid-template-columns:minmax(330px,43%) minmax(0,57%);
+  }
+}
+@media(max-width:900px){
+  .app[data-page="home"] .top { min-height:82px !important; background-size:250px 82px,160px 82px,100% 100% !important; }
+  .app[data-page="home"] .stage:not(.clean){
+    grid-template-columns:1fr;
+    grid-template-rows:minmax(320px,54%) minmax(260px,46%);
+  }
+  .app[data-page="home"] .stage:not(.clean) > .canvas-wrap{grid-column:1;grid-row:1}
+  .app[data-page="home"] .stage:not(.clean) > .side{grid-column:1;grid-row:2}
+}

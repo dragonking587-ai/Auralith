@@ -1,9 +1,10 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "Auralith Host Console",
-  "version": "1.0.0-rc.43",
+  "version": "1.0.0-rc.45",
   "identifier": "com.auralith.host.console",
   "build": {
+    "beforeBuildCommand": "node scripts/sync-version.mjs",
     "frontendDist": "../web"
   },
   "app": {

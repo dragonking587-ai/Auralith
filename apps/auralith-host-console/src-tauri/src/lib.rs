@@ -2,6 +2,9 @@ use serde_json::{json, Value};
 use tauri::Manager;
 use tauri_plugin_updater::UpdaterExt;
 
+const APPROVED_THEME_CSS: &str = include_str!("../../web/approved-theme.css");
+const WOLF_ART_CSS: &str = include_str!("../../web/wolf-art.css");
+
 #[tauri::command]
 async fn check_console_update(app: tauri::AppHandle) -> Result<Value, String> {
     let updater = app.updater_builder().build().map_err(|e| e.to_string())?;
@@ -39,6 +42,21 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
+        .setup(|app| {
+            if let Some(window) = app.get_webview_window("main") {
+                let css = [APPROVED_THEME_CSS, "\n", WOLF_ART_CSS].concat();
+                let css_json = serde_json::to_string(&css)
+                    .expect("Host Console theme should serialize");
+                let script = [
+                    "(()=>{const css=",
+                    &css_json,
+                    ";const apply=()=>{const old=document.getElementById('auralith-approved-theme');if(old)old.remove();const s=document.createElement('style');s.id='auralith-approved-theme';s.textContent=css;(document.head||document.documentElement).appendChild(s);};if(document.readyState==='loading'){document.addEventListener('DOMContentLoaded',apply,{once:true});}else{apply();}})();",
+                ]
+                .concat();
+                let _ = window.eval(&script);
+            }
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![check_console_update, install_console_update])
         .run(tauri::generate_context!())
         .expect("error while running Auralith Host Console");
