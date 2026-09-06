@@ -13,7 +13,8 @@ uniform vec2 uRes; uniform float uTime; uniform float uMod;
 uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform float uKind; uniform float uInt;
 uniform vec2 uOrigin; uniform float uRadius;
 uniform float uP0; uniform float uP1; uniform float uP2;
-uniform float uQ; uniform float uBass; uniform float uMid; uniform float uHigh; uniform float uBeat;
+uniform float uQ; uniform float uBass; uniform float uLow; uniform float uMid; uniform float uHigh; uniform float uBeat; uniform float uTransient;
+uniform float uMagicQ; uniform float uMagicBass; uniform float uMagicLow; uniform float uMagicMid; uniform float uMagicHigh; uniform float uMagicTransient; uniform float uMagicBeat; uniform float uMagicShock;
 uniform sampler2D uMask; uniform float uUseMask;
 uniform sampler2D uSdf; uniform float uUseSdf; uniform float uApply; uniform float uBoundW; uniform float uPathT;
 uniform vec2 uVpXY; uniform vec2 uVpWH;
@@ -177,19 +178,86 @@ void main(){
     a = (ring*1.3+tail)*kick*m;
     col = mix(mix(uA,uB,rad), uC, ring);
   } else if (k < 19.5) {
-    float swirl = ang + t*(0.35+uMid*0.4) + fbm(p*1.8)*1.4;
-    vec2 tp = vec2(cos(swirl),sin(swirl))*d;
-    float mass = fbm(tp*(1.6+p0*2.0)+t*0.12);
-    float tendN = 4.0+floor(p2*10.0);
-    float tend = pow(abs(sin(ang*tendN + mass*5.0 + t*(0.7+uMid))), 2.2+p1);
-    tend *= exp(-d*(0.9+0.4*(1.0-p1)));
-    float core = exp(-d*(3.2-uBass*1.4-p0));
-    float bloom = exp(-d*0.55)*0.28;
-    float dissolve = smoothstep(1.15,0.35,d+mass*0.25);
-    float spark = step(0.92, hash(floor(p*18.0)+floor(t*12.0)))*uHigh;
-    a = (core*1.15 + tend*0.75*m + bloom*m + spark*0.35)*dissolve;
-    col = mix(mix(uA,uB,mass), uC, clamp(core+spark,0.0,1.0));
-    col = hueShift(col, uBeat*0.08);
+    // Magic Energy realism tiers are deliberately experimental. Performance keeps
+    // the inexpensive live look; High and Cinematic add progressively richer
+    // plasma structure, orbital ribbons, electrical detail, haze and shockwaves.
+    float mq = clamp(uMagicQ,0.0,2.0);
+    float mb = clamp(uMagicBass,0.0,2.0);
+    float ml = clamp(uMagicLow,0.0,2.0);
+    float mm = clamp(uMagicMid,0.0,2.0);
+    float mh = clamp(uMagicHigh,0.0,2.0);
+    float mt = clamp(uMagicTransient,0.0,2.0);
+    float bt = clamp(uMagicBeat,0.0,2.0);
+    float shockAge = clamp(uMagicShock,0.0,1.0);
+
+    float coreR = 0.145 + p0*0.115 + mb*0.055 + bt*0.03;
+    float coreD = d/max(coreR,0.055);
+    float core = exp(-coreD*coreD*2.25);
+    float hotCore = exp(-coreD*coreD*7.0)*(0.85 + mb*0.85 + bt*0.55);
+    float shellR = 0.34 + p0*0.055 + mb*0.055 + bt*0.025;
+    float shell = exp(-abs(d-shellR)*(24.0+mq*7.0))*(0.35+mb*0.45+bt*0.25);
+
+    if (mq < 0.5) {
+      float swirl = ang + t*(0.35+mm*0.45) + fbm(p*1.8)*1.4;
+      vec2 tp = vec2(cos(swirl),sin(swirl))*d;
+      float mass = fbm(tp*(1.6+p0*2.0)+t*0.12);
+      float tendN = 4.0+floor(p2*8.0);
+      float tend = pow(abs(sin(ang*tendN + mass*5.0 + t*(0.7+mm))), 2.2+p1);
+      tend *= exp(-d*(0.9+0.4*(1.0-p1)));
+      float spark = step(0.94, hash(floor(p*18.0)+floor(t*12.0)))*mh;
+      float dissolve = smoothstep(1.18,0.35,d+mass*0.22);
+      a = (core*1.2 + hotCore*0.55 + shell*0.3 + tend*0.72*m + exp(-d*0.55)*0.18*m + spark*0.3)*dissolve;
+      col = mix(mix(uB,uA,core), uC, clamp(hotCore+spark,0.0,1.0));
+    } else {
+      float qNoise = min(3.0, uQ + mq*0.65);
+      vec2 mp = warp(p*(1.05+p0*0.55), t*(0.28+mm*0.24), 0.14+ml*0.11+mm*0.07);
+      float massA = fbmQ(mp*(1.35+p0*0.65)+vec2(t*(0.08+ml*0.07),-t*0.055), qNoise);
+      float massB = fbmQ(warp(mp*2.1+7.3,t*0.37,0.16)*(1.15+p1*0.35), qNoise);
+      float volume = smoothstep(0.16,0.76,massA*0.72+massB*0.42) * exp(-d*(0.58+0.08*(1.0-p1)));
+      volume *= (0.38+ml*0.48+mm*0.32);
+
+      float tendN = 4.0 + floor(p2*8.0);
+      float filamentWave = abs(sin(ang*tendN + d*(5.2+ml*2.2) - t*(0.7+mm*1.6) + massA*5.4));
+      float tend = pow(max(0.0,1.0-filamentWave), 3.2+p1*1.7);
+      tend *= exp(-d*(0.62+0.18*(1.0-p1))) * (0.35+mm*0.85+ml*0.35);
+
+      float orbit1R = 0.43 + 0.075*sin(ang*2.0 + t*(0.55+mm*0.9) + massA*1.8);
+      float orbit2R = 0.58 + 0.085*sin(ang*3.0 - t*(0.42+mm*0.75) + massB*2.1);
+      float orbit1 = exp(-abs(d-orbit1R)*(30.0+p1*12.0));
+      float orbit2 = exp(-abs(d-orbit2R)*(27.0+p1*10.0));
+      float cine = step(1.5,mq);
+      float orbit3R = 0.73 + 0.095*sin(ang*2.0 + t*(0.34+mm*0.65) + massA*2.6);
+      float orbit3 = exp(-abs(d-orbit3R)*(24.0+p1*9.0))*cine;
+      float orbitGlow = (orbit1*0.72 + orbit2*0.55 + orbit3*0.48)*(0.4+mm*0.65+bt*0.2);
+
+      float arcPhase = abs(sin(ang*(5.0+p2*5.0) + massB*7.0 + t*(1.7+mt*2.7)));
+      float arcs = pow(max(0.0,1.0-arcPhase), 15.0+p1*8.0);
+      arcs *= exp(-d*0.48) * (0.08+mt*1.55+mh*0.3);
+
+      vec2 sparkCell = floor((p+vec2(t*0.018,-t*0.026))*(20.0+mq*8.0));
+      float sparkHash = hash(sparkCell + floor(t*(10.0+mh*8.0)));
+      float sparkGate = step(0.985 - mh*0.055 - mq*0.006, sparkHash);
+      float sparkZone = smoothstep(0.18,0.38,d) * (1.0-smoothstep(1.12,1.5,d));
+      float sparks = sparkGate*sparkZone*(0.25+mh*1.35+mt*0.45);
+
+      float shockR = 0.24 + shockAge*1.18;
+      float shock = exp(-abs(d-shockR)*(30.0+mq*8.0));
+      shock *= (1.0-shockAge)*(0.25+mt*1.7);
+
+      float hazeN = fbmQ(warp(p*0.82+vec2(0.0,-t*(0.025+ml*0.03)),t*0.2,0.22), qNoise);
+      float haze = smoothstep(0.28,0.78,hazeN) * exp(-d*0.42) * (0.08+ml*0.22+mm*0.12);
+      haze *= 0.55 + cine*0.8;
+
+      float dissolve = smoothstep(1.5,0.28,d + (massA-0.5)*0.18);
+      float plasma = volume*0.75 + tend*0.9 + orbitGlow + haze;
+      a = (core*1.05 + hotCore*0.82 + shell*0.7 + plasma*m + arcs*0.85 + sparks*0.9 + shock*1.15)*dissolve;
+
+      vec3 plasmaCol = mix(uB,uA,clamp(massA*0.22+core*0.45,0.0,1.0));
+      col = plasmaCol;
+      col = mix(col,uA,clamp(core+shell*0.22,0.0,1.0));
+      col = mix(col,uC,clamp(hotCore*0.85+arcs+sparks+shock*0.8,0.0,1.0));
+      col = hueShift(col, bt*0.025);
+    }
   } else if (k < 20.5) {
     vec2 fp = p;
     fp += vec2(n2(p+t*0.07), n2(p.yx-t*0.06)-0.5)*(0.15+p2*0.4+uBass*0.2);
@@ -607,6 +675,7 @@ export class GlRenderer {
   lastH = 0;
   private frames = 0;
   private lastFps = performance.now();
+  private magicAudio = new Map<string, { bass:number; low:number; mid:number; high:number; transient:number; beat:number; shock:number; last:number; lastTrigger:number }>();
   constructor(private canvas: HTMLCanvasElement) {
     console.log("RENDERER_INIT_BEGIN");
     const gl = canvas.getContext("webgl2", { alpha: false, antialias: true, preserveDrawingBuffer: true })
@@ -786,6 +855,39 @@ export class GlRenderer {
         const audio = e.audio === "Manual" ? 1 : bandOf(snap, e.audio);
         const mod = e.audio === "Manual" ? e.intensity : e.intensity * (1 - e.audioInfluence + e.audioInfluence * audio);
         const c = hex(colorOverrides?.[e.id] || e.color), c2 = hex(e.color2);
+        let magicQ = 0, magicBass = 0, magicLow = 0, magicMid = 0, magicHigh = 0, magicTransient = 0, magicBeat = 0, magicShock = 1;
+        if (e.kind === "MagicEnergy") {
+          magicQ = e.realismQuality === "Cinematic" ? 2 : e.realismQuality === "High" ? 1 : 0;
+          const nowMagic = performance.now() / 1000;
+          let env = this.magicAudio.get(e.id);
+          if (!env) {
+            env = { bass:0, low:0, mid:0, high:0, transient:0, beat:0, shock:1, last:nowMagic, lastTrigger:-100 };
+            this.magicAudio.set(e.id, env);
+          }
+          const dtMagic = Math.min(0.05, Math.max(0.001, nowMagic - env.last));
+          env.last = nowMagic;
+          const response = Math.max(0.15, Number(e.responseSpeed ?? 1));
+          const decay = Math.max(0.05, Number(e.decay ?? 0.7));
+          const smoothMagic = (cur: number, target: number, releaseScale = 1) => {
+            const tau = target > cur ? 0.028 / response : (0.09 + decay * 0.55) * releaseScale;
+            return cur + (target - cur) * (1 - Math.exp(-dtMagic / Math.max(0.008, tau)));
+          };
+          const cap = (v: number) => Math.max(0, Math.min(2, v));
+          env.bass = smoothMagic(env.bass, cap(snap.bass * Number(e.bassInfluence ?? 1)));
+          env.low = smoothMagic(env.low, cap(snap.low * Number(e.lowMidPlasma ?? 1)));
+          env.mid = smoothMagic(env.mid, cap(snap.mid * Number(e.midMotion ?? 1)));
+          env.high = smoothMagic(env.high, cap(snap.high * Number(e.highSparkDensity ?? 1)), 0.7);
+          const transientTarget = cap(snap.transient * Number(e.transientStrength ?? 1));
+          env.transient = smoothMagic(env.transient, transientTarget, 0.42);
+          env.beat = smoothMagic(env.beat, cap(snap.beat * Number(e.beatPulse ?? 0.8)), 0.5);
+          if (transientTarget > 0.13 && nowMagic - env.lastTrigger > 0.18) {
+            env.shock = 0;
+            env.lastTrigger = nowMagic;
+          }
+          env.shock = Math.min(1, env.shock + dtMagic * (1.05 + response * 0.45));
+          magicBass = env.bass; magicLow = env.low; magicMid = env.mid; magicHigh = env.high;
+          magicTransient = env.transient; magicBeat = env.beat; magicShock = env.shock;
+        }
         gl.uniform2f(gl.getUniformLocation(this.prog, "uRes"), w, h);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uTime"), t * e.speed * project.masters.motion);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uMod"), mod * project.masters.intensity);
@@ -796,9 +898,19 @@ export class GlRenderer {
         const q = project.quality === "Ultra" ? 3 : project.quality === "High" ? 2 : project.quality === "Medium" ? 1 : 0;
         gl.uniform1f(gl.getUniformLocation(this.prog, "uQ"), q);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uBass"), snap.bass);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uLow"), snap.low);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uMid"), snap.mid);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uHigh"), snap.high);
         gl.uniform1f(gl.getUniformLocation(this.prog, "uBeat"), snap.beat);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uTransient"), snap.transient);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicQ"), magicQ);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicBass"), magicBass);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicLow"), magicLow);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicMid"), magicMid);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicHigh"), magicHigh);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicTransient"), magicTransient);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicBeat"), magicBeat);
+        gl.uniform1f(gl.getUniformLocation(this.prog, "uMagicShock"), magicShock);
         gl.activeTexture(gl.TEXTURE1);
         gl.bindTexture(gl.TEXTURE_2D, this.maskTex);
         gl.uniform1i(gl.getUniformLocation(this.prog, "uMask"), 1);

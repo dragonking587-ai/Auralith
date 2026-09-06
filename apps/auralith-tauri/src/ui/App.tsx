@@ -1474,9 +1474,9 @@ export function App() {
                               </select></label>
                             </>}
                             {fxSub==="color" && <>
-                              <label>Primary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(e)=>patchFx(ef.id,{color:e.target.value})} /></label>
-                              <label>Secondary <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(e)=>patchFx(ef.id,{color2:e.target.value})} /></label>
-                              <label>Highlight <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(e)=>patchFx(ef.id,{color3:e.target.value})} /></label>
+                              <label>{ef.kind==="MagicEnergy"?"Core Color":"Primary"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(e)=>patchFx(ef.id,{color:e.target.value})} /></label>
+                              <label>{ef.kind==="MagicEnergy"?"Plasma Color":"Secondary"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(e)=>patchFx(ef.id,{color2:e.target.value})} /></label>
+                              <label>{ef.kind==="MagicEnergy"?"Arc / Spark Highlight":"Highlight"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(e)=>patchFx(ef.id,{color3:e.target.value})} /></label>
                               <label>Preset <select value={ef.preset || "Default"} onChange={(e)=>{
                                 const spec = VORTEX_PRESETS.find((p)=>p.name===e.target.value);
                                 const patch = spec ? spec.apply(ef.kind) : { preset: e.target.value };
@@ -1509,6 +1509,22 @@ export function App() {
                               <label>Spread <input type="range" min={0} max={2000} step={1} value={ef.spread??0} onChange={(e)=>patchFx(ef.id,{spread:Number(e.target.value)})} /></label>
                               <label>Offset X <input type="range" min={-800} max={800} step={1} value={ef.offsetX??0} onChange={(e)=>patchFx(ef.id,{offsetX:Number(e.target.value)})} /></label>
                               <label>Offset Y <input type="range" min={-800} max={800} step={1} value={ef.offsetY??0} onChange={(e)=>patchFx(ef.id,{offsetY:Number(e.target.value)})} /></label>
+                              {ef.kind==="MagicEnergy" && <>
+                                <div className="hint"><b>MAGICAL ENERGY REALISM — EXPERIMENTAL</b><br/>Layered sound response uses bass, low-mids, mids, highs, beat and transient detection independently. Higher quality can use substantially more GPU power.</div>
+                                <label>Realism Quality (EXPERIMENTAL) <select value={ef.realismQuality||"Cinematic"} onChange={(e)=>patchFx(ef.id,{realismQuality:e.target.value})}>
+                                  <option value="Performance">Performance (Experimental)</option>
+                                  <option value="High">High (Experimental)</option>
+                                  <option value="Cinematic">Cinematic (Experimental)</option>
+                                </select></label>
+                                <label>Bass Influence <input type="range" min={0} max={2} step={0.01} value={ef.bassInfluence??1} onChange={(e)=>patchFx(ef.id,{bassInfluence:Number(e.target.value)})} /></label>
+                                <label>Low-Mid Plasma <input type="range" min={0} max={2} step={0.01} value={ef.lowMidPlasma??1} onChange={(e)=>patchFx(ef.id,{lowMidPlasma:Number(e.target.value)})} /></label>
+                                <label>Mid Motion <input type="range" min={0} max={2} step={0.01} value={ef.midMotion??1} onChange={(e)=>patchFx(ef.id,{midMotion:Number(e.target.value)})} /></label>
+                                <label>High Spark Density <input type="range" min={0} max={2} step={0.01} value={ef.highSparkDensity??1} onChange={(e)=>patchFx(ef.id,{highSparkDensity:Number(e.target.value)})} /></label>
+                                <label>Transient Strength <input type="range" min={0} max={2} step={0.01} value={ef.transientStrength??1} onChange={(e)=>patchFx(ef.id,{transientStrength:Number(e.target.value)})} /></label>
+                                <label>Beat Pulse <input type="range" min={0} max={2} step={0.01} value={ef.beatPulse??0.8} onChange={(e)=>patchFx(ef.id,{beatPulse:Number(e.target.value)})} /></label>
+                                <label>Response Speed <input type="range" min={0.25} max={3} step={0.05} value={ef.responseSpeed??1} onChange={(e)=>patchFx(ef.id,{responseSpeed:Number(e.target.value)})} /></label>
+                                <label>Decay / Persistence <input type="range" min={0.05} max={2} step={0.05} value={ef.decay??0.7} onChange={(e)=>patchFx(ef.id,{decay:Number(e.target.value)})} /></label>
+                              </>}
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[0]} <input type="range" min={0} max={2} step={0.01} value={ef.p0??0.65} onChange={(e)=>patchFx(ef.id,{p0:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[1]} <input type="range" min={0} max={2} step={0.01} value={ef.p1??0.5} onChange={(e)=>patchFx(ef.id,{p1:Number(e.target.value)})} /></label>
                               <label>{(PARAM_LABELS[ef.kind]||["Amount","Size","Shape"])[2]} <input type="range" min={0} max={2} step={0.01} value={ef.p2??0.4} onChange={(e)=>patchFx(ef.id,{p2:Number(e.target.value)})} /></label>

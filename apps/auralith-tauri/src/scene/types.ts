@@ -3,6 +3,7 @@ export type ViewMode = "Edit" | "Preview" | "CleanCapture";
 export type RegionKind = "Trace" | "Stamp" | "Emitter" | "Shape" | "Prop";
 export type ShapeKind = "circle" | "ellipse" | "rect" | "roundrect" | "triangle" | "line" | "ring" | "polygon" | "diamond";
 export type AudioMap = "Manual" | "Raw" | "Bass" | "Low" | "Mid" | "High" | "FullMix" | "Beat" | "Transient";
+export type EffectRealismQuality = "Performance" | "High" | "Cinematic";
 
 export type EffectKind =
   | "Pulse" | "Flicker" | "LightSurge" | "Strobe" | "GlowBloom" | "BreathingGlow" | "Afterglow" | "EchoPulse" | "WaveSweep" | "Spotlight"
@@ -47,6 +48,15 @@ export type EffectInstance = {
   color: string;
   color2: string;
   color3?: string;
+  realismQuality?: EffectRealismQuality;
+  bassInfluence?: number;
+  lowMidPlasma?: number;
+  midMotion?: number;
+  highSparkDensity?: number;
+  transientStrength?: number;
+  beatPulse?: number;
+  responseSpeed?: number;
+  decay?: number;
   p0?: number;
   p1?: number;
   p2?: number;
@@ -120,7 +130,12 @@ export function defaultEffect(kind: EffectKind): EffectInstance {
   return {
     id: crypto.randomUUID(), kind, enabled: true, intensity: 0.8, brightness: 1, opacity: 1,
     speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7, color: "#f4d27a", color2: "#7ad0ff",
-    color3: "#ffffff", p0: 0.65, p1: 0.5, p2: 0.4, preset: "Default"
+    color3: "#ffffff", p0: 0.65, p1: 0.5, p2: 0.4, preset: "Default",
+    ...(kind === "MagicEnergy" ? {
+      realismQuality: "Cinematic" as EffectRealismQuality,
+      bassInfluence: 1.0, lowMidPlasma: 1.0, midMotion: 1.0, highSparkDensity: 1.0,
+      transientStrength: 1.0, beatPulse: 0.8, responseSpeed: 1.0, decay: 0.7
+    } : {})
   };
 }
 
@@ -163,6 +178,15 @@ export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): 
     color: e.color || d.color,
     color2: e.color2 || d.color2,
     color3: e.color3 || d.color3,
+    realismQuality: e.realismQuality === "Performance" || e.realismQuality === "High" || e.realismQuality === "Cinematic" ? e.realismQuality : d.realismQuality,
+    bassInfluence: Number.isFinite(e.bassInfluence as number) ? e.bassInfluence : d.bassInfluence,
+    lowMidPlasma: Number.isFinite(e.lowMidPlasma as number) ? e.lowMidPlasma : d.lowMidPlasma,
+    midMotion: Number.isFinite(e.midMotion as number) ? e.midMotion : d.midMotion,
+    highSparkDensity: Number.isFinite(e.highSparkDensity as number) ? e.highSparkDensity : d.highSparkDensity,
+    transientStrength: Number.isFinite(e.transientStrength as number) ? e.transientStrength : d.transientStrength,
+    beatPulse: Number.isFinite(e.beatPulse as number) ? e.beatPulse : d.beatPulse,
+    responseSpeed: Number.isFinite(e.responseSpeed as number) ? e.responseSpeed : d.responseSpeed,
+    decay: Number.isFinite(e.decay as number) ? e.decay : d.decay,
     p0: Number.isFinite(e.p0 as number) ? e.p0 : d.p0,
     p1: Number.isFinite(e.p1 as number) ? e.p1 : d.p1,
     p2: Number.isFinite(e.p2 as number) ? e.p2 : d.p2,

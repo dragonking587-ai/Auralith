@@ -1,0 +1,43 @@
+name: Apply Main Release Notes
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - "apps/auralith-tauri/RELEASE_NOTES.md"
+      - "apps/auralith-tauri/VERSION"
+      - ".github/workflows/release-notes-main.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-release-notes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+
+      - name: Wait for versioned release and apply What’s New notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(tr -d '\r\n' < apps/auralith-tauri/VERSION)"
+          tag="v${version}"
+          echo "Waiting for release ${tag}..."
+          for i in $(seq 1 90); do
+            if gh release view "$tag" --repo dragonking587-ai/Auralith >/dev/null 2>&1; then
+              gh release edit "$tag" \
+                --repo dragonking587-ai/Auralith \
+                --title "Auralith Reborn ${version}" \
+                --notes-file apps/auralith-tauri/RELEASE_NOTES.md
+              echo "Applied release notes to ${tag}."
+              exit 0
+            fi
+            sleep 20
+          done
+          echo "Timed out waiting for ${tag}." >&2
+          exit 1
