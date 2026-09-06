@@ -41,7 +41,7 @@ jobs:
           echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
           echo "Android companion version: $VERSION"
 
-      - name: Assemble installable debug APK
+      - name: Assemble official companion APK (CI debug signing)
         run: gradle assembleDebug --no-daemon
 
       - name: Collect APK and Android installation guide
@@ -80,8 +80,8 @@ jobs:
 
           Only allow restricted settings when you trust the APK source. Pixel / stock Android uses the path above; other Android manufacturers may rename or move the Special app access menu.
 
-          NOTE ABOUT THIS CI APK
-          This APK is debug-signed for sideload testing. If Android refuses to install it over an older Auralith Remote build because the signing certificate differs, uninstall the older Auralith Remote APK first and then install this version.
+          SIGNING NOTE
+          This official GitHub-distributed sideload APK is currently CI debug-signed. Permanent Android release signing is a separate signing step. If Android reports a signing conflict with an older Auralith Remote APK, uninstall the older companion app first and then install this version.
           EOF
 
           sed -i 's/^          //' dist-apk/ANDROID-INSTALLATION.txt
@@ -116,20 +116,29 @@ jobs:
 
           BODY_FILE=$(mktemp)
           gh release view "$TAG" --repo "$REPO" --json body -q .body > "$BODY_FILE"
-          MARKER="## 📱 Android Companion App"
 
-          if ! grep -Fq "$MARKER" "$BODY_FILE"; then
-            cat >> "$BODY_FILE" <<EOF
+          python - "$BODY_FILE" "$VERSION" <<'PY'
+          from pathlib import Path
+          import sys
 
+          path = Path(sys.argv[1])
+          version = sys.argv[2]
+          marker = "## 📱 Android Companion App"
+          body = path.read_text(encoding="utf-8")
+          if marker in body:
+              body = body.split(marker, 1)[0].rstrip()
+
+          section = f"""
           ## 📱 Android Companion App
 
-          Auralith Remote has been updated to **$VERSION** to match the desktop RC.45 generation.
+          Auralith Remote has been updated to **{version}** to match the current Auralith release.
 
           - Viewer QR joining, room voting, and approved audience reactions remain available.
           - Private Host QR pairing and approved Host Remote controls remain available.
+          - Raw relay responses and developer diagnostics are hidden from the normal interface; actions now show concise user-facing status messages instead of server JSON.
           - The Android companion keeps the dark black-and-gold Auralith visual direction.
           - The floating Host control includes in-app guidance for Android restricted settings and Display over other apps.
-          - Android APK: **Auralith-Remote-$VERSION.apk**
+          - Android APK: **Auralith-Remote-{version}.apk**
 
           ### Android 13+ — Allow restricted settings
 
@@ -144,13 +153,12 @@ jobs:
 
           Only enable restricted settings for the Auralith APK downloaded from this official GitHub release. Manufacturer menu names can vary slightly.
 
-          **Sideload note:** this CI APK is debug-signed. If Android reports a signing conflict with an older companion APK, uninstall the older Auralith Remote app first and then install this APK.
-          EOF
-            sed -i 's/^          //' "$BODY_FILE"
-            gh release edit "$TAG" --repo "$REPO" --notes-file "$BODY_FILE"
-            echo "Added Android companion installation instructions to $TAG release notes."
-          else
-            echo "Android companion release-note section already exists; leaving it unchanged."
-          fi
+          **Signing note:** this official GitHub-distributed sideload APK is currently CI debug-signed. If Android reports a signing conflict with an older companion APK, uninstall the older Auralith Remote app first and then install this APK.
+          """.strip()
 
+          path.write_text(body + "\n\n" + section + "\n", encoding="utf-8")
+          PY
+
+          gh release edit "$TAG" --repo "$REPO" --notes-file "$BODY_FILE"
+          echo "Applied Android companion notes to $TAG."
           gh release view "$TAG" --repo "$REPO" --json assets -q '.assets[].name'
