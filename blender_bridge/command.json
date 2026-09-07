@@ -1,5 +1,29 @@
 {
-  "id": "bridge-test-20260907-1127",
-  "action": "ping",
-  "params": {}
+  "id": "fire-v1-create-20260907-1130",
+  "action": "create_fire_v1",
+  "params": {
+    "replace": true,
+    "flow_type": "FIRE",
+    "resolution": 96,
+    "vorticity": 0.4,
+    "flame_vorticity": 0.75,
+    "burning_rate": 0.65,
+    "flame_smoke": 0.3,
+    "fuel": 1.0,
+    "temperature": 1.5,
+    "surface_emission": 1.5,
+    "subframes": 2,
+    "noise_upres": 2,
+    "noise_strength": 1.0,
+    "noise_scale": 1.7,
+    "blackbody_intensity": 1.0,
+    "material_density": 1.0,
+    "frame_start": 1,
+    "frame_end": 150,
+    "fps": 30,
+    "render_width": 1080,
+    "render_height": 1080,
+    "transparent": true,
+    "preview_frame": 60
+  }
 }
