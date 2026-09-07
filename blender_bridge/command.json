@@ -1,13 +1,14 @@
 {
-  "id": "fire-v1-realism-20260907-1136",
-  "action": "update_fire_v1",
+  "id": "fire-v1-fire-only-20260907-1556",
+  "action": "create_fire_v1",
   "params": {
+    "replace": true,
     "flow_type": "FIRE",
     "resolution": 128,
     "vorticity": 0.55,
     "flame_vorticity": 1.15,
     "burning_rate": 0.78,
-    "flame_smoke": 0.18,
+    "flame_smoke": 0.0,
     "fuel": 0.9,
     "temperature": 1.8,
     "surface_emission": 1.25,
@@ -15,8 +16,15 @@
     "noise_upres": 3,
     "noise_strength": 1.25,
     "noise_scale": 2.0,
-    "blackbody_intensity": 1.0,
-    "material_density": 0.8,
-    "adaptive_domain": true
+    "blackbody_intensity": 1.1,
+    "material_density": 0.0,
+    "adaptive_domain": true,
+    "frame_start": 1,
+    "frame_end": 150,
+    "fps": 30,
+    "render_width": 1080,
+    "render_height": 1080,
+    "transparent": true,
+    "preview_frame": 60
   }
 }
