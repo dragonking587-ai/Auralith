@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000019-renderer-settings-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 1,
+    "symbols": [
+      {
+        "name": "SlateRHIRendererSettings",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
