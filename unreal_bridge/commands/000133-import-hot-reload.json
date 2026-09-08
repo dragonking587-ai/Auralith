@@ -1,0 +1,7 @@
+{
+  "id": "000133-import-hot-reload",
+  "action": "execute_console",
+  "args": {
+    "command": "py import auralith_hot_reload"
+  }
+}
