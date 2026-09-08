@@ -1,0 +1,35 @@
+{
+  "type": "result",
+  "id": "000185-tighten-reference-studio-camera",
+  "ok": true,
+  "action": "camera_set",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_3",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_3",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "CameraComponent",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_3.CameraComponent",
+      "class": "/Script/CinematicCamera.CineCameraComponent"
+    },
+    "location": {
+      "x": 0.0,
+      "y": -1850.0,
+      "z": 430.0,
+      "_type": "Vector"
+    },
+    "rotation": {
+      "pitch": -3.2000000476837176,
+      "yaw": 90.00000000000003,
+      "roll": 0.0,
+      "_type": "Rotator"
+    },
+    "focal_length": 32.0,
+    "aperture": 5.0,
+    "warnings": []
+  }
+}
