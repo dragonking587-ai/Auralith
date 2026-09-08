@@ -23,6 +23,7 @@ MODULE_ORDER = [
     "auralith_production_controls",
     "auralith_test_scene",
     "auralith_render_feedback",
+    "auralith_cinematic_stage",
 ]
 MODULE_FILES = {name: f"{name}.py" for name in MODULE_ORDER}
 
@@ -73,7 +74,6 @@ def _action_bridge_sync_extensions(args: Dict[str, Any]) -> Dict[str, Any]:
         raise ValueError("source_root is required")
 
     source_root = Path(source_root_text).expanduser().resolve()
-    # The command may point only at the checked-out bridge's unreal module folder.
     normalized_parts = [part.lower() for part in source_root.parts]
     if len(normalized_parts) < 2 or normalized_parts[-2:] != ["unreal_bridge", "unreal"]:
         raise ValueError("source_root must end with unreal_bridge/unreal")
@@ -116,7 +116,7 @@ def _action_bridge_sync_extensions(args: Dict[str, Any]) -> Dict[str, Any]:
 
 def _action_bridge_hot_reload_capabilities(args: Dict[str, Any]) -> Dict[str, Any]:
     return {
-        "bridge_extension": "hot-reload-v1",
+        "bridge_extension": "hot-reload-v2",
         "project_python_dir": str(_project_python_dir()),
         "whitelisted_modules": list(MODULE_ORDER),
         "registered_actions": [
