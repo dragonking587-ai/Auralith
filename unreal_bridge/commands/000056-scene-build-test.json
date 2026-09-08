@@ -1,0 +1,9 @@
+{
+  "id": "000056-scene-build-test",
+  "action": "scene_build_test",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "save_level": true,
+    "save_assets": true
+  }
+}
