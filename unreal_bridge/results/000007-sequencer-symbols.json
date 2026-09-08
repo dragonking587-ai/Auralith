@@ -1,0 +1,157 @@
+{
+  "type": "result",
+  "id": "000007-sequencer-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 29,
+    "symbols": [
+      {
+        "name": "AnimSequencerController",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimSequencerInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimationSequencerDataModel",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigSequencerBindingProxy",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigSequencerLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FixedSampleSequenceRulerStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphSequenceRangeType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SequenceRecorderGroup",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequenceRecorderLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerAnimationOverride",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerBindingProxy",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerBoundObjects",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerChannelProxy",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerCreationOptions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerCurveEditorObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerExportFBXParams",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerExportTask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerLoopMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SequencerModuleOutlinerScriptingObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerModuleScriptingLayer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerOutlinerScriptingObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerOutlinerSelectionChanged",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerQuickBindingResult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerScriptingLayer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerScriptingRange",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerScriptingRangeExtensions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerTools",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerViewModelScriptingStruct",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SequencerViewModelStructExtensions",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
