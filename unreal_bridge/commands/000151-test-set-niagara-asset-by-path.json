@@ -1,0 +1,12 @@
+{
+  "id": "000151-test-set-niagara-asset-by-path",
+  "action": "set_property",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_0.NiagaraComponent0"
+    },
+    "property": "asset",
+    "value": "/Game/AuralithProduction/VFX/NS_AuralithCine_RadialBurst.NS_AuralithCine_RadialBurst"
+  }
+}
