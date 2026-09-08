@@ -1,0 +1,51 @@
+{
+  "type": "result",
+  "id": "000062-describe-aa-setting",
+  "ok": true,
+  "action": "describe_unreal_symbol",
+  "data": {
+    "symbol": "MoviePipelineAntiAliasingSetting",
+    "type": "type",
+    "callable": true,
+    "methods": [
+      "acquire_editor_element_handle",
+      "build_new_process_command_line_args",
+      "call_method",
+      "cast",
+      "get_class",
+      "get_default_object",
+      "get_editor_property",
+      "get_fname",
+      "get_full_name",
+      "get_name",
+      "get_outer",
+      "get_outermost",
+      "get_package",
+      "get_path_name",
+      "get_typed_outer",
+      "get_world",
+      "is_editor_property_overridden",
+      "is_enabled",
+      "is_package_external",
+      "modify",
+      "rename",
+      "reset_editor_property",
+      "set_editor_properties",
+      "set_editor_property",
+      "set_is_enabled",
+      "static_class"
+    ],
+    "fields": [
+      "anti_aliasing_method",
+      "engine_warm_up_count",
+      "override_anti_aliasing",
+      "render_warm_up_count",
+      "render_warm_up_frames",
+      "spatial_sample_count",
+      "temporal_sample_count",
+      "use_camera_cut_for_warm_up"
+    ],
+    "doc": "Movie Pipeline Anti Aliasing Setting\r\n\r\n**C++ Source:**\r\n\r\n- **Plugin**: MovieRenderPipeline\r\n- **Module**: MovieRenderPipelineCore\r\n- **File**: MoviePipelineAntiAliasingSetting.h\r\n\r\n**Editor Properties:** (see get_editor_property/set_editor_property)\r\n\r\n- ``anti_aliasing_method`` (AntiAliasingMethod):  [Read-Write] If we are overriding the AA method, what do we use? None will turn off anti-aliasing.\r\n- ``engine_warm_up_count`` (int32):  [Read-Write] The number of frames at the start of each shot that the engine will run without rendering. This allows pre-warming\r\n  systems (such as particle systems, or level loading) which need time to run before you want to start capturing frames.\r\n  This ticks the game thread but does not submit anything to the GPU to be rendered.\r\n  \r\n  This is more cheaper than RenderWarmUpCount and is the preferred way to have time pass at the start of a shot.\r\n- ``override_anti_aliasing`` (bool):  [Read-Write] Should we override the Project's anti-aliasing setting during a movie render? This can be useful to have\r\n  TAA on during normal work in the editor but force it off for high quality renders /w many spatial samples.\r\n- ``render_warm_up_count`` (int32):  [Read-Write] The number of frames at the start of each shot that the engine will render and then discard. This is useful for\r\n  ensuring there is history for temporal effects (such as anti-aliasing). It can be set to a lower number if not\r\n  using temporal effects.\r\n  \r\n  This is more expensive than EngineWarmUpCount (which should be used for particle warm-ups, etc.)\r\n- ``render_warm_up_frames`` (bool):  [Read-Write] Should we submit the warm-up frames to the GPU? Generally you want this disabled (as it is more performant), but\r\n  some systems (such as gpu particles) need to be rendered to actually perform their warm-up. Enabling this will\r\n  cause any warm up frames to also be submitted to the GPU which resolves this issue.\r\n- ``spatial_sample_count`` (int32):  [Read-Write] How many frames should we accumulate together before contributing to one overall sample. This lets you\r\n  increase the anti-aliasing quality of an sample, or have high quality anti-aliasing if you don't want\r\n  any motion blur due to accumulation over time in SampleCount.\r\n- ``temporal_sample_count`` (int32):  [Read-Write] The number of frames we should combine together to produce each output frame. This blends the\r\n  results of this many sub-steps together to produce one output frame. See CameraShutterAngle to\r\n  control how much time passes between each sub-frame. See SpatialSampleCount to see how many\r\n  samples we average together to produce a sub-step. (This means rendering complexity is\r\n  SampleCount * TileCount^2 * SpatialSampleCount * NumPasses).\r\n- ``use_camera_cut_for_warm_up`` (bool):  [Read-Write] Should we use the excess in the camera cut track to determine engine warmup? When disabled, the sequence is evaluated\r\n  once at the first frame and then waits there for EngineWarmUpCount many frames. When this is enabled, the number of\r\n  warmup frames is based on how much excess there is in the camera cut track outside of the playback range AND\r\n  the sequence is evaluated for each frame which can allow time for skeletal meshes to animate from a bind pose, etc.",
+    "truncated": false
+  }
+}
