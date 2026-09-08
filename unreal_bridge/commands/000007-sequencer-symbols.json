@@ -1,0 +1,5 @@
+{
+  "id": "000007-sequencer-symbols",
+  "action": "list_unreal_symbols",
+  "args": {"filter": "sequencer", "limit": 500}
+}
