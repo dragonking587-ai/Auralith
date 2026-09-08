@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000101-key-intensity-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "intensity",
+    "before": 6500.0,
+    "after": 1800.0
+  }
+}
