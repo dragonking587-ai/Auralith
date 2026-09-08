@@ -1,0 +1,9 @@
+{
+  "id": "000165-describe-fog-volumetric",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "ExponentialHeightFogComponent",
+    "filter": "volumetric",
+    "limit": 500
+  }
+}
