@@ -1,0 +1,23 @@
+{
+  "type": "result",
+  "id": "000102-key-color-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "light_color",
+    "before": {
+      "r": 70,
+      "g": 150,
+      "b": 255,
+      "a": 255,
+      "_type": "Color"
+    },
+    "after": {
+      "r": 70,
+      "g": 150,
+      "b": 255,
+      "a": 255,
+      "_type": "Color"
+    }
+  }
+}
