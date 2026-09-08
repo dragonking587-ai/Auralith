@@ -1,0 +1,11 @@
+{
+  "id": "000026-verify-test-camera-focal-length",
+  "action": "get_property",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0.CameraComponent"
+    },
+    "property": "current_focal_length"
+  }
+}
