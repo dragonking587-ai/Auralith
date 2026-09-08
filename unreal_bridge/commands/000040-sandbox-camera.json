@@ -1,0 +1,13 @@
+{
+  "id": "000040-sandbox-camera",
+  "action": "camera_create",
+  "args": {
+    "label": "AuralithProduction_Camera",
+    "location": {"x": 800, "y": -800, "z": 250},
+    "rotation": {"pitch": -8, "yaw": 45, "roll": 0},
+    "focal_length": 50,
+    "aperture": 2.8,
+    "aspect_ratio": 1.7777778,
+    "transient": false
+  }
+}
