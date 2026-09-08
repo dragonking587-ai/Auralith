@@ -1,0 +1,8 @@
+{
+  "id": "000061-describe-output-setting",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineOutputSetting",
+    "limit": 500
+  }
+}
