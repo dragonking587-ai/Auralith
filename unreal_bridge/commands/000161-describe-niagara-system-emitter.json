@@ -1,0 +1,9 @@
+{
+  "id": "000161-describe-niagara-system-emitter",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "NiagaraSystem",
+    "filter": "emitter",
+    "limit": 500
+  }
+}
