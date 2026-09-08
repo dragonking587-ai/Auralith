@@ -1,0 +1,12 @@
+{
+  "branch": "unreal-control",
+  "host": "127.0.0.1",
+  "port": 8765,
+  "poll_seconds": 2.0,
+  "command_timeout_seconds": 120,
+  "allowed_project_file": "",
+  "allow_delete": false,
+  "allow_console_commands": true,
+  "allow_unsafe_python": false,
+  "auto_commit_results": true
+}
