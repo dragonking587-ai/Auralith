@@ -1,0 +1,5 @@
+{
+  "id": "000121-save-lighting-refinement",
+  "action": "save_current_level",
+  "args": {}
+}
