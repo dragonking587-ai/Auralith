@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000069-find-output-setting",
+  "ok": false,
+  "action": "call_method",
+  "error": "MoviePipelinePrimaryConfig: Failed to convert parameter 'class_' when calling function 'MoviePipelineConfigBase.FindOrAddSettingByClass' on 'DefaultConfig'\n  TypeError: NativizeProperty: Cannot nativize 'str' as 'InClass' (ClassProperty)\n    TypeError: NativizeClass: Cannot nativize 'str' as 'Class' (allowed Class type: 'MoviePipelineSetting')\n      TypeError: NativizeObject: Cannot nativize 'str' as 'Object' (allowed Class type: 'Class')",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 515, in _action_call_method\n    result = method(*list(args.get(\"args\", [])), **dict(args.get(\"kwargs\", {})))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nTypeError: MoviePipelinePrimaryConfig: Failed to convert parameter 'class_' when calling function 'MoviePipelineConfigBase.FindOrAddSettingByClass' on 'DefaultConfig'\n  TypeError: NativizeProperty: Cannot nativize 'str' as 'InClass' (ClassProperty)\n    TypeError: NativizeClass: Cannot nativize 'str' as 'Class' (allowed Class type: 'MoviePipelineSetting')\n      TypeError: NativizeObject: Cannot nativize 'str' as 'Object' (allowed Class type: 'Class')\n"
+}
