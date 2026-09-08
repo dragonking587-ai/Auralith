@@ -1,0 +1,8 @@
+{
+  "id": "000030-niagara-factory-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "NiagaraSystemFactory",
+    "limit": 100
+  }
+}
