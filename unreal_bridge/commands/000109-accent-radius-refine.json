@@ -1,0 +1,9 @@
+{
+  "id": "000109-accent-radius-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_1.LightComponent0"},
+    "property": "attenuation_radius",
+    "value": 500.0
+  }
+}
