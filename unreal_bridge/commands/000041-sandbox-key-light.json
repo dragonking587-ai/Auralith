@@ -1,0 +1,14 @@
+{
+  "id": "000041-sandbox-key-light",
+  "action": "light_create",
+  "args": {
+    "type": "rect",
+    "label": "AuralithProduction_KeyLight",
+    "location": {"x": 250, "y": -250, "z": 450},
+    "rotation": {"pitch": -35, "yaw": 35, "roll": 0},
+    "intensity": 3500,
+    "temperature": 4200,
+    "color": {"r": 1.0, "g": 0.82, "b": 0.62, "a": 1.0},
+    "transient": false
+  }
+}
