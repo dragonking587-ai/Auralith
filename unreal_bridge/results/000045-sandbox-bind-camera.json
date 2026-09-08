@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000045-sandbox-bind-camera",
+  "ok": true,
+  "action": "sequence_add_actor",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_1",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "binding": "<Struct 'MovieSceneBindingProxy' (0x0000022F284CFE80) {binding_id: {}, sequence: \"/Script/LevelSequence.LevelSequence'/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master'\"}>",
+    "binding_id": "<Struct 'Guid' (0x0000022F0BD1CA20) {}>"
+  }
+}
