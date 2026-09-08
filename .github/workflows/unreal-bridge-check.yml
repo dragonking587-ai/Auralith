@@ -27,6 +27,7 @@ jobs:
           python -m py_compile unreal_bridge/bridge_client/bridge_client.py
           python -m py_compile unreal_bridge/unreal/auralith_unreal_bridge.py
           python -m py_compile unreal_bridge/unreal/auralith_production_controls.py
+          python -m py_compile unreal_bridge/unreal/auralith_test_scene.py
 
       - name: Validate bridge JSON
         shell: pwsh
@@ -46,6 +47,7 @@ jobs:
             'unreal_bridge/bridge_client/bridge_client.py',
             'unreal_bridge/unreal/auralith_unreal_bridge.py',
             'unreal_bridge/unreal/auralith_production_controls.py',
+            'unreal_bridge/unreal/auralith_test_scene.py',
             'unreal_bridge/plugin/AuralithBridge/AuralithBridge.uplugin'
           )
           foreach ($path in $required) {
