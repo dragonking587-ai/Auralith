@@ -1,0 +1,11 @@
+{
+  "id": "000077-default-render-output-dir",
+  "action": "get_property",
+  "args": {
+    "target": {
+      "kind": "default_object",
+      "class": "MoviePipelineOutputSetting"
+    },
+    "property": "output_directory"
+  }
+}
