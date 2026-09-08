@@ -1,0 +1,8 @@
+{
+  "id": "000060-describe-primary-config",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelinePrimaryConfig",
+    "limit": 500
+  }
+}
