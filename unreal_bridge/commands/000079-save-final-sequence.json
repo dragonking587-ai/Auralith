@@ -1,0 +1,8 @@
+{
+  "id": "000079-save-final-sequence",
+  "action": "save_asset",
+  "args": {
+    "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "only_if_dirty": false
+  }
+}
