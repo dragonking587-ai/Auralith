@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000109-accent-radius-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "attenuation_radius",
+    "before": 700.0,
+    "after": 500.0
+  }
+}
