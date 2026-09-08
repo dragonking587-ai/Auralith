@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000039-production-niagara-test",
+  "ok": true,
+  "action": "niagara_create_system",
+  "data": {
+    "system": {
+      "_type": "UObject",
+      "name": "NS_Auralith_ProductionTest",
+      "path": "/Game/AuralithBridgeTests/VFX/NS_Auralith_ProductionTest.NS_Auralith_ProductionTest",
+      "class": "/Script/Niagara.NiagaraSystem"
+    },
+    "object_path": "/Game/AuralithBridgeTests/VFX/NS_Auralith_ProductionTest.NS_Auralith_ProductionTest",
+    "existed": false,
+    "saved": false
+  }
+}
