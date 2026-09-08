@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000059-describe-render-job",
+  "ok": false,
+  "action": "describe_target",
+  "error": "Object not found: /Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 365, in _action_describe_target\n    target = _resolve_target(dict(args[\"target\"]))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 200, in _resolve_target\n    raise ValueError(f\"Object not found: {path}\")\nValueError: Object not found: /Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0\n"
+}
