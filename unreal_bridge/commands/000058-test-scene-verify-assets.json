@@ -1,0 +1,9 @@
+{
+  "id": "000058-test-scene-verify-assets",
+  "action": "list_assets",
+  "args": {
+    "path": "/Game/AuralithProduction",
+    "recursive": true,
+    "limit": 200
+  }
+}
