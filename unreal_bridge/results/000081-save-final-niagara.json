@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000081-save-final-niagara",
+  "ok": true,
+  "action": "save_asset",
+  "data": {
+    "path": "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base",
+    "saved": true
+  }
+}
