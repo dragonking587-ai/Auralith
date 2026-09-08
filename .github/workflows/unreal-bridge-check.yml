@@ -1,0 +1,51 @@
+name: Unreal Bridge Checks
+
+on:
+  push:
+    branches:
+      - unreal-control
+    paths:
+      - 'unreal_bridge/**'
+      - '.github/workflows/unreal-bridge-check.yml'
+  workflow_dispatch:
+
+jobs:
+  validate:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Compile Python bridge scripts
+        shell: pwsh
+        run: |
+          python -m py_compile unreal_bridge/bridge_client/bridge_client.py
+          python -m py_compile unreal_bridge/unreal/auralith_unreal_bridge.py
+
+      - name: Validate bridge JSON
+        shell: pwsh
+        run: |
+          python -m json.tool unreal_bridge/config.example.json | Out-Null
+          Get-ChildItem unreal_bridge/commands -Filter *.json | ForEach-Object {
+            python -m json.tool $_.FullName | Out-Null
+          }
+
+      - name: Check required bridge files
+        shell: pwsh
+        run: |
+          $required = @(
+            'unreal_bridge/README.md',
+            'unreal_bridge/run_bridge.ps1',
+            'unreal_bridge/install_to_project.ps1',
+            'unreal_bridge/bridge_client/bridge_client.py',
+            'unreal_bridge/unreal/auralith_unreal_bridge.py',
+            'unreal_bridge/plugin/AuralithBridge/AuralithBridge.uplugin'
+          )
+          foreach ($path in $required) {
+            if (-not (Test-Path $path)) { throw "Missing required bridge file: $path" }
+          }
