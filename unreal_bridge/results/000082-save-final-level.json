@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000082-save-final-level",
+  "ok": true,
+  "action": "save_current_level",
+  "data": {
+    "saved": true
+  }
+}
