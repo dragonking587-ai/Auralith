@@ -1,0 +1,33 @@
+{
+  "type": "result",
+  "id": "000119-describe-skylight-intensity",
+  "ok": true,
+  "action": "describe_target",
+  "data": {
+    "type": "SkyLightComponent",
+    "properties": [
+      {
+        "name": "indirect_lighting_intensity",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "intensity",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "volumetric_scattering_intensity",
+        "value": 1.0,
+        "editor_property": true
+      }
+    ],
+    "methods": [
+      "set_indirect_lighting_intensity",
+      "set_intensity",
+      "set_volumetric_scattering_intensity"
+    ],
+    "other": [],
+    "truncated": false
+  }
+}
