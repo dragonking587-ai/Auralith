@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000034-production-camera-test",
+  "ok": true,
+  "action": "camera_create",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_0",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "CameraComponent",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0.CameraComponent",
+      "class": "/Script/CinematicCamera.CineCameraComponent"
+    },
+    "transient": true,
+    "warnings": []
+  }
+}
