@@ -1,0 +1,27 @@
+{
+  "type": "result",
+  "id": "000191-scale-studio-desk-url",
+  "ok": true,
+  "action": "set_actor_transform",
+  "data": {
+    "actor": "/Game/Main.Main:PersistentLevel.TextRenderActor_11",
+    "location": {
+      "x": -310.0,
+      "y": -185.0,
+      "z": 105.0,
+      "_type": "Vector"
+    },
+    "rotation": {
+      "pitch": 0.0,
+      "yaw": -90.00000000000001,
+      "roll": 0.0,
+      "_type": "Rotator"
+    },
+    "scale": {
+      "x": 1.25,
+      "y": 1.25,
+      "z": 1.25,
+      "_type": "Vector"
+    }
+  }
+}
