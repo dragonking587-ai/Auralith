@@ -1,0 +1,47 @@
+{
+  "type": "result",
+  "id": "000032-material-factory-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 7,
+    "symbols": [
+      {
+        "name": "InterchangeBaseMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeDecalMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SparseVolumeTextureMaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
