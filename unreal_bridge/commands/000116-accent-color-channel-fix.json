@@ -1,0 +1,9 @@
+{
+  "id": "000116-accent-color-channel-fix",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_1.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 15, "g": 90, "b": 255, "a": 255}
+  }
+}
