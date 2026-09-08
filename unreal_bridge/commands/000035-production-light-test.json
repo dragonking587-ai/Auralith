@@ -1,0 +1,15 @@
+{
+  "id": "000035-production-light-test",
+  "action": "light_create",
+  "args": {
+    "type": "point",
+    "label": "Auralith_ProductionTestLight",
+    "location": [0.0, 250.0, 220.0],
+    "rotation": [0.0, 0.0, 0.0],
+    "intensity": 2500.0,
+    "temperature": 4200.0,
+    "attenuation_radius": 600.0,
+    "color": {"r": 1.0, "g": 0.82, "b": 0.62, "a": 1.0},
+    "transient": true
+  }
+}
