@@ -326,30 +326,77 @@ void main(){
     a = (core+glow)*len*m;
     col = mix(uA, uC, core);
   } else if (k < 31.5) {
-    float bassW = 1.0 + uBass*0.55*m;
-    float bassH = 0.55 + p0*0.55 + uBass*0.45*m + uBeat*0.18*m;
-    float wind = (p2-0.5)*0.55 + uMid*0.12;
-    float y = p.y + 0.72;
-    float x = p.x - y*y*wind*0.35;
-    float hMax = max(bassH, 0.28);
-    float srcW = (0.16 + p1*0.28) * bassW;
-    float taper = mix(1.0, 0.18, clamp(y/hMax,0.0,1.0));
-    vec2 fl = warp(vec2(x*2.4, y*1.6 - t*(0.55+uMid*0.35)), t, 0.22+uMid*0.18);
-    float bodyN = fbmQ(fl*1.15 + vec2(0.0,-t*0.85), uQ);
-    float tongueN = fbmQ(fl*2.4 + vec2(t*0.15,-t*1.25), uQ);
-    float edgeN = n2(fl*7.0 + vec2(0.0,-t*(2.2+uHigh*3.0)));
-    float envY = smoothstep(-0.04, 0.08, y) * (1.0 - smoothstep(hMax*0.62, hMax, y));
-    float rad = srcW * taper * (0.85 + bodyN*0.35 + tongueN*0.28);
-    float body = exp(-abs(x)/(rad+0.02)) * envY;
-    float tongues = pow(max(tongueN,0.0), mix(2.4,1.1,uMid)) * envY * (1.0-smoothstep(hMax*0.5, hMax, y));
-    float core = exp(-abs(x)/(srcW*0.38+0.01)) * smoothstep(0.0,0.12,y) * (1.0-smoothstep(hMax*0.18, hMax*0.42, y));
-    float flicker = 0.92 + 0.08*edgeN*uHigh;
-    float flame = clamp(body*0.85 + tongues*0.55 + core*0.7, 0.0, 2.0) * flicker;
-    flame *= 1.0 + uBeat*0.35;
-    a = flame * m * (0.55+p0*0.35);
-    float temp = clamp(core*1.3 + body*(1.0-y/hMax) - tongues*0.15, 0.0, 1.0);
-    col = mix(uC, mix(uB, uA, temp), clamp(flame,0.0,1.0));
-    col = mix(col, uA, core*0.65);
+    // Realistic Flame: broad multi-source fire bed inspired by natural open flame.
+    // Multiple independently moving tongues replace the old single center-column/tube look.
+    float sdfMode = step(0.5, uUseSdf);
+    float sideDir = uApply < 0.5 ? -1.0 : 1.0;
+    float y = mix(p.y + 0.72, p.y * sideDir, sdfMode);
+    float x = p.x;
+    float widthCtl = 0.82 + p1*0.72;
+    float heightCtl = 0.72 + p0*0.52 + uBass*0.20 + uBeat*0.10;
+    float motion = 0.72 + p2*1.10 + uMid*0.34;
+    float baseMask = smoothstep(1.18, 0.84, abs(x));
+    float baseNoise = fbmQ(vec2(x*3.25 - t*0.13, y*3.0 - t*(0.62+motion*0.22)), uQ);
+    float base = exp(-abs(y)*5.4) * baseMask * (0.72 + baseNoise*0.62);
+    float flame = base*0.95;
+    float hot = base*0.88;
+    float outer = base;
+
+    for (int i=0; i<9; i++) {
+      float fi = float(i);
+      float center0 = -0.90 + fi*0.225;
+      float seedA = hash(vec2(fi*19.73 + 2.1, 4.7));
+      float seedB = hash(vec2(fi*7.31 + 8.4, 13.2));
+      float hTongue = (0.40 + seedA*0.58) * heightCtl;
+      float yn = clamp(y / max(hTongue, 0.10), 0.0, 1.25);
+      float curl = sin(t*(0.78+seedA*0.72)*motion + fi*1.37 + yn*(3.0+seedB*3.9));
+      curl *= (0.035 + yn*0.155) * (0.60+p2*0.72);
+      float driftN = fbmQ(vec2(fi*1.7 + y*1.8, -t*(0.44+seedB*0.42) + seedA*6.0), uQ);
+      float drift = (driftN-0.5) * (0.05 + yn*0.11);
+      float wind = (p2-0.5)*0.20*y*y + (uMid-0.5)*0.05*y;
+      float cx = center0 + curl + drift + wind;
+      float wTongue = (0.105 + seedB*0.105) * widthCtl * (1.0 + uBass*0.16);
+      float taper = mix(1.0, 0.075, pow(clamp(yn,0.0,1.0), 0.78));
+      float localW = max(0.023, wTongue*taper);
+      float side = abs(x-cx)/localW;
+      float vertical = smoothstep(-0.035,0.05,y) * (1.0-smoothstep(0.76,1.04,yn));
+      float edgeWarp = fbmQ(vec2((x-cx)*7.2 + fi*2.3, y*4.8 - t*(1.02+seedA*0.62)), uQ);
+      float tongue = exp(-side*side*(1.05+yn*0.72)) * vertical;
+      tongue *= 0.66 + edgeWarp*0.72;
+
+      // Thin, curling upper tips keep individual flames separated instead of forming a column.
+      float tipGate = smoothstep(0.43,0.70,yn) * (1.0-smoothstep(0.90,1.08,yn));
+      float tipWave = 0.5 + 0.5*sin(fi*2.1 + t*(1.3+seedB) + yn*7.0);
+      float tip = exp(-side*side*(2.5+tipWave*1.8)) * tipGate * (0.45+tipWave*0.55);
+      tongue += tip*0.72;
+
+      // Natural holes and edge breakup create the black pockets seen in real open flame.
+      float breakup = fbmQ(vec2((x-cx)*9.0 + fi*3.2, y*5.6 - t*(1.25+seedB*0.55)), uQ);
+      tongue *= mix(0.58, 1.18, breakup);
+      float active = step(fi, 5.0 + uQ);
+      flame += tongue*active;
+      hot += tongue * exp(-side*side*3.2) * (1.0-clamp(yn,0.0,1.0)) * 1.12 * active;
+      outer += tongue * (0.58+yn*0.34) * active;
+    }
+
+    float pocketN = fbmQ(vec2(x*6.2 + t*0.09, y*5.3 - t*1.05), uQ);
+    float pocketBand = smoothstep(0.13,0.34,y) * (1.0-smoothstep(0.72,1.08,y));
+    float pockets = smoothstep(0.67,0.84,pocketN) * pocketBand;
+    flame *= 1.0 - pockets*0.48;
+    hot *= 1.0 - pockets*0.78;
+
+    float wispsN = fbmQ(vec2(x*4.7 + sin(y*3.2+t)*0.24, y*2.8 - t*(1.15+motion*0.28)), uQ);
+    float wisps = smoothstep(0.59,0.79,wispsN) * smoothstep(0.26,0.52,y) * (1.0-smoothstep(0.96,1.32,y)) * baseMask;
+    flame += wisps*0.20;
+    outer += wisps*0.36;
+
+    flame *= 0.90 + uBass*0.12 + uBeat*0.18;
+    float flameAlpha = clamp(flame*0.58, 0.0, 1.55);
+    float heat = clamp(hot*0.72 + base*0.44, 0.0, 1.0);
+    float edgeHeat = clamp(outer*0.46, 0.0, 1.0);
+    a = flameAlpha * m * (0.62+p0*0.18);
+    col = mix(uB, uA, clamp(edgeHeat + flameAlpha*0.42, 0.0, 1.0));
+    col = mix(col, uC, heat);
   } else if (k < 32.5) {
     float id = hash(floor(p*vec2(9.0,6.0)+vec2(2.1, floor(t*(0.18+p0*0.2)))));
     float life = fract(id + t*(0.08+p1*0.16) + uBeat*0.04);

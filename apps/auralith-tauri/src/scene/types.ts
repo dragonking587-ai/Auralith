@@ -129,8 +129,14 @@ export function newProject(): Project {
 export function defaultEffect(kind: EffectKind): EffectInstance {
   return {
     id: crypto.randomUUID(), kind, enabled: true, intensity: 0.8, brightness: 1, opacity: 1,
-    speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7, color: "#f4d27a", color2: "#7ad0ff",
-    color3: "#ffffff", p0: 0.65, p1: 0.5, p2: 0.4, preset: "Default",
+    speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7,
+    color: kind === "RealisticFlame" ? "#ffad00" : "#f4d27a",
+    color2: kind === "RealisticFlame" ? "#ff3a00" : "#7ad0ff",
+    color3: kind === "RealisticFlame" ? "#fff1b0" : "#ffffff",
+    p0: kind === "RealisticFlame" ? 0.82 : 0.65,
+    p1: kind === "RealisticFlame" ? 0.78 : 0.5,
+    p2: kind === "RealisticFlame" ? 0.58 : 0.4,
+    preset: "Default",
     ...(kind === "MagicEnergy" ? {
       realismQuality: "Cinematic" as EffectRealismQuality,
       bassInfluence: 1.0, lowMidPlasma: 1.0, midMotion: 1.0, highSparkDensity: 1.0,
