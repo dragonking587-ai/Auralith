@@ -14,6 +14,12 @@ public:
     static UObject* GetDefaultObjectByClassPath(const FString& ClassPath, FString& Error);
 
     UFUNCTION(BlueprintCallable, Category = "Auralith Bridge")
+    static bool GetReflectedPropertyNames(UObject* Target, TArray<FString>& Properties, FString& Error);
+
+    UFUNCTION(BlueprintCallable, Category = "Auralith Bridge")
+    static bool GetReflectedFunctionNames(UObject* Target, TArray<FString>& Functions, FString& Error);
+
+    UFUNCTION(BlueprintCallable, Category = "Auralith Bridge")
     static bool GetObjectPropertyAsString(UObject* Target, FName PropertyName, FString& Value, FString& Error);
 
     UFUNCTION(BlueprintCallable, Category = "Auralith Bridge")
