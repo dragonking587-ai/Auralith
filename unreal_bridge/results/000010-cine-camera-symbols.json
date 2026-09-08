@@ -1,0 +1,67 @@
+{
+  "type": "result",
+  "id": "000010-cine-camera-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 11,
+    "symbols": [
+      {
+        "name": "CineCameraActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraAttachMount",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRail",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRailDriveMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRailHelpers",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRailLoopMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRailSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeCineCameraActorFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeCineCameraFactoryNode",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
