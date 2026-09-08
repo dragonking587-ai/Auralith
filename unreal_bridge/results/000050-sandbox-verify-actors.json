@@ -1,0 +1,251 @@
+{
+  "type": "result",
+  "id": "000050-sandbox-verify-actors",
+  "ok": true,
+  "action": "list_actors",
+  "data": {
+    "count": 10,
+    "actors": [
+      {
+        "name": "DirectionalLight_0",
+        "label": "DirectionalLight",
+        "path": "/Game/Main.Main:PersistentLevel.DirectionalLight_0",
+        "class": "/Script/Engine.DirectionalLight",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 400.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": -49.51711035415601,
+          "yaw": -10.308600787602971,
+          "roll": 112.36067200001975,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0000000149011612,
+          "z": 1.0000000149011612,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "SkyAtmosphere_0",
+        "label": "SkyAtmosphere",
+        "path": "/Game/Main.Main:PersistentLevel.SkyAtmosphere_0",
+        "class": "/Script/Engine.SkyAtmosphere",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -6000.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "SkyLight_0",
+        "label": "SkyLight",
+        "path": "/Game/Main.Main:PersistentLevel.SkyLight_0",
+        "class": "/Script/Engine.SkyLight",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 600.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "ExponentialHeightFog_0",
+        "label": "ExponentialHeightFog",
+        "path": "/Game/Main.Main:PersistentLevel.ExponentialHeightFog_0",
+        "class": "/Script/Engine.ExponentialHeightFog",
+        "location": {
+          "x": -5600.0,
+          "y": -50.0,
+          "z": -6850.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "VolumetricCloud_0",
+        "label": "VolumetricCloud",
+        "path": "/Game/Main.Main:PersistentLevel.VolumetricCloud_0",
+        "class": "/Script/Engine.VolumetricCloud",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 700.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "PlayerStart_0",
+        "label": "PlayerStart",
+        "path": "/Game/Main.Main:PersistentLevel.PlayerStart_0",
+        "class": "/Script/Engine.PlayerStart",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 92.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "StaticMeshActor_0",
+        "label": "SM_SkySphere",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 400.0,
+          "y": 400.0,
+          "z": 400.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "Floor_0",
+        "label": "Floor",
+        "path": "/Game/Main.Main:PersistentLevel.Floor_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": -0.5,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": 0.0,
+          "yaw": 0.0,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 8.0,
+          "y": 8.0,
+          "z": 8.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "CineCameraActor_1",
+        "label": "AuralithProduction_Camera",
+        "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1",
+        "class": "/Script/CinematicCamera.CineCameraActor",
+        "location": {
+          "x": 800.0,
+          "y": -800.0,
+          "z": 250.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": -7.999999999999998,
+          "yaw": 45.00000000000001,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "name": "RectLight_0",
+        "label": "AuralithProduction_KeyLight",
+        "path": "/Game/Main.Main:PersistentLevel.RectLight_0",
+        "class": "/Script/Engine.RectLight",
+        "location": {
+          "x": 250.0,
+          "y": -250.0,
+          "z": 450.0,
+          "_type": "Vector"
+        },
+        "rotation": {
+          "pitch": -34.999999999999986,
+          "yaw": 34.999999999999986,
+          "roll": 5.8241104999454225e-15,
+          "_type": "Rotator"
+        },
+        "scale": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        }
+      }
+    ]
+  }
+}
