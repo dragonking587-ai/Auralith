@@ -1,0 +1,8 @@
+{
+  "id": "000166-sync-polished-effects-v3",
+  "action": "bridge_sync_extensions",
+  "args": {
+    "source_root": "C:\\Users\\lordo\\Documents\\Auralith-Unreal-Bridge\\unreal_bridge\\unreal",
+    "modules": ["auralith_cinematic_stage"]
+  }
+}
