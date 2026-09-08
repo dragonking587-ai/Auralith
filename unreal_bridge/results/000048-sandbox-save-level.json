@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000048-sandbox-save-level",
+  "ok": true,
+  "action": "save_current_level",
+  "data": {
+    "saved": true
+  }
+}
