@@ -1,0 +1,42 @@
+{
+  "type": "result",
+  "id": "000153-effects-v2-capabilities",
+  "ok": true,
+  "action": "cinematic_stage_capabilities",
+  "data": {
+    "bridge_extension": "cinematic-stage-v2-effects",
+    "available_symbols": {
+      "MovieSceneCameraCutTrack": true,
+      "MovieSceneFloatTrack": true,
+      "MovieSceneAudioTrack": true,
+      "MovieSceneAudioSection": true,
+      "NiagaraActor": true,
+      "NiagaraComponent": true,
+      "EditorAssetLibrary": true,
+      "PostProcessVolume": true,
+      "PostProcessSettings": true,
+      "ExponentialHeightFogComponent": true
+    },
+    "niagara_templates": {
+      "energy_burst": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst",
+      "impact_burst": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion",
+      "directional_burst": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst",
+      "fountain": "/Niagara/DefaultAssets/Templates/Systems/FountainLightweight.FountainLightweight"
+    },
+    "registered_actions": [
+      "cinematic_add_audio_track",
+      "cinematic_animate_lighting",
+      "cinematic_build_major_stage",
+      "cinematic_build_multicam",
+      "cinematic_configure_atmosphere",
+      "cinematic_create_effect_library",
+      "cinematic_effects_diagnostics",
+      "cinematic_expand_environment",
+      "cinematic_lock_look",
+      "cinematic_prepare_effect_production",
+      "cinematic_spawn_niagara",
+      "cinematic_stage_capabilities",
+      "cinematic_stage_diagnostics"
+    ]
+  }
+}
