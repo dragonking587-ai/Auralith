@@ -15,12 +15,15 @@ if (-not $UProjectPath.EndsWith(".uproject", [System.StringComparison]::OrdinalI
 $ProjectDir = Split-Path -Parent $UProjectPath
 $BridgeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PythonSource = Join-Path $BridgeRoot "unreal\auralith_unreal_bridge.py"
+$ProductionSource = Join-Path $BridgeRoot "unreal\auralith_production_controls.py"
 $PythonDir = Join-Path $ProjectDir "Content\Python"
 $PythonTarget = Join-Path $PythonDir "auralith_unreal_bridge.py"
+$ProductionTarget = Join-Path $PythonDir "auralith_production_controls.py"
 $InitTarget = Join-Path $PythonDir "init_unreal.py"
 
 New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
 Copy-Item -Force $PythonSource $PythonTarget
+Copy-Item -Force $ProductionSource $ProductionTarget
 
 $Begin = "# AURALITH_UNREAL_BRIDGE_BEGIN"
 $End = "# AURALITH_UNREAL_BRIDGE_END"
@@ -28,6 +31,7 @@ $Bootstrap = @"
 $Begin
 try:
     import auralith_unreal_bridge
+    import auralith_production_controls
 except Exception as exc:
     import unreal
     unreal.log_error(f"[AuralithBridge] startup failed: {exc}")
@@ -36,11 +40,14 @@ $End
 
 if (Test-Path $InitTarget) {
     $Existing = Get-Content -Raw $InitTarget
-    if ($Existing -notmatch [regex]::Escape($Begin)) {
+    if ($Existing -match [regex]::Escape($Begin)) {
+        $Pattern = [regex]::Escape($Begin) + "[\s\S]*?" + [regex]::Escape($End)
+        $Updated = [regex]::Replace($Existing, $Pattern, [System.Text.RegularExpressions.MatchEvaluator]{ param($m) $Bootstrap }, 1)
+        Set-Content -Path $InitTarget -Value $Updated -Encoding UTF8
+        Write-Host "Updated existing Auralith bridge bootstrap in Content\Python\init_unreal.py"
+    } else {
         Add-Content -Path $InitTarget -Value "`r`n$Bootstrap"
         Write-Host "Added bridge bootstrap to existing Content\Python\init_unreal.py"
-    } else {
-        Write-Host "Bridge bootstrap already present in Content\Python\init_unreal.py"
     }
 } else {
     Set-Content -Path $InitTarget -Value $Bootstrap -Encoding UTF8
@@ -63,6 +70,10 @@ if ($InstallCppPlugin) {
 Write-Host ""
 Write-Host "Bridge runtime installed into:" -ForegroundColor Green
 Write-Host "  $ProjectDir"
+Write-Host ""
+Write-Host "Installed Python modules:" -ForegroundColor Green
+Write-Host "  Content\Python\auralith_unreal_bridge.py"
+Write-Host "  Content\Python\auralith_production_controls.py"
 Write-Host ""
 Write-Host "In Unreal Engine 5.7 enable:" -ForegroundColor Yellow
 Write-Host "  - Python Editor Script Plugin"
