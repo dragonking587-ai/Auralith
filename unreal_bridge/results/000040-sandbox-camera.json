@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000040-sandbox-camera",
+  "ok": true,
+  "action": "camera_create",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_1",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "CameraComponent",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1.CameraComponent",
+      "class": "/Script/CinematicCamera.CineCameraComponent"
+    },
+    "transient": false,
+    "warnings": []
+  }
+}
