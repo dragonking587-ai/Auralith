@@ -1,0 +1,10 @@
+{
+  "id": "000119-describe-skylight-intensity",
+  "action": "describe_target",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.SkyLight_0.SkyLightComponent0"},
+    "filter": "intensity",
+    "include_values": true,
+    "limit": 200
+  }
+}
