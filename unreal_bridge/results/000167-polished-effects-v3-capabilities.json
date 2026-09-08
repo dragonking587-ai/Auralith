@@ -1,0 +1,38 @@
+{
+  "type": "result",
+  "id": "000167-polished-effects-v3-capabilities",
+  "ok": true,
+  "action": "cinematic_stage_capabilities",
+  "data": {
+    "bridge_extension": "cinematic-stage-v3-polished-effects",
+    "available_symbols": {
+      "MovieSceneCameraCutTrack": true,
+      "MovieSceneFloatTrack": true,
+      "MovieSceneAudioTrack": true,
+      "NiagaraActor": true,
+      "NiagaraComponent": true,
+      "PostProcessVolume": true,
+      "ExponentialHeightFogComponent": true,
+      "MaterialExpressionTime": true,
+      "MaterialExpressionSine": true,
+      "MaterialExpressionMultiply": true,
+      "MaterialExpressionAdd": true
+    },
+    "registered_actions": [
+      "cinematic_add_audio_track",
+      "cinematic_animate_lighting",
+      "cinematic_build_major_stage",
+      "cinematic_build_multicam",
+      "cinematic_configure_atmosphere",
+      "cinematic_create_effect_library",
+      "cinematic_effects_diagnostics",
+      "cinematic_expand_environment",
+      "cinematic_lock_look",
+      "cinematic_polish_effect_showcase",
+      "cinematic_prepare_effect_production",
+      "cinematic_spawn_niagara",
+      "cinematic_stage_capabilities",
+      "cinematic_stage_diagnostics"
+    ]
+  }
+}
