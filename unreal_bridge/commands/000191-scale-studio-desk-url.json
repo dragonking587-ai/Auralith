@@ -1,0 +1,8 @@
+{
+  "id": "000191-scale-studio-desk-url",
+  "action": "set_actor_transform",
+  "args": {
+    "actor": "AuralithStudio_DeskURL",
+    "scale": [1.25, 1.25, 1.25]
+  }
+}
