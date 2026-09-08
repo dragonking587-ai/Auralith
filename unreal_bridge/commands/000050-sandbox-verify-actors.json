@@ -1,0 +1,7 @@
+{
+  "id": "000050-sandbox-verify-actors",
+  "action": "list_actors",
+  "args": {
+    "limit": 200
+  }
+}
