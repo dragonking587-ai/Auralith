@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000025-set-test-camera-focal-length",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "current_focal_length",
+    "before": 35.0,
+    "after": 50.0
+  }
+}
