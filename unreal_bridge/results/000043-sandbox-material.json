@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000043-sandbox-material",
+  "ok": true,
+  "action": "material_create",
+  "data": {
+    "material": {
+      "_type": "UObject",
+      "name": "M_AuralithProduction_Base",
+      "path": "/Game/AuralithProduction/Materials/M_AuralithProduction_Base.M_AuralithProduction_Base",
+      "class": "/Script/Engine.Material"
+    },
+    "object_path": "/Game/AuralithProduction/Materials/M_AuralithProduction_Base.M_AuralithProduction_Base",
+    "existed": false,
+    "saved": true
+  }
+}
