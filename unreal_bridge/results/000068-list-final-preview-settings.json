@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000068-list-final-preview-settings",
+  "ok": true,
+  "action": "call_method",
+  "data": {
+    "method": "get_all_settings",
+    "result": "<Array object at 0x000001889EF13DF0>"
+  }
+}
