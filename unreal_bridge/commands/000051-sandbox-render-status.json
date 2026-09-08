@@ -1,0 +1,5 @@
+{
+  "id": "000051-sandbox-render-status",
+  "action": "render_queue_status",
+  "args": {}
+}
