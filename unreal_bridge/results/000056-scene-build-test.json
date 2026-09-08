@@ -1,0 +1,100 @@
+{
+  "type": "result",
+  "id": "000056-scene-build-test",
+  "ok": true,
+  "action": "scene_build_test",
+  "data": {
+    "scene": "Auralith cinematic production test scene",
+    "root": "/Game/AuralithProduction",
+    "camera": {
+      "_type": "UObject",
+      "name": "CineCameraActor_1",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "actors": [
+      {
+        "_type": "UObject",
+        "name": "StaticMeshActor_1",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_1",
+        "class": "/Script/Engine.StaticMeshActor"
+      },
+      {
+        "_type": "UObject",
+        "name": "StaticMeshActor_2",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_2",
+        "class": "/Script/Engine.StaticMeshActor"
+      },
+      {
+        "_type": "UObject",
+        "name": "StaticMeshActor_3",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_3",
+        "class": "/Script/Engine.StaticMeshActor"
+      },
+      {
+        "_type": "UObject",
+        "name": "StaticMeshActor_4",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_4",
+        "class": "/Script/Engine.StaticMeshActor"
+      },
+      {
+        "_type": "UObject",
+        "name": "StaticMeshActor_5",
+        "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_5",
+        "class": "/Script/Engine.StaticMeshActor"
+      }
+    ],
+    "lights": [
+      {
+        "_type": "UObject",
+        "name": "RectLight_0",
+        "path": "/Game/Main.Main:PersistentLevel.RectLight_0",
+        "class": "/Script/Engine.RectLight"
+      },
+      {
+        "_type": "UObject",
+        "name": "PointLight_0",
+        "path": "/Game/Main.Main:PersistentLevel.PointLight_0",
+        "class": "/Script/Engine.PointLight"
+      },
+      {
+        "_type": "UObject",
+        "name": "PointLight_1",
+        "path": "/Game/Main.Main:PersistentLevel.PointLight_1",
+        "class": "/Script/Engine.PointLight"
+      }
+    ],
+    "gold_material": {
+      "_type": "UObject",
+      "name": "M_AuralithTest_GoldGlow",
+      "path": "/Game/AuralithProduction/Materials/M_AuralithTest_GoldGlow.M_AuralithTest_GoldGlow",
+      "class": "/Script/Engine.Material"
+    },
+    "gold_material_existed": false,
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "animation": {
+      "binding": "<Struct 'MovieSceneBindingProxy' (0x00000188EE3947C0) {binding_id: {}, sequence: \"/Script/LevelSequence.LevelSequence'/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master'\"}>",
+      "animation_added": true,
+      "keys_added": 9
+    },
+    "camera_cut": {
+      "camera_cut_added": true
+    },
+    "created_labels": [
+      "AuralithTest_HeroSphere",
+      "AuralithTest_Pedestal",
+      "AuralithTest_PillarLeft",
+      "AuralithTest_PillarRight",
+      "AuralithTest_Backdrop",
+      "AuralithTest_RimLight",
+      "AuralithTest_GoldAccent"
+    ],
+    "saved_level": true,
+    "warnings": []
+  }
+}
