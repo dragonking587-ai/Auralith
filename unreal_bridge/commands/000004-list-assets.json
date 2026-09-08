@@ -1,0 +1,10 @@
+{
+  "id": "000004-list-assets",
+  "action": "list_assets",
+  "args": {
+    "path": "/Game",
+    "recursive": true,
+    "include_folder": false,
+    "limit": 3000
+  }
+}
