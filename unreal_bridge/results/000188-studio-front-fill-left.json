@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000188-studio-front-fill-left",
+  "ok": true,
+  "action": "light_create",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "PointLight_15",
+      "path": "/Game/Main.Main:PersistentLevel.PointLight_15",
+      "class": "/Script/Engine.PointLight"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "LightComponent0",
+      "path": "/Game/Main.Main:PersistentLevel.PointLight_15.LightComponent0",
+      "class": "/Script/Engine.PointLightComponent"
+    },
+    "type": "point",
+    "warnings": []
+  }
+}
