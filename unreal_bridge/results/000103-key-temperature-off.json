@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000103-key-temperature-off",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "use_temperature",
+    "before": true,
+    "after": false
+  }
+}
