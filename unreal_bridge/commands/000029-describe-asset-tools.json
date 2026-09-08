@@ -1,0 +1,8 @@
+{
+  "id": "000029-describe-asset-tools",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "AssetTools",
+    "limit": 1000
+  }
+}
