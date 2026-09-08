@@ -1,0 +1,9 @@
+{
+  "id": "000103-key-temperature-off",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0"},
+    "property": "use_temperature",
+    "value": false
+  }
+}
