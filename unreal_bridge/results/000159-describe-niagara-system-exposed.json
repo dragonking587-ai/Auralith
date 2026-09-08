@@ -1,0 +1,13 @@
+{
+  "type": "result",
+  "id": "000159-describe-niagara-system-exposed",
+  "ok": true,
+  "action": "describe_target",
+  "data": {
+    "type": "NiagaraSystem",
+    "properties": [],
+    "methods": [],
+    "other": [],
+    "truncated": false
+  }
+}
