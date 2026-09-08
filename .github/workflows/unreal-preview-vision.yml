@@ -1,0 +1,85 @@
+name: Unreal Preview Vision Payload
+
+on:
+  push:
+    branches:
+      - unreal-control
+    paths:
+      - 'unreal_bridge/previews/latest/**'
+      - '.github/workflows/unreal-preview-vision.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-vision-payload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: unreal-control
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Pillow
+        run: python -m pip install --disable-pip-version-check pillow
+
+      - name: Build compact vision payload
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import base64, io, json
+          from PIL import Image, ImageStat
+
+          root = Path('unreal_bridge/previews/latest')
+          files = sorted([p for p in root.glob('*') if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])[:3]
+          payload = {
+              'format': 'auralith-preview-vision-v1',
+              'source_count': len(files),
+              'images': [],
+          }
+
+          for path in files:
+              with Image.open(path) as im:
+                  rgb = im.convert('RGB')
+                  original_size = {'width': rgb.width, 'height': rgb.height}
+                  thumb = rgb.copy()
+                  thumb.thumbnail((512, 288), Image.Resampling.LANCZOS)
+                  stat = ImageStat.Stat(thumb)
+                  mean = [round(v, 2) for v in stat.mean]
+                  out = io.BytesIO()
+                  thumb.save(out, format='JPEG', quality=68, optimize=True, progressive=True)
+                  raw = out.getvalue()
+                  payload['images'].append({
+                      'source_name': path.name,
+                      'original_size': original_size,
+                      'thumbnail_size': {'width': thumb.width, 'height': thumb.height},
+                      'mean_rgb': mean,
+                      'jpeg_bytes': len(raw),
+                      'jpeg_base64': base64.b64encode(raw).decode('ascii'),
+                  })
+
+          out_path = root / 'vision_payload.json'
+          out_path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
+          print(f'Wrote {out_path} with {len(payload["images"])} image(s)')
+          PY
+
+      - name: Commit vision payload
+        shell: bash
+        run: |
+          if git diff --quiet -- unreal_bridge/previews/latest/vision_payload.json; then
+            echo "Vision payload unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add unreal_bridge/previews/latest/vision_payload.json
+          git commit -m "unreal(preview): publish compact vision payload"
+          git push origin HEAD:unreal-control
