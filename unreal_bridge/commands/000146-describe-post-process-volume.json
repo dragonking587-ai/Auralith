@@ -1,0 +1,8 @@
+{
+  "id": "000146-describe-post-process-volume",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "PostProcessVolume",
+    "name_filter": ""
+  }
+}
