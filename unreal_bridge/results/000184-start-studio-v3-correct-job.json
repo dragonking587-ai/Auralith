@@ -1,0 +1,15 @@
+{
+  "type": "result",
+  "id": "000184-start-studio-v3-correct-job",
+  "ok": true,
+  "action": "render_queue_start",
+  "data": {
+    "started": true,
+    "executor": {
+      "_type": "UObject",
+      "name": "MoviePipelinePIEExecutor_5",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.MoviePipelinePIEExecutor_5",
+      "class": "/Script/MovieRenderPipelineEditor.MoviePipelinePIEExecutor"
+    }
+  }
+}
