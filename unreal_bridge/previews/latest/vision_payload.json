@@ -1,5 +1,5 @@
 {
-  "format": "auralith-preview-vision-v1",
+  "format": "auralith-preview-vision-v2",
   "source_count": 3,
   "images": [
     {
@@ -12,13 +12,18 @@
         "width": 512,
         "height": 288
       },
+      "coarse_preview_size": {
+        "width": 64,
+        "height": 36
+      },
       "mean_rgb": [
         162.86,
         180.73,
         200.7
       ],
       "jpeg_bytes": 7181,
-      "base64_file": "vision_01.b64"
+      "base64_file": "vision_01.b64",
+      "ppm_text_file": "vision_01.ppm.txt"
     },
     {
       "source_name": "02-AuralithPreview_0120.png",
@@ -30,13 +35,18 @@
         "width": 512,
         "height": 288
       },
+      "coarse_preview_size": {
+        "width": 64,
+        "height": 36
+      },
       "mean_rgb": [
         158.42,
         178.01,
         199.76
       ],
       "jpeg_bytes": 6616,
-      "base64_file": "vision_02.b64"
+      "base64_file": "vision_02.b64",
+      "ppm_text_file": "vision_02.ppm.txt"
     },
     {
       "source_name": "03-AuralithPreview_0239.png",
@@ -48,13 +58,18 @@
         "width": 512,
         "height": 288
       },
+      "coarse_preview_size": {
+        "width": 64,
+        "height": 36
+      },
       "mean_rgb": [
         162.73,
         180.71,
         200.69
       ],
       "jpeg_bytes": 7159,
-      "base64_file": "vision_03.b64"
+      "base64_file": "vision_03.b64",
+      "ppm_text_file": "vision_03.ppm.txt"
     }
   ]
 }
