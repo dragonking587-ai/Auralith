@@ -1,0 +1,9 @@
+{
+  "id": "000111-skylight-refine",
+  "action": "call_method",
+  "args": {
+    "target": {"kind": "actor", "name": "SkyLight"},
+    "method": "set_brightness",
+    "args": [0.25]
+  }
+}
