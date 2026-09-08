@@ -1,0 +1,9 @@
+{
+  "id": "000106-rim-radius-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0"},
+    "property": "attenuation_radius",
+    "value": 650.0
+  }
+}
