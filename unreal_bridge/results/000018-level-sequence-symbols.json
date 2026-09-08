@@ -1,0 +1,162 @@
+{
+  "type": "result",
+  "id": "000018-level-sequence-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 30,
+    "symbols": [
+      {
+        "name": "AnimSequenceLevelSequenceLink",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AutomatedLevelSequenceCapture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DefaultLevelSequenceInstanceData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFLevelSequenceExporter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeLevelSequenceFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeLevelSequenceFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequence",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceActor_OnLevelSequenceLoaded",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceAnimSequenceLink",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceAnimSequenceLinkItem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceBurnIn",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceBurnInInitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceBurnInOptions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceCameraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceDirector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceDirectorGeneratedClass",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceEditorBlueprintLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceEditorSubsystem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceMediaController",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequencePlaybackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequencePlayer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequencePlayerSnapshot",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceShotMetaDataLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceVCamLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceWithShotsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnLevelSequencePlayerCameraCutEvent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ReplicatedLevelSequenceActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderLevelSequenceSource",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
