@@ -1,0 +1,9 @@
+{
+  "id": "000110-directional-light-refine",
+  "action": "call_method",
+  "args": {
+    "target": {"kind": "actor", "name": "DirectionalLight"},
+    "method": "set_brightness",
+    "args": [0.35]
+  }
+}
