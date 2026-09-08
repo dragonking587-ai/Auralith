@@ -10,11 +10,12 @@ Coverage strategy:
 - Generic UObject get/set_editor_property access.
 - Generic method/subsystem/class calls.
 - Config/default-object property access for Project/Editor settings.
+- Runtime discovery of Unreal symbols, settings classes, properties and methods.
 - Optional python_exec/python_eval escape hatch, gated by local agent policy.
 
 Anything exposed by Unreal/Blueprint/Python can therefore be reached without
-adding a new bespoke bridge command. C++-only APIs still require a small Unreal
-plugin adapter to expose them to Blueprint/Python.
+adding a new bespoke bridge command. C++-only APIs can be exposed through the
+optional AuralithBridge editor plugin and then become visible to this runtime.
 """
 
 from __future__ import annotations
@@ -36,11 +37,31 @@ PORT = 8765
 RECONNECT_SECONDS = 2.0
 MAX_COMMANDS_PER_TICK = 4
 
+# Make manual reload/re-execution safe: stop any previous bridge instance first.
+try:
+    _previous_stop = globals().get("_STOP")
+    if _previous_stop is not None:
+        _previous_stop.set()
+    _previous_socket = globals().get("_SOCKET")
+    if _previous_socket is not None:
+        try:
+            _previous_socket.close()
+        except Exception:
+            pass
+    _previous_tick = globals().get("_TICK_HANDLE")
+    if _previous_tick is not None:
+        try:
+            unreal.unregister_slate_post_tick_callback(_previous_tick)
+        except Exception:
+            pass
+except Exception:
+    pass
+
 _INCOMING: "queue.Queue[Dict[str, Any]]" = queue.Queue()
 _SOCKET: Optional[socket.socket] = None
 _SOCKET_LOCK = threading.Lock()
 _STOP = threading.Event()
-_TICK_HANDLE = globals().get("_TICK_HANDLE", None)
+_TICK_HANDLE = None
 
 
 def _log(message: str) -> None:
@@ -90,7 +111,6 @@ def _jsonify(value: Any, depth: int = 0) -> Any:
     if isinstance(value, dict):
         return {str(k): _jsonify(v, depth + 1) for k, v in value.items()}
 
-    # Common Unreal math/color types.
     attrs = {}
     for name in ("x", "y", "z", "w", "pitch", "yaw", "roll", "r", "g", "b", "a"):
         if hasattr(value, name):
@@ -102,7 +122,6 @@ def _jsonify(value: Any, depth: int = 0) -> Any:
         attrs["_type"] = type(value).__name__
         return attrs
 
-    # UObject/Actor/Asset wrappers.
     try:
         if isinstance(value, unreal.Object):
             cls = value.get_class()
@@ -115,7 +134,6 @@ def _jsonify(value: Any, depth: int = 0) -> Any:
     except Exception:
         pass
 
-    # Unreal enums and other wrappers are usually usefully printable.
     try:
         enum_name = getattr(value, "name", None)
         if isinstance(enum_name, str):
@@ -208,7 +226,6 @@ def _vector(value: Any) -> unreal.Vector:
 def _rotator(value: Any) -> unreal.Rotator:
     if isinstance(value, dict):
         return unreal.Rotator(float(value.get("roll", 0)), float(value.get("pitch", 0)), float(value.get("yaw", 0)))
-    # Unreal's Python Rotator constructor is roll, pitch, yaw.
     return unreal.Rotator(float(value[0]), float(value[1]), float(value[2]))
 
 
@@ -227,11 +244,45 @@ def _coerce_like(current: Any, value: Any) -> Any:
             return unreal.Color(int(value.get("r", 0)), int(value.get("g", 0)), int(value.get("b", 0)), int(value.get("a", 255)))
         return unreal.Color(*[int(v) for v in value])
     if isinstance(value, str):
-        # Handles many Unreal enum values without hard-coding each enum class.
         enum_value = getattr(type(current), value.upper(), None)
         if enum_value is not None:
             return enum_value
     return value
+
+
+def _describe_object(target: Any, name_filter: str = "", limit: int = 1000, include_values: bool = True) -> Dict[str, Any]:
+    needle = name_filter.lower().strip()
+    names = [n for n in dir(target) if not n.startswith("_") and (not needle or needle in n.lower())]
+    names = sorted(names)[: max(1, min(limit, 5000))]
+    properties = []
+    methods = []
+    other = []
+
+    for name in names:
+        try:
+            attr = getattr(target, name)
+        except Exception:
+            continue
+        if callable(attr):
+            methods.append(name)
+            continue
+        value_record = {"name": name}
+        if include_values:
+            try:
+                value_record["value"] = _jsonify(target.get_editor_property(name))
+                value_record["editor_property"] = True
+            except Exception:
+                value_record["value"] = _jsonify(attr)
+                value_record["editor_property"] = False
+        properties.append(value_record)
+
+    return {
+        "type": type(target).__name__,
+        "properties": properties,
+        "methods": methods,
+        "other": other,
+        "truncated": len(names) >= limit,
+    }
 
 
 def _action_ping(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -245,6 +296,106 @@ def _action_project_info(args: Dict[str, Any]) -> Dict[str, Any]:
         "content_dir": str(unreal.Paths.project_content_dir()),
         "engine_version": _engine_version(),
     }
+
+
+def _action_list_unreal_symbols(args: Dict[str, Any]) -> Dict[str, Any]:
+    needle = str(args.get("filter", "")).lower().strip()
+    limit = max(1, min(int(args.get("limit", 2000)), 10000))
+    names = [n for n in dir(unreal) if not n.startswith("_") and (not needle or needle in n.lower())]
+    names = sorted(names)
+    records = []
+    for name in names[:limit]:
+        try:
+            value = getattr(unreal, name)
+            records.append({"name": name, "type": type(value).__name__, "callable": callable(value)})
+        except Exception:
+            records.append({"name": name, "type": "unknown", "callable": False})
+    return {"count": len(names), "symbols": records, "truncated": len(names) > limit}
+
+
+def _action_list_settings_classes(args: Dict[str, Any]) -> Dict[str, Any]:
+    needle = str(args.get("filter", "")).lower().strip()
+    limit = max(1, min(int(args.get("limit", 2000)), 10000))
+    records = []
+    for name in sorted(dir(unreal)):
+        lowered = name.lower()
+        if "setting" not in lowered:
+            continue
+        if needle and needle not in lowered:
+            continue
+        try:
+            symbol = getattr(unreal, name)
+            records.append({"name": name, "type": type(symbol).__name__, "callable": callable(symbol)})
+        except Exception:
+            continue
+        if len(records) >= limit:
+            break
+    return {"settings_symbols": records, "count": len(records)}
+
+
+def _action_describe_unreal_symbol(args: Dict[str, Any]) -> Dict[str, Any]:
+    name = str(args["symbol"])
+    symbol = getattr(unreal, name, None)
+    if symbol is None:
+        raise ValueError(f"Unknown unreal symbol: {name}")
+    name_filter = str(args.get("filter", ""))
+    limit = max(1, min(int(args.get("limit", 1000)), 5000))
+    members = [n for n in dir(symbol) if not n.startswith("_") and (not name_filter or name_filter.lower() in n.lower())]
+    methods = []
+    fields = []
+    for member in sorted(members)[:limit]:
+        try:
+            value = getattr(symbol, member)
+            (methods if callable(value) else fields).append(member)
+        except Exception:
+            pass
+    doc = str(getattr(symbol, "__doc__", "") or "")[:20000]
+    return {
+        "symbol": name,
+        "type": type(symbol).__name__,
+        "callable": callable(symbol),
+        "methods": methods,
+        "fields": fields,
+        "doc": doc,
+        "truncated": len(members) > limit,
+    }
+
+
+def _action_describe_target(args: Dict[str, Any]) -> Dict[str, Any]:
+    target = _resolve_target(dict(args["target"]))
+    return _describe_object(
+        target,
+        name_filter=str(args.get("filter", "")),
+        limit=int(args.get("limit", 1000)),
+        include_values=bool(args.get("include_values", True)),
+    )
+
+
+def _action_get_config_snapshot(args: Dict[str, Any]) -> Dict[str, Any]:
+    cls_name = str(args["class"])
+    target = unreal.get_default_object(_resolve_class(cls_name))
+    requested = args.get("properties")
+    if requested:
+        props = [str(p) for p in requested]
+    else:
+        props = []
+        for name in dir(target):
+            if name.startswith("_"):
+                continue
+            try:
+                target.get_editor_property(name)
+                props.append(name)
+            except Exception:
+                continue
+    limit = max(1, min(int(args.get("limit", 2000)), 10000))
+    snapshot = {}
+    errors = {}
+    for prop in sorted(props)[:limit]:
+        try:
+            snapshot[prop] = _jsonify(target.get_editor_property(prop))
+        except Exception as exc:
+            errors[prop] = str(exc)
+    return {"class": cls_name, "properties": snapshot, "errors": errors, "truncated": len(props) > limit}
 
 
 def _action_list_actors(args: Dict[str, Any]) -> Dict[str, Any]:
@@ -435,6 +586,11 @@ def _action_python_exec(args: Dict[str, Any]) -> Dict[str, Any]:
 _ACTIONS = {
     "ping": _action_ping,
     "get_project_info": _action_project_info,
+    "list_unreal_symbols": _action_list_unreal_symbols,
+    "list_settings_classes": _action_list_settings_classes,
+    "describe_unreal_symbol": _action_describe_unreal_symbol,
+    "describe_target": _action_describe_target,
+    "get_config_snapshot": _action_get_config_snapshot,
     "list_actors": _action_list_actors,
     "spawn_actor": _action_spawn_actor,
     "delete_actor": _action_delete_actor,
@@ -500,7 +656,7 @@ def _socket_worker() -> None:
                 _SOCKET = sock
             _send({
                 "type": "hello",
-                "bridge_version": 1,
+                "bridge_version": 2,
                 "engine_version": _engine_version(),
                 "project_file": _project_file(),
                 "actions": sorted(_ACTIONS),
@@ -535,12 +691,6 @@ def _socket_worker() -> None:
 
 def start() -> None:
     global _TICK_HANDLE
-    if _TICK_HANDLE is not None:
-        try:
-            unreal.unregister_slate_post_tick_callback(_TICK_HANDLE)
-        except Exception:
-            pass
-        _TICK_HANDLE = None
     _STOP.clear()
     _TICK_HANDLE = unreal.register_slate_post_tick_callback(_on_tick)
     threading.Thread(target=_socket_worker, name="AuralithUnrealBridge", daemon=True).start()
