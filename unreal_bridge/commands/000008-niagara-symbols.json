@@ -1,0 +1,5 @@
+{
+  "id": "000008-niagara-symbols",
+  "action": "list_unreal_symbols",
+  "args": {"filter": "niagara", "limit": 1000}
+}
