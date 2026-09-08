@@ -74,7 +74,7 @@ jobs:
       - name: Commit vision payload
         shell: bash
         run: |
-          if git diff --quiet -- unreal_bridge/previews/latest/vision_payload.json; then
+          if [ -z "$(git status --porcelain -- unreal_bridge/previews/latest/vision_payload.json)" ]; then
             echo "Vision payload unchanged."
             exit 0
           fi
