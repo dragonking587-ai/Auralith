@@ -1,0 +1,9 @@
+{
+  "id": "000120-skylight-intensity-fix",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.SkyLight_0.SkyLightComponent0"},
+    "property": "intensity",
+    "value": 0.25
+  }
+}
