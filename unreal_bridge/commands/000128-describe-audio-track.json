@@ -1,0 +1,8 @@
+{
+  "id": "000128-describe-audio-track",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MovieSceneAudioTrack",
+    "limit": 1000
+  }
+}
