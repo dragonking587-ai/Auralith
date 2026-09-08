@@ -1,0 +1,12 @@
+{
+  "id": "000076-final-preview-job-progress",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0"
+    },
+    "method": "get_status_progress",
+    "args": []
+  }
+}
