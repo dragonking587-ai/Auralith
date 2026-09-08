@@ -1,0 +1,5 @@
+{
+  "id": "000055-describe-double-channel",
+  "action": "describe_unreal_symbol",
+  "args": {"symbol": "MovieSceneScriptingDoubleChannel", "limit": 500}
+}
