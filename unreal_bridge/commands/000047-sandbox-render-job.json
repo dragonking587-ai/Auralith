@@ -1,0 +1,9 @@
+{
+  "id": "000047-sandbox-render-job",
+  "action": "render_queue_add_job",
+  "args": {
+    "name": "Auralith Production Sandbox",
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "map": "/Game/Main.Main"
+  }
+}
