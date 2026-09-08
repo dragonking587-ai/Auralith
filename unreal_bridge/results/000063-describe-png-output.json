@@ -1,0 +1,44 @@
+{
+  "type": "result",
+  "id": "000063-describe-png-output",
+  "ok": true,
+  "action": "describe_unreal_symbol",
+  "data": {
+    "symbol": "MoviePipelineImageSequenceOutput_PNG",
+    "type": "type",
+    "callable": true,
+    "methods": [
+      "acquire_editor_element_handle",
+      "build_new_process_command_line_args",
+      "call_method",
+      "cast",
+      "get_class",
+      "get_default_object",
+      "get_editor_property",
+      "get_fname",
+      "get_full_name",
+      "get_name",
+      "get_outer",
+      "get_outermost",
+      "get_package",
+      "get_path_name",
+      "get_typed_outer",
+      "get_world",
+      "is_editor_property_overridden",
+      "is_enabled",
+      "is_package_external",
+      "modify",
+      "rename",
+      "reset_editor_property",
+      "set_editor_properties",
+      "set_editor_property",
+      "set_is_enabled",
+      "static_class"
+    ],
+    "fields": [
+      "write_alpha"
+    ],
+    "doc": "Movie Pipeline Image Sequence Output PNG\r\n\r\n**C++ Source:**\r\n\r\n- **Plugin**: MovieRenderPipeline\r\n- **Module**: MovieRenderPipelineRenderPasses\r\n- **File**: MoviePipelineImageSequenceOutput.h\r\n\r\n**Editor Properties:** (see get_editor_property/set_editor_property)\r\n\r\n- ``write_alpha`` (bool):  [Read-Write]",
+    "truncated": false
+  }
+}
