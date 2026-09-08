@@ -1,5 +1,5 @@
 {
-  "format": "auralith-preview-vision-v3",
+  "format": "auralith-preview-vision-v4",
   "source_count": 3,
   "images": [
     {
@@ -21,7 +21,8 @@
         179.4,
         184.67
       ],
-      "jpeg_bytes": 10160,
+      "jpeg_bytes": 11032,
+      "thumbnail_file": "vision_01.jpg",
       "base64_file": "vision_01.b64",
       "ppm_text_file": "vision_01.ppm.txt"
     },
@@ -44,7 +45,8 @@
         184.16,
         189.08
       ],
-      "jpeg_bytes": 10634,
+      "jpeg_bytes": 11605,
+      "thumbnail_file": "vision_02.jpg",
       "base64_file": "vision_02.b64",
       "ppm_text_file": "vision_02.ppm.txt"
     },
@@ -67,7 +69,8 @@
         178.67,
         184.26
       ],
-      "jpeg_bytes": 10109,
+      "jpeg_bytes": 10951,
+      "thumbnail_file": "vision_03.jpg",
       "base64_file": "vision_03.b64",
       "ppm_text_file": "vision_03.ppm.txt"
     }
