@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000110-directional-light-refine",
+  "ok": true,
+  "action": "call_method",
+  "data": {
+    "method": "set_brightness",
+    "result": null
+  }
+}
