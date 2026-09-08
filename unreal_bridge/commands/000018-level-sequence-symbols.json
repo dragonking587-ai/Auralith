@@ -1,0 +1,8 @@
+{
+  "id": "000018-level-sequence-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "LevelSequence",
+    "limit": 2000
+  }
+}
