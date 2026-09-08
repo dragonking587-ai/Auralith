@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000135-import-cinematic-after-repair",
+  "ok": true,
+  "action": "execute_console",
+  "data": {
+    "executed": "py import auralith_cinematic_stage"
+  }
+}
