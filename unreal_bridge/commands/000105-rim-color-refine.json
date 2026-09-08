@@ -1,0 +1,9 @@
+{
+  "id": "000105-rim-color-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 35, "g": 90, "b": 255, "a": 255}
+  }
+}
