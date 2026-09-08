@@ -1,0 +1,5 @@
+{
+  "id": "000124-post-refined-render-status",
+  "action": "render_queue_status",
+  "args": {}
+}
