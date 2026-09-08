@@ -1,0 +1,8 @@
+{
+  "id": "000063-describe-png-output",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineImageSequenceOutput_PNG",
+    "limit": 500
+  }
+}
