@@ -1,0 +1,9 @@
+{
+  "id": "000102-key-color-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 255, "g": 150, "b": 70, "a": 255}
+  }
+}
