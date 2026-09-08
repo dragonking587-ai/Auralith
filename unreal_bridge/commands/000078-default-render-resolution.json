@@ -1,0 +1,11 @@
+{
+  "id": "000078-default-render-resolution",
+  "action": "get_property",
+  "args": {
+    "target": {
+      "kind": "default_object",
+      "class": "MoviePipelineOutputSetting"
+    },
+    "property": "output_resolution"
+  }
+}
