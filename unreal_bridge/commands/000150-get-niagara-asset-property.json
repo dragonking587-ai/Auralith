@@ -1,0 +1,11 @@
+{
+  "id": "000150-get-niagara-asset-property",
+  "action": "get_property",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_0.NiagaraComponent0"
+    },
+    "property": "asset"
+  }
+}
