@@ -1,0 +1,5 @@
+{
+  "id": "000053-describe-transform-section",
+  "action": "describe_unreal_symbol",
+  "args": {"symbol": "MovieScene3DTransformSection", "limit": 500}
+}
