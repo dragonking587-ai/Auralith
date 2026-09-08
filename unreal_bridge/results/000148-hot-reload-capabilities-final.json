@@ -1,0 +1,21 @@
+{
+  "type": "result",
+  "id": "000148-hot-reload-capabilities-final",
+  "ok": true,
+  "action": "bridge_hot_reload_capabilities",
+  "data": {
+    "bridge_extension": "hot-reload-v2",
+    "project_python_dir": "..\\..\\..\\..\\..\\..\\Users\\lordo\\Documents\\Unreal Projects\\MyProject2\\Content\\Python",
+    "whitelisted_modules": [
+      "auralith_production_controls",
+      "auralith_test_scene",
+      "auralith_render_feedback",
+      "auralith_cinematic_stage"
+    ],
+    "registered_actions": [
+      "bridge_hot_reload_capabilities",
+      "bridge_reload_extensions",
+      "bridge_sync_extensions"
+    ]
+  }
+}
