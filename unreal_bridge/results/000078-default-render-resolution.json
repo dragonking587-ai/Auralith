@@ -1,0 +1,14 @@
+{
+  "type": "result",
+  "id": "000078-default-render-resolution",
+  "ok": true,
+  "action": "get_property",
+  "data": {
+    "property": "output_resolution",
+    "value": {
+      "x": 1920,
+      "y": 1080,
+      "_type": "IntPoint"
+    }
+  }
+}
