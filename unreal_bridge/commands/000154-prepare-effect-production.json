@@ -1,0 +1,7 @@
+{
+  "id": "000154-prepare-effect-production",
+  "action": "cinematic_prepare_effect_production",
+  "args": {
+    "rebuild_materials": true
+  }
+}
