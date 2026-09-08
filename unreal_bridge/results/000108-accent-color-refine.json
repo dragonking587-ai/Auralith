@@ -1,0 +1,23 @@
+{
+  "type": "result",
+  "id": "000108-accent-color-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "light_color",
+    "before": {
+      "r": 15,
+      "g": 90,
+      "b": 255,
+      "a": 255,
+      "_type": "Color"
+    },
+    "after": {
+      "r": 15,
+      "g": 90,
+      "b": 255,
+      "a": 255,
+      "_type": "Color"
+    }
+  }
+}
