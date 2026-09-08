@@ -1,0 +1,2562 @@
+{
+  "type": "result",
+  "id": "000177-reference-studio-diagnostics",
+  "ok": true,
+  "action": "studio_diagnostics",
+  "data": {
+    "studio_actor_count": 254,
+    "actors": [
+      {
+        "label": "AuralithStudio_Floor",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 120.0,
+          "z": -10.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BackWall",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 665.0,
+          "z": 325.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWall",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -720.0,
+          "y": 160.0,
+          "z": 325.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWall",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 720.0,
+          "y": 160.0,
+          "z": 325.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Ceiling",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 170.0,
+          "z": 655.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingGalaxy",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 210.0,
+          "z": 642.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilGlowFront",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": -250.0,
+          "z": 632.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilGlowBack",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 640.0,
+          "z": 632.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilGlowLeft",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -455.0,
+          "y": 195.0,
+          "z": 632.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilGlowRight",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 455.0,
+          "y": 195.0,
+          "z": 632.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_00",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -320.0,
+          "y": 80.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_01",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -250.0,
+          "y": 310.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_02",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -165.0,
+          "y": 180.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_03",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -80.0,
+          "y": 20.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_04",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 20.0,
+          "y": 280.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_05",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 95.0,
+          "y": 125.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_06",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 180.0,
+          "y": 360.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_07",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 260.0,
+          "y": 225.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_08",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 335.0,
+          "y": 55.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_09",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -30.0,
+          "y": 430.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_10",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 300.0,
+          "y": 430.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingStar_11",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -360.0,
+          "y": 390.0,
+          "z": 628.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WallStrip_L690",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -690.0,
+          "y": 110.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WallStrip_L650",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -650.0,
+          "y": 110.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WallStrip_650",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 650.0,
+          "y": 110.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WallStrip_690",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 690.0,
+          "y": 110.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_Outer",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -500.0,
+          "y": 640.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_Screen",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -500.0,
+          "y": 628.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_BorderL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -687.0,
+          "y": 623.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_BorderR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -313.0,
+          "y": 623.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_BorderT",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -500.0,
+          "y": 623.0,
+          "z": 537.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreen_BorderB",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -500.0,
+          "y": 623.0,
+          "z": 283.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_Outer",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 500.0,
+          "y": 640.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_Screen",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 500.0,
+          "y": 628.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_BorderL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 313.0,
+          "y": 623.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_BorderR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 687.0,
+          "y": 623.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_BorderT",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 500.0,
+          "y": 623.0,
+          "z": 537.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightScreen_BorderB",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 500.0,
+          "y": 623.0,
+          "z": 283.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftScreenArtist",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -610.0,
+          "y": 610.0,
+          "z": 500.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftNowPlaying",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -610.0,
+          "y": 610.0,
+          "z": 445.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftTrack",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -610.0,
+          "y": 610.0,
+          "z": 415.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightTitle",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": 420.0,
+          "y": 610.0,
+          "z": 505.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_00",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -655.0,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_01",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -643.5185185185185,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_02",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -632.0370370370371,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_03",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -620.5555555555555,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_04",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -609.0740740740741,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_05",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -597.5925925925926,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_06",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -586.1111111111111,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_07",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -574.6296296296297,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_08",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -563.1481481481482,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_09",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -551.6666666666666,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_10",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -540.1851851851852,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_11",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -528.7037037037037,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_12",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -517.2222222222222,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_13",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -505.74074074074076,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_14",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -494.25925925925924,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_15",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -482.77777777777777,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_16",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -471.2962962962963,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_17",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -459.81481481481484,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_18",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -448.33333333333337,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_19",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -436.85185185185185,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_20",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -425.3703703703704,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_21",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -413.8888888888889,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_22",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -402.4074074074074,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_23",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -390.9259259259259,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_24",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -379.44444444444446,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_25",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -367.962962962963,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_26",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -356.4814814814815,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_LeftWave_27",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -345.0,
+          "y": 605.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_00",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 345.0,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_01",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 356.48148148148147,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_02",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 367.96296296296293,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_03",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 379.44444444444446,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_04",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 390.9259259259259,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_05",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 402.4074074074074,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_06",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 413.8888888888889,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_07",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 425.3703703703704,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_08",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 436.85185185185185,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_09",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 448.3333333333333,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_10",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 459.8148148148148,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_11",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 471.2962962962963,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_12",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 482.77777777777777,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_13",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 494.25925925925924,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_14",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 505.74074074074076,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_15",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 517.2222222222222,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_16",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 528.7037037037037,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_17",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 540.1851851851852,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_18",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 551.6666666666666,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_19",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 563.1481481481482,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_20",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 574.6296296296296,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_21",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 586.1111111111111,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_22",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 597.5925925925926,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_23",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 609.0740740740741,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_24",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 620.5555555555555,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_25",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 632.037037037037,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_26",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 643.5185185185185,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RightWave_27",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 655.0,
+          "y": 605.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeft",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -255.0,
+          "y": 638.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -333.0,
+          "y": 626.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -177.0,
+          "y": 626.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftTitle",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -315.0,
+          "y": 610.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftSlogan",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -310.0,
+          "y": 610.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftDiamondA",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -255.0,
+          "y": 610.0,
+          "z": 485.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerLeftDiamondB",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -255.0,
+          "y": 610.0,
+          "z": 485.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRight",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 255.0,
+          "y": 638.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 177.0,
+          "y": 626.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 333.0,
+          "y": 626.0,
+          "z": 365.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightTitle",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": 195.0,
+          "y": 610.0,
+          "z": 410.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightSlogan",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": 200.0,
+          "y": 610.0,
+          "z": 335.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightDiamondA",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 255.0,
+          "y": 610.0,
+          "z": 485.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BannerRightDiamondB",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 255.0,
+          "y": 610.0,
+          "z": 485.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -210.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -140.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -70.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 70.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 140.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_0_6",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 210.0,
+          "y": 635.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_1_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -210.0,
+          "y": 635.0,
+          "z": 322.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_1_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -140.0,
+          "y": 635.0,
+          "z": 322.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_1_5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 140.0,
+          "y": 635.0,
+          "z": 322.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_1_6",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 210.0,
+          "y": 635.0,
+          "z": 322.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_2_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -210.0,
+          "y": 635.0,
+          "z": 394.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_2_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -140.0,
+          "y": 635.0,
+          "z": 394.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_2_5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 140.0,
+          "y": 635.0,
+          "z": 394.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_2_6",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 210.0,
+          "y": 635.0,
+          "z": 394.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_3_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -210.0,
+          "y": 635.0,
+          "z": 466.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_3_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -140.0,
+          "y": 635.0,
+          "z": 466.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_3_5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 140.0,
+          "y": 635.0,
+          "z": 466.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_3_6",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 210.0,
+          "y": 635.0,
+          "z": 466.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -210.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -140.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -70.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 70.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 140.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Acoustic_4_6",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 210.0,
+          "y": 635.0,
+          "z": 538.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrestOuter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 618.0,
+          "z": 425.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrestInner",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 602.0,
+          "z": 425.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfEarL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -58.0,
+          "y": 588.0,
+          "z": 505.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfEarR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 58.0,
+          "y": 588.0,
+          "z": 505.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfBrowL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -38.0,
+          "y": 582.0,
+          "z": 450.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfBrowR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 38.0,
+          "y": 582.0,
+          "z": 450.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfMuzzle",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 580.0,
+          "z": 390.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfEyeL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -34.0,
+          "y": 572.0,
+          "z": 444.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_WolfEyeR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 34.0,
+          "y": 572.0,
+          "z": 444.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CenterTitle",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -155.0,
+          "y": 575.0,
+          "z": 235.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Shelf_L",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -500.0,
+          "y": 560.0,
+          "z": 175.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_L_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -620.0,
+          "y": 500.0,
+          "z": 195.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_L_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -638.7,
+          "y": 502.55,
+          "z": 190.75,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_L_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -599.6,
+          "y": 499.15,
+          "z": 188.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_L_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -652.3,
+          "y": 500.0,
+          "z": 184.8,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_L_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -587.7,
+          "y": 501.7,
+          "z": 183.1,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Shelf_R",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 500.0,
+          "y": 560.0,
+          "z": 175.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_R_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 620.0,
+          "y": 500.0,
+          "z": 195.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_R_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 601.3,
+          "y": 502.55,
+          "z": 190.75,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_R_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 640.4,
+          "y": 499.15,
+          "z": 188.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_R_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 587.7,
+          "y": 500.0,
+          "z": 184.8,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalShelf_R_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 652.3,
+          "y": 501.7,
+          "z": 183.1,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorL_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -650.0,
+          "y": 160.0,
+          "z": 80.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorL_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -676.4,
+          "y": 163.6,
+          "z": 74.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorL_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -621.2,
+          "y": 158.8,
+          "z": 70.4,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorL_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -695.6,
+          "y": 160.0,
+          "z": 65.6,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorL_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -604.4,
+          "y": 162.4,
+          "z": 63.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorR_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 650.0,
+          "y": 160.0,
+          "z": 80.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorR_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 623.6,
+          "y": 163.6,
+          "z": 74.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorR_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 678.8,
+          "y": 158.8,
+          "z": 70.4,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorR_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 604.4,
+          "y": 160.0,
+          "z": 65.6,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalFloorR_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 695.6,
+          "y": 162.4,
+          "z": 63.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterL_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -185.0,
+          "y": 460.0,
+          "z": 160.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterL_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -200.4,
+          "y": 462.1,
+          "z": 156.5,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterL_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -168.2,
+          "y": 459.3,
+          "z": 154.4,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterL_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -211.6,
+          "y": 460.0,
+          "z": 151.6,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterL_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -158.4,
+          "y": 461.4,
+          "z": 150.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterR_0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 185.0,
+          "y": 460.0,
+          "z": 160.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterR_1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 169.6,
+          "y": 462.1,
+          "z": 156.5,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterR_2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 201.8,
+          "y": 459.3,
+          "z": 154.4,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterR_3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 158.4,
+          "y": 460.0,
+          "z": 151.6,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CrystalCenterR_4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 211.6,
+          "y": 461.4,
+          "z": 150.2,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerL_Cabinet",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -520.0,
+          "y": 500.0,
+          "z": 245.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerL_Woofer",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -520.0,
+          "y": 459.0,
+          "z": 225.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerL_Tweeter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -520.0,
+          "y": 459.0,
+          "z": 303.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerR_Cabinet",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 520.0,
+          "y": 500.0,
+          "z": 245.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerR_Woofer",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 520.0,
+          "y": 459.0,
+          "z": 225.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_SpeakerR_Tweeter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 520.0,
+          "y": 459.0,
+          "z": 303.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_RearBench",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 390.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Body",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -330.0,
+          "y": 350.0,
+          "z": 285.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Platter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -330.0,
+          "y": 345.0,
+          "z": 305.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Ring",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -330.0,
+          "y": 345.0,
+          "z": 314.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Display",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -258.0,
+          "y": 298.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -400.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -376.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -352.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -328.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -304.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL1_Knob5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -280.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Body",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -110.0,
+          "y": 350.0,
+          "z": 285.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Platter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -110.0,
+          "y": 345.0,
+          "z": 305.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Ring",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -110.0,
+          "y": 345.0,
+          "z": 314.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Display",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -38.0,
+          "y": 298.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -180.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -156.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -132.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -108.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -84.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckL2_Knob5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -60.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Body",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 110.0,
+          "y": 350.0,
+          "z": 285.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Platter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 110.0,
+          "y": 345.0,
+          "z": 305.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Ring",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 110.0,
+          "y": 345.0,
+          "z": 314.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Display",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 182.0,
+          "y": 298.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 40.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 64.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 88.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 112.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 136.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR1_Knob5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 160.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Body",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 330.0,
+          "y": 350.0,
+          "z": 285.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Platter",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 330.0,
+          "y": 345.0,
+          "z": 305.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Ring",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 330.0,
+          "y": 345.0,
+          "z": 314.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Display",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 402.0,
+          "y": 298.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob0",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 260.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob1",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 284.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob2",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 308.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob3",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 332.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob4",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 356.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeckR2_Knob5",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 380.0,
+          "y": 312.0,
+          "z": 307.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_ChairSeat",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 185.0,
+          "z": 230.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_ChairBack",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 235.0,
+          "z": 340.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_ChairLogo",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -65.0,
+          "y": 190.0,
+          "z": 382.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBody",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 35.0,
+          "z": 150.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskTop",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 10.0,
+          "z": 290.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskGlow",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": -170.0,
+          "z": 278.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskScreen",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": -170.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskTitle",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -300.0,
+          "y": -185.0,
+          "z": 185.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskURL",
+        "class": "/Script/Engine.TextRenderActor",
+        "location": {
+          "x": -310.0,
+          "y": -185.0,
+          "z": 105.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeOuterL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -480.0,
+          "y": -188.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeInnerL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -480.0,
+          "y": -196.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeWolfL",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -480.0,
+          "y": -204.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeOuterR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 480.0,
+          "y": -188.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeInnerR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 480.0,
+          "y": -196.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskBadgeWolfR",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 480.0,
+          "y": -204.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_UnderDeskGlow",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 5.0,
+          "z": 12.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingLight_-520",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": -520.0,
+          "y": 160.0,
+          "z": 585.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingLight_-260",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": -260.0,
+          "y": 160.0,
+          "z": 585.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingLight_0",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 0.0,
+          "y": 160.0,
+          "z": 585.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingLight_260",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 260.0,
+          "y": 160.0,
+          "z": 585.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_CeilingLight_520",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 520.0,
+          "y": 160.0,
+          "z": 585.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_KeyPurple",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": -280.0,
+          "y": -180.0,
+          "z": 360.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_FillPurple",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 330.0,
+          "y": 90.0,
+          "z": 330.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_BackGlow",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 0.0,
+          "y": 540.0,
+          "z": 360.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_DeskGlowLight",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 0.0,
+          "y": -110.0,
+          "z": 90.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_Camera",
+        "class": "/Script/CinematicCamera.CineCameraActor",
+        "location": {
+          "x": 0.0,
+          "y": -1580.0,
+          "z": 390.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithStudio_PostProcess",
+        "class": "/Script/Engine.PostProcessVolume",
+        "location": {
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0,
+          "_type": "Vector"
+        }
+      }
+    ],
+    "sequence_exists": true,
+    "sequence_path": "/Game/AuralithProduction/Cinematics/AuralithStudio_Master.AuralithStudio_Master",
+    "camera_exists": true,
+    "camera_cuts": [
+      {
+        "start": 0,
+        "end": 240,
+        "active": true,
+        "binding": "<Struct 'MovieSceneObjectBindingID' (0x0000024369FE28C0) {}>"
+      }
+    ]
+  }
+}
