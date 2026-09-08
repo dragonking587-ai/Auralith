@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000118-skylight-intensity-refine",
+  "ok": false,
+  "action": "set_property",
+  "error": "SkyLightComponent: Failed to find property 'intensity_scale' for attribute 'intensity_scale' on 'SkyLightComponent'",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 473, in _action_set_property\n    before = target.get_editor_property(prop)\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nException: SkyLightComponent: Failed to find property 'intensity_scale' for attribute 'intensity_scale' on 'SkyLightComponent'\n"
+}
