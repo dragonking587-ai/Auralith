@@ -1,0 +1,29 @@
+{
+  "render_command_id": "000090-start-feedback-preview-render",
+  "captured_at_utc": "2026-09-08T18:43:38Z",
+  "image_count": 3,
+  "images": [
+    {
+      "name": "01-AuralithPreview_0000.png",
+      "repo_path": "unreal_bridge/previews/latest/01-AuralithPreview_0000.png",
+      "size_bytes": 1887839,
+      "source_name": "AuralithPreview_0000.png",
+      "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/01-AuralithPreview_0000.png"
+    },
+    {
+      "name": "02-AuralithPreview_0120.png",
+      "repo_path": "unreal_bridge/previews/latest/02-AuralithPreview_0120.png",
+      "size_bytes": 1803755,
+      "source_name": "AuralithPreview_0120.png",
+      "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/02-AuralithPreview_0120.png"
+    },
+    {
+      "name": "03-AuralithPreview_0239.png",
+      "repo_path": "unreal_bridge/previews/latest/03-AuralithPreview_0239.png",
+      "size_bytes": 1803640,
+      "source_name": "AuralithPreview_0239.png",
+      "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/03-AuralithPreview_0239.png"
+    }
+  ],
+  "note": "Preview files are copied only from this Unreal project's Saved/MovieRenders output."
+}
