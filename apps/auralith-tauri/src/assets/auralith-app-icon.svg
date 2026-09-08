@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="68%">
+      <stop offset="0" stop-color="#16191c"/>
+      <stop offset="0.58" stop-color="#080a0c"/>
+      <stop offset="1" stop-color="#020304"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff0a6"/>
+      <stop offset="0.42" stop-color="#e2bd50"/>
+      <stop offset="1" stop-color="#8d6921"/>
+    </linearGradient>
+    <linearGradient id="wave" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#7a5a1f"/>
+      <stop offset="0.18" stop-color="#d9b84b"/>
+      <stop offset="0.5" stop-color="#fff3b0"/>
+      <stop offset="0.82" stop-color="#d9b84b"/>
+      <stop offset="1" stop-color="#7a5a1f"/>
+    </linearGradient>
+    <filter id="goldGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="18" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="softGlow" x="-50%" y="-80%" width="200%" height="260%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <circle cx="512" cy="512" r="478" fill="url(#bg)" stroke="#3a2d16" stroke-width="20"/>
+  <circle cx="512" cy="512" r="448" fill="none" stroke="#d9b84b" stroke-opacity="0.32" stroke-width="5"/>
+
+  <!-- Stylized Auralith wolf head -->
+  <path d="M512 198
+           L640 274 L792 238 L748 414
+           C790 482 786 598 730 692
+           C675 784 590 830 512 852
+           C434 830 349 784 294 692
+           C238 598 234 482 276 414
+           L232 238 L384 274 Z"
+        fill="#080a0c" stroke="url(#gold)" stroke-width="22" stroke-linejoin="round"/>
+
+  <path d="M384 274 L321 288 L344 405 L416 352 Z" fill="#14181b" stroke="#886923" stroke-width="8"/>
+  <path d="M640 274 L703 288 L680 405 L608 352 Z" fill="#14181b" stroke="#886923" stroke-width="8"/>
+
+  <path d="M512 300
+           C462 334 414 396 393 468
+           C369 550 389 654 454 724
+           L512 788
+           L570 724
+           C635 654 655 550 631 468
+           C610 396 562 334 512 300 Z"
+        fill="#0e1113" stroke="#4f3c1a" stroke-width="8"/>
+
+  <path d="M385 475 C421 443 462 443 494 468 C454 503 414 506 382 486 Z"
+        fill="#f2d46f" filter="url(#softGlow)"/>
+  <path d="M639 475 C603 443 562 443 530 468 C570 503 610 506 642 486 Z"
+        fill="#f2d46f" filter="url(#softGlow)"/>
+
+  <path d="M512 532 L474 596 L512 620 L550 596 Z" fill="#d9b84b" opacity="0.9"/>
+  <path d="M430 668 C462 694 486 704 512 704 C538 704 562 694 594 668
+           C568 724 540 752 512 770 C484 752 456 724 430 668 Z"
+        fill="#121619" stroke="#6f5420" stroke-width="7"/>
+
+  <!-- Sound wave through the wolf face -->
+  <g filter="url(#goldGlow)">
+    <path d="M138 536
+             L224 536 L256 490 L289 590 L324 448 L360 624 L397 500
+             L430 566 L463 520 L492 548 L512 466 L532 548 L561 520
+             L594 566 L627 500 L664 624 L700 448 L735 590 L768 490
+             L800 536 L886 536"
+          fill="none" stroke="url(#wave)" stroke-width="18" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+  <path d="M138 536
+           L224 536 L256 490 L289 590 L324 448 L360 624 L397 500
+           L430 566 L463 520 L492 548 L512 466 L532 548 L561 520
+           L594 566 L627 500 L664 624 L700 448 L735 590 L768 490
+           L800 536 L886 536"
+        fill="none" stroke="#fff3b0" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <circle cx="512" cy="536" r="13" fill="#fff4ba" filter="url(#softGlow)"/>
+</svg>
