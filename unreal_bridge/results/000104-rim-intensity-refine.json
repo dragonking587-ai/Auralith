@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000104-rim-intensity-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "intensity",
+    "before": 3200.0,
+    "after": 900.0
+  }
+}
