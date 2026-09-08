@@ -1,0 +1,18 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.1.0",
+  "FriendlyName": "Auralith Bridge",
+  "Description": "Editor-only reflection helpers for the Auralith ChatGPT <-> Unreal bridge.",
+  "Category": "Scripting",
+  "CreatedBy": "Auralith",
+  "CanContainContent": false,
+  "IsBetaVersion": true,
+  "Modules": [
+    {
+      "Name": "AuralithBridge",
+      "Type": "Editor",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
