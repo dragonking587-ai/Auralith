@@ -1,0 +1,23 @@
+{
+  "type": "result",
+  "id": "000105-rim-color-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "light_color",
+    "before": {
+      "r": 255,
+      "g": 90,
+      "b": 35,
+      "a": 255,
+      "_type": "Color"
+    },
+    "after": {
+      "r": 255,
+      "g": 90,
+      "b": 35,
+      "a": 255,
+      "_type": "Color"
+    }
+  }
+}
