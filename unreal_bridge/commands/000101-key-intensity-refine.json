@@ -1,0 +1,9 @@
+{
+  "id": "000101-key-intensity-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0"},
+    "property": "intensity",
+    "value": 1800.0
+  }
+}
