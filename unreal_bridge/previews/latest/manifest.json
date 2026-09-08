@@ -1,12 +1,12 @@
 {
-  "render_command_id": "000187-start-studio-v4-preview",
-  "captured_at_utc": "2026-09-08T21:34:04Z",
+  "render_command_id": "000193-start-studio-v5-preview",
+  "captured_at_utc": "2026-09-08T21:36:56Z",
   "image_count": 1,
   "images": [
     {
       "name": "01-AuralithPreview_0000.png",
       "repo_path": "unreal_bridge/previews/latest/01-AuralithPreview_0000.png",
-      "size_bytes": 1992599,
+      "size_bytes": 2062731,
       "source_name": "AuralithPreview_0000.png",
       "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/01-AuralithPreview_0000.png"
     }
