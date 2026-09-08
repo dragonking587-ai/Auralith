@@ -1,0 +1,7 @@
+{
+  "id": "000057-test-scene-verify-actors",
+  "action": "list_actors",
+  "args": {
+    "limit": 100
+  }
+}
