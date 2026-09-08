@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000038-production-material-test",
+  "ok": true,
+  "action": "material_create",
+  "data": {
+    "material": {
+      "_type": "UObject",
+      "name": "M_Auralith_ProductionTest",
+      "path": "/Game/AuralithBridgeTests/Materials/M_Auralith_ProductionTest.M_Auralith_ProductionTest",
+      "class": "/Script/Engine.Material"
+    },
+    "object_path": "/Game/AuralithBridgeTests/Materials/M_Auralith_ProductionTest.M_Auralith_ProductionTest",
+    "existed": false,
+    "saved": false
+  }
+}
