@@ -1,0 +1,20 @@
+{
+  "type": "result",
+  "id": "000042-sandbox-sequence",
+  "ok": true,
+  "action": "sequence_create",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "object_path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "existed": false,
+    "fps": 24,
+    "duration_seconds": 10.0,
+    "saved": true,
+    "warnings": []
+  }
+}
