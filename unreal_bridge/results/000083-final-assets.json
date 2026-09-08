@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000083-final-assets",
+  "ok": true,
+  "action": "list_assets",
+  "data": {
+    "path": "/Game/AuralithProduction",
+    "count": 4,
+    "assets": [
+      "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "/Game/AuralithProduction/Materials/M_AuralithProduction_Base.M_AuralithProduction_Base",
+      "/Game/AuralithProduction/Materials/M_AuralithTest_GoldGlow.M_AuralithTest_GoldGlow",
+      "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base"
+    ],
+    "truncated": false
+  }
+}
