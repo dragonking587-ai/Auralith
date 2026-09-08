@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000075-final-preview-job-message",
+  "ok": true,
+  "action": "call_method",
+  "data": {
+    "method": "get_status_message",
+    "result": ""
+  }
+}
