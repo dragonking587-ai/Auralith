@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000151-test-set-niagara-asset-by-path",
+  "ok": false,
+  "action": "set_property",
+  "error": "NiagaraComponent: Failed to convert type 'str' to property 'Asset' (ObjectProperty) for attribute 'asset' on 'NiagaraComponent'\n  TypeError: NativizeProperty: Cannot nativize 'str' as 'Asset' (ObjectProperty)\n    TypeError: NativizeObject: Cannot nativize 'str' as 'Object' (allowed Class type: 'NiagaraSystem')",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 476, in _action_set_property\n    target.set_editor_property(prop, value)\nTypeError: NiagaraComponent: Failed to convert type 'str' to property 'Asset' (ObjectProperty) for attribute 'asset' on 'NiagaraComponent'\n  TypeError: NativizeProperty: Cannot nativize 'str' as 'Asset' (ObjectProperty)\n    TypeError: NativizeObject: Cannot nativize 'str' as 'Object' (allowed Class type: 'NiagaraSystem')\n"
+}
