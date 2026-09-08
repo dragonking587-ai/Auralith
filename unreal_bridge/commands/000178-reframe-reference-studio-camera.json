@@ -1,0 +1,12 @@
+{
+  "id": "000178-reframe-reference-studio-camera",
+  "action": "camera_set",
+  "args": {
+    "actor": "AuralithStudio_Camera",
+    "location": [0, -2350, 460],
+    "rotation": {"roll": 0, "pitch": -2.7, "yaw": 90},
+    "focal_length": 30,
+    "aperture": 5.6,
+    "aspect_ratio": 1.7777778
+  }
+}
