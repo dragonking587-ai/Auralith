@@ -1,0 +1,5 @@
+{
+  "id": "000092-rebuild-corrected-test-scene",
+  "action": "scene_build_test",
+  "args": {}
+}
