@@ -1,0 +1,9 @@
+{
+  "id": "000038-production-material-test",
+  "action": "material_create",
+  "args": {
+    "name": "M_Auralith_ProductionTest",
+    "path": "/Game/AuralithBridgeTests/Materials",
+    "save": false
+  }
+}
