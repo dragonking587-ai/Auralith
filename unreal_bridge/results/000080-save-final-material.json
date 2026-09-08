@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000080-save-final-material",
+  "ok": true,
+  "action": "save_asset",
+  "data": {
+    "path": "/Game/AuralithProduction/Materials/M_AuralithTest_GoldGlow.M_AuralithTest_GoldGlow",
+    "saved": true
+  }
+}
