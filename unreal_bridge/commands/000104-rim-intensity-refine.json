@@ -1,0 +1,9 @@
+{
+  "id": "000104-rim-intensity-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0"},
+    "property": "intensity",
+    "value": 900.0
+  }
+}
