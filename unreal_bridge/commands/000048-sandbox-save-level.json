@@ -1,0 +1,5 @@
+{
+  "id": "000048-sandbox-save-level",
+  "action": "save_current_level",
+  "args": {}
+}
