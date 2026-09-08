@@ -1,0 +1,9 @@
+{
+  "id": "000039-production-niagara-test",
+  "action": "niagara_create_system",
+  "args": {
+    "name": "NS_Auralith_ProductionTest",
+    "path": "/Game/AuralithBridgeTests/VFX",
+    "save": false
+  }
+}
