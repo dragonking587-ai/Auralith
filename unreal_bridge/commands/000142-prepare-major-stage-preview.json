@@ -1,0 +1,15 @@
+{
+  "id": "000142-prepare-major-stage-preview",
+  "action": "render_prepare_preview",
+  "args": {
+    "job_name": "Auralith Major Stage Preview",
+    "width": 1920,
+    "height": 1080,
+    "fps": 24,
+    "spatial_samples": 1,
+    "temporal_samples": 4,
+    "engine_warm_up_count": 8,
+    "render_warm_up_count": 4,
+    "output_subdir": "AuralithBridgePreview/MajorStage"
+  }
+}
