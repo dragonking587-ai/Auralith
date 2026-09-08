@@ -1,0 +1,5 @@
+{
+  "id": "000140-render-queue-status-major-stage",
+  "action": "render_queue_status",
+  "args": {}
+}
