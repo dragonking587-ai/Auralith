@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000026-verify-test-camera-focal-length",
+  "ok": true,
+  "action": "get_property",
+  "data": {
+    "property": "current_focal_length",
+    "value": 50.0
+  }
+}
