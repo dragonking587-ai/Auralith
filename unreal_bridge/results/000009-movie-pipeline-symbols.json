@@ -1,0 +1,502 @@
+{
+  "type": "result",
+  "id": "000009-movie-pipeline-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 98,
+    "symbols": [
+      {
+        "name": "DisplayClusterMoviePipelineConfiguration",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPassBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPass_DetailLighting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPass_LightingOnly",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPass_PathTracer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPass_ReflectionsOnly",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineViewportPass_Unlit",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipeline",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineAntiAliasingSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineAppleProResOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineBurnInSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineBurnInWidget",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCameraCutInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCameraSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCollectionModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineColorSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCommandLineEncoder",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCommandLineEncoderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineConfigBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineConsoleVariableEntry",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineConsoleVariableSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPassBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPass_DetailLighting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPass_LightingOnly",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPass_PathTracer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPass_ReflectionsOnly",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDeferredPass_Unlit",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineEditorLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineEncodeQuality",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineExecutorBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineExecutorJob",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineExecutorShot",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineFCPXMLExporter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineFilenameResolveParams",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineFinished",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineFormatArgs",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineFunctionalTestBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineGameMode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineGameOverrideSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineHighResSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineHttpResponseRecieved",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImagePassBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImageSequenceOutputBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImageSequenceOutput_BMP",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImageSequenceOutput_EXR",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImageSequenceOutput_JPG",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineImageSequenceOutput_PNG",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineInProcessExecutor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineInProcessExecutorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineLinearExecutorBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMP4EncodeLevel",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMP4EncodeProfile",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMP4EncodeRateControlMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMP4EncoderOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMasterConfig",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMaterialModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineNewProcessExecutor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineOutputBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineOutputData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineOutputSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePIEExecutor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePIEExecutorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePanoramicFilterType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePassIdentifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePostProcessPass",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePrimaryConfig",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePrimaryConfigFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePythonHostExecutor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineQueue",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineQueueEngineSubsystem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineQueueSubsystem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineRenderPass",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineRenderPassOutputData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSegmentWorkMetrics",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSetting_BlueprintBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineShotConfig",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineShotConfigFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineShotOutputData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineShutterTiming",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSidecarCamera",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSocketMessageRecieved",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineTextureStreamingMethod",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineVideoOutputBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineViewFamilySetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineVisibilityModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineWaveOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineWidgetRenderer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineWorkFinished",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnMoviePipelineExecutorErrored",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnMoviePipelineExecutorFinished",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnMoviePipelineIndividualJobFinished",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnMoviePipelineIndividualJobStarted",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
