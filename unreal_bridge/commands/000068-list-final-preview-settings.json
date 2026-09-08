@@ -1,0 +1,12 @@
+{
+  "id": "000068-list-final-preview-settings",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0.DefaultConfig"
+    },
+    "method": "get_all_settings",
+    "args": []
+  }
+}
