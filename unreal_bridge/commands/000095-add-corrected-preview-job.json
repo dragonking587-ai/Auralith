@@ -1,0 +1,9 @@
+{
+  "id": "000095-add-corrected-preview-job",
+  "action": "render_queue_add_job",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "map": "/Game/Main.Main",
+    "name": "Auralith Corrected Visual Preview"
+  }
+}
