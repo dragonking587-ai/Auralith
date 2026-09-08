@@ -1,0 +1,8 @@
+{
+  "id": "000015-describe-movie-pipeline-queue-subsystem",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineQueueSubsystem",
+    "limit": 2000
+  }
+}
