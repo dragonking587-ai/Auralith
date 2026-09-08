@@ -1,0 +1,30 @@
+{
+  "type": "result",
+  "id": "000179-prepare-reference-studio-v2-preview",
+  "ok": true,
+  "action": "render_prepare_preview",
+  "data": {
+    "job": {
+      "_type": "UObject",
+      "name": "MoviePipelineExecutorJob_0",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0",
+      "class": "/Script/MovieRenderPipelineCore.MoviePipelineExecutorJob"
+    },
+    "job_name": "Auralith Major Stage Preview",
+    "output_directory": "../../../../../../Users/lordo/AppData/Local/UnrealEngine/5.7/Saved/MovieRenders/ReferenceStudioV2",
+    "resolution": {
+      "x": 1920,
+      "y": 1080
+    },
+    "fps": 24,
+    "spatial_samples": 1,
+    "temporal_samples": 4,
+    "settings": {
+      "output": "/Script/MovieRenderPipelineCore.MoviePipelineOutputSetting",
+      "anti_aliasing": "/Script/MovieRenderPipelineCore.MoviePipelineAntiAliasingSetting",
+      "png_output": "/Script/MovieRenderPipelineRenderPasses.MoviePipelineImageSequenceOutput_PNG",
+      "deferred_pass": "/Script/MovieRenderPipelineRenderPasses.MoviePipelineDeferredPassBase"
+    },
+    "warnings": []
+  }
+}
