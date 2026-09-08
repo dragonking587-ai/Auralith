@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000035-production-light-test",
+  "ok": true,
+  "action": "light_create",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "PointLight_0",
+      "path": "/Game/Main.Main:PersistentLevel.PointLight_0",
+      "class": "/Script/Engine.PointLight"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "LightComponent0",
+      "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0",
+      "class": "/Script/Engine.PointLightComponent"
+    },
+    "type": "point",
+    "warnings": []
+  }
+}
