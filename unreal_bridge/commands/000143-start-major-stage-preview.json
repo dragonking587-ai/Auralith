@@ -1,0 +1,7 @@
+{
+  "id": "000143-start-major-stage-preview",
+  "action": "render_queue_start",
+  "args": {
+    "executor": "MoviePipelinePIEExecutor"
+  }
+}
