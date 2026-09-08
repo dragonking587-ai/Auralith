@@ -1,0 +1,30 @@
+{
+  "format": "auralith-preview-vision-v4",
+  "source_count": 1,
+  "images": [
+    {
+      "source_name": "01-AuralithPreview_0000.png",
+      "original_size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "thumbnail_size": {
+        "width": 512,
+        "height": 288
+      },
+      "coarse_preview_size": {
+        "width": 32,
+        "height": 18
+      },
+      "mean_rgb": [
+        25.36,
+        6.14,
+        64.79
+      ],
+      "jpeg_bytes": 17742,
+      "thumbnail_file": "vision_01.jpg",
+      "base64_file": "vision_01.b64",
+      "ppm_text_file": "vision_01.ppm.txt"
+    }
+  ]
+}
