@@ -1,0 +1,3072 @@
+{
+  "type": "result",
+  "id": "000011-material-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 612,
+    "symbols": [
+      {
+        "name": "AbcMaterialSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialButton",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialButtonStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialEnvelope",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialEnvelopeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialEnvelopeStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialEnvelopeType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialKnob",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialKnobStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialMeter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialMeterStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialMeter_GetMeterChannelInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialSlider",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialSliderStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialWidgetStyle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosPhysicalMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ComponentMaterialInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ComponentMaterialType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "CompositeMeshMaterialType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "CompositePassMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CreateMaterialObjectParams",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CreateMaterialObjectResult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CustomMaterialOutputType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "EditorValidator_Material",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FbxMaterialBakeMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "FbxMaterialBakeSize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialBakeMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialBakeSize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialExportOptions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialExporter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialPropertyGroup",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "GLTFMaterialVariantMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "GLTFOverrideMaterialBakeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GeometryCollectionProxyMeshMaterials",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GeometryScript_Materials",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairGroupsMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairMaterialConstraints",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HoldoutCompositePassMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeBaseMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeDecalMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeDecalMaterialNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeGenericMaterialPipeline",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialExpressionFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFunctionCallExpressionFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFunctionFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialFunctionFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialImportOption",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialInstanceFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialInstanceNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialReferenceFactoryNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialReferenceNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialSearchLocation",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXBSDF",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXEDF",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXPipeline",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXShaders",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXTranslator",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeMaterialXVDF",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "LandscapeMaterialInstanceConstant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LandscapePerLODMaterialOverride",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassMaterialInterfaceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassParameterizedMaterialSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MAterialXTextureSampleBlurKernel",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "Material",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialAggregate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialAggregateAttribute",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialAggregateAttributeType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialAttributeBlend",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialAttributeBlendFunction",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialBillboardComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheAttribute",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheAttributeIdentity",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheLayer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheVirtualTexture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheVirtualTextureTag",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialCacheVirtualTextureTagFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialDecalResponse",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialDomain",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialEditingLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialEditorInstanceConstant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialEditorMeshComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialEditorParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialEditorPostProcessOverrides",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExposedTextureProperty",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExposedViewProperty",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpression",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionARKitPassthroughCamera",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAbs",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAbsorptionMediumMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionActorPositionWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAdd",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAggregate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAntialiasedTextureMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAppend3Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAppend4Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAppendVector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArccosine",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArccosineFast",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArcsine",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArcsineFast",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArctangent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArctangent2",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArctangent2Fast",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionArctangentFast",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAtmosphericFogColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAtmosphericLightColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionAtmosphericLightVector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBentNormalCustomOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBindlessSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBlackBody",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBlend",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBlendMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBlendMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBounds",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBoundsType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBreakMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBumpOffset",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionBurn",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCameraPositionWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCameraVectorWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCeil",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionChannelMaskParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionClamp",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionClearCoatNormalCustomOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCloudSampleAttribute",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCollectionParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCollectionTransform",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionColorRamp",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionComment",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionComponentMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionComposite",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstant2Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstant3Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstant4Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstantBiasScale",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConstantDouble",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConvert",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConvertInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConvertOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionConvertType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCosine",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCrossProduct",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCurveAtlasRowParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCustom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionCustomOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDBufferTexture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDDX",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDDY",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDataDrivenShaderPlatformInfoSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDecalColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDecalDerivative",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDecalLifetimeOpacity",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDecalMipmapLevel",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDeltaTime",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDepthFade",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDepthOfFieldFunction",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDeriveNormalZ",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDesaturation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDifference",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDisjointOver",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistanceCullFade",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistanceFieldApproxAO",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistanceFieldGradient",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistanceFieldsRenderingSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDistanceToNearestSurface",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDivide",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDodge",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDotProduct",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDoubleVectorParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionDynamicParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionExponential",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionExponential2",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionExternalCodeBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionEyeAdaptation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionEyeAdaptationInverse",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFeatureLevelSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFirstPersonOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFloatToUInt",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFloor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFmod",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFontSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFontSampleParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFontSignedDistance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFrac",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFractal3D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFresnel",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFunctionInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionFunctionOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionGIReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionGenericConstant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionGetMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionHairAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionHairColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionHsvToRgb",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionIf",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionIfThenElse",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionIn",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionInverseLinearInterpolate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionIsFirstPerson",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionIsOrthographic",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeGrassOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeLayerBlend",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeLayerCoords",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeLayerSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeLayerSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeLayerWeight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapePhysicalMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLandscapeVisibilityMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLayerStack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLegacyBlendMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLength",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLightVector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLightmapUVs",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLightmassReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLinearInterpolate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLocalPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLogarithm",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLogarithm10",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLogarithm2",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionLuminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMakeAggregateKind",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMakeMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMapARPassthroughCameraUV",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialAttributeLayers",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialCache",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialFunctionCall",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialLayerOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialProxyReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXAppend3Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXAppend4Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXBurn",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXContrast",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXDifference",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXDisjointOver",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXDodge",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXExponential",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXFractal3D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXHsvToRgb",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXIn",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXLength",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXLogarithm",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXLuminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXMatte",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXMinus",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXMod",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXOut",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXOver",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXOverlay",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXPlace2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXPlus",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXPremult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRamp4",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRampLeftRight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRampTopBottom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRange",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRemap",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRgbToHsv",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXRotate2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXScreen",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXSplitLeftRight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXSplitTopBottom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXSwizzle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXTextureSampleParameterBlur",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMaterialXUnpremult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMatte",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMax",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMeshPaintTextureCoordinateIndex",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMeshPaintTextureObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMeshPaintTextureReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMin",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMinus",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionModulo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMotionVectorWorldOffsetOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionMultiply",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNamedRerouteBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNamedRerouteDeclaration",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNamedRerouteUsage",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNaniteReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNeuralNetworkInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNeuralNetworkOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNoise",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionNormalize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionObjectBounds",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionObjectLocalBounds",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionObjectOrientation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionObjectPositionWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionObjectRadius",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOneMinus",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOperator",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOperatorInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOperatorKind",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOut",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOver",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionOverlay",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPanner",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleDirection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleMacroUV",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleMotionBlurFade",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticlePositionWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleRadius",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleRandom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleRelativeTime",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleSize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleSpeed",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleSpriteRotation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleSubUV",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionParticleSubUVProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPathTracingBufferTexture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPathTracingQualitySwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPathTracingRayTypeSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPerInstanceCustomData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPerInstanceCustomData3Vector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPerInstanceFadeAmount",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPerInstanceRandom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPinBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPixelDepth",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPixelNormalWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPlace2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPlus",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPostVolumeUserFlagTest",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPower",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPreSkinnedLocalBounds",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPreSkinnedNormal",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPreSkinnedPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPrecomputedAOMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPremult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionPreviousFrameSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionQualitySwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRamp4",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRampLeftRight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRampTopBottom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRayTracingQualitySwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRecordTextureStreamingInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionReflectionCapturePassSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionReflectionVectorWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRemap",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRequiredSamplersSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionReroute",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRerouteBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRgbToHsv",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRotate2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRotateAboutAxis",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRotator",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRound",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRuntimeVirtualTextureCustomData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRuntimeVirtualTextureOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRuntimeVirtualTextureReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRuntimeVirtualTextureSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionRuntimeVirtualTextureSampleParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSRGBColorToWorkingColorSpace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSamplePhysicsIntegerField",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSamplePhysicsScalarField",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSamplePhysicsVectorField",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSaturate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionScalarBlueNoise",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionScalarParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSceneColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSceneDepth",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSceneDepthWithoutWater",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSceneTexelSize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSceneTexture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionScreen",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionScreenPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSetMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionShaderStageSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionShadingModel",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionShadingPathSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionShadowReplace",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSign",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSine",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSingleLayerWaterMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereAerialPerspective",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereDistantLightScatteredLuminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereLightDirection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereLightDiskLuminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereLightIlluminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereLightIlluminanceOnGround",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyAtmosphereViewLuminance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSkyLightEnvMapSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSmoothStep",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSobol",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSparseVolumeTextureBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSparseVolumeTextureObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSparseVolumeTextureObjectParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSparseVolumeTextureSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSparseVolumeTextureSampleParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSpeedTree",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSphereMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSphericalParticleOpacity",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSplitLeftRight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSplitTopBottom",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSpriteTextureSampler",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSquareRoot",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStaticBool",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStaticBoolParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStaticComponentMaskParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStaticSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStaticSwitchParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStep",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataAdd",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataConvertToDecal",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataEyeBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataHairBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataHazinessToSecondaryRoughness",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataHorizontalMixing",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataLegacyConversion",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataLightFunction",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataMetalnessToDiffuseAlbedoF0",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataPostProcess",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataSimpleClearCoatBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataSingleLayerWaterBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataSlabBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataThinFilm",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataTransmittanceToMFP",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataUI",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataUnlitBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataUtilityBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataVerticalLayering",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataVolumetricFogCloudBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionStrataWeight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateAdd",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateConvertMaterialAttributes",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateConvertToDecal",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateEyeBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateHairBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateHazinessToSecondaryRoughness",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateHorizontalMixing",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateLightFunction",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateMetalnessToDiffuseAlbedoF0",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstratePostProcess",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateSelect",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateShadingModels",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateSimpleClearCoatBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateSingleLayerWaterBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateSlabBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateThinFilm",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateTransmittanceToMFP",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateUI",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateUnlitBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateUtilityBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateVerticalLayering",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateVolumetricFogCloudBSDF",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubstrateWeight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubsurfaceMediumMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSubtract",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTangent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTangentOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTemporalResponsivenessOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTemporalSobol",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTerrainLayerCoords",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTerrainLayerSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTerrainLayerWeight",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureCollectionParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureCoordinate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureObject",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureObjectFromCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureObjectParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureProperty",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSample",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameter2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameter2DArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameterBlur",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameterCube",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameterCubeArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameterSubUV",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTextureSampleParameterVolume",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionThinTranslucentMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTime",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTransform",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTransformPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTruncate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTruncateLWC",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionTwoSidedSign",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionUIntToFloat",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionUnpremult",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionUserSceneTexture",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVectorNoise",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVectorParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVertexColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVertexInterpolator",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVertexNormalWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVertexTangentWS",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionViewProperty",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionViewSize",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVirtualTextureFeatureSwitch",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVolumetricAdvancedMaterialInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVolumetricAdvancedMaterialOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVolumetricCloudEmptySpaceSkippingInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionVolumetricCloudEmptySpaceSkippingOutput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialExpressionWorldPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFloatPrecisionMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunction",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionInstanceFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionInterface",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayer",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerBlend",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerBlendFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerBlendInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerBlendInstanceFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialFunctionMaterialLayerInstanceFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialImportHelpers",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstanceActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstanceBasePropertyOverrides",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstanceConstant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstanceConstantFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInstanceDynamic",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInterface",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialInterfaceEditorOnlyData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialLayerLinkState",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialLayersFunctions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialLayersFunctionsEditorOnlyData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialLayersFunctionsRuntimeData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialLightingModel",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialMergeOptions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialOptions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialOverrideNanite",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialParameterAssociation",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialParameterCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialParameterCollectionFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialParameterCollectionHLODModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialParameterInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialPositionTransformSource",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialProperty",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialProxySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialSamplerType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialScalarParameterControlType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialSceneAttributeInputMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialSearchLocation",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialShadingModel",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialShadingRate",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialSpriteComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialSpriteElement",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialStatistics",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialStencilCompare",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialSubSurfaceType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialTranslucencyPass",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialUsage",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialVectorCoordTransform",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialVectorCoordTransformSource",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialXLuminanceMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MaterialXTextureSampleBlurFilter",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MegascanMaterialPair",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MegascanMaterialType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MegascansMaterialParentSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphMaterialModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphMaterialParameterCollectionModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphMaterialParameterCollectionModifierNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineMaterialModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneComponentMaterialParameterSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneComponentMaterialTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneMaterialParameterCollectionTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneMaterialParameterSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneMaterialTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneMaterialTrackExtensions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieScenePrimitiveMaterialSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieScenePrimitiveMaterialTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieScenePrimitiveMaterialTrackExtensions",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneWidgetMaterialTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NamedEmitterMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMaterialAttributeBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialScalarParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialStaticBoolParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialTextureParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialVectorParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PaperTerrainMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PaperTerrainMaterialRule",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PassthroughMaterialUpdateComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialDamageModifier",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialMask",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialMaskColor",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialMaskFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialSoftCollisionMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "PhysicalMaterialStrength",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PreviewMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PropertyValueMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RaMaterialName",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "RemoteControlInstanceMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RuntimeVirtualTextureMaterialQuality",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "RuntimeVirtualTextureMaterialType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SetMaterialOperationTypeEnum",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMeshSamplingRegionMaterialFilter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SparseVolumeTextureMaterialFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SparseVolumeTextureMaterialInstanceFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StaticMaterial",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ValidationMaterial",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
