@@ -1,0 +1,8 @@
+{
+  "id": "000065-describe-executor-job",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineExecutorJob",
+    "limit": 500
+  }
+}
