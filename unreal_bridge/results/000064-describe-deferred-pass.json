@@ -1,0 +1,51 @@
+{
+  "type": "result",
+  "id": "000064-describe-deferred-pass",
+  "ok": true,
+  "action": "describe_unreal_symbol",
+  "data": {
+    "symbol": "MoviePipelineDeferredPassBase",
+    "type": "type",
+    "callable": true,
+    "methods": [
+      "acquire_editor_element_handle",
+      "build_new_process_command_line_args",
+      "call_method",
+      "cast",
+      "get_class",
+      "get_default_object",
+      "get_editor_property",
+      "get_fname",
+      "get_full_name",
+      "get_name",
+      "get_outer",
+      "get_outermost",
+      "get_package",
+      "get_path_name",
+      "get_typed_outer",
+      "get_world",
+      "is_editor_property_overridden",
+      "is_enabled",
+      "is_package_external",
+      "modify",
+      "rename",
+      "reset_editor_property",
+      "set_editor_properties",
+      "set_editor_property",
+      "set_is_enabled",
+      "static_class"
+    ],
+    "fields": [
+      "accumulator_includes_alpha",
+      "actor_layers",
+      "add_default_layer",
+      "additional_post_process_materials",
+      "data_layers",
+      "disable_multisample_effects",
+      "render_main_pass",
+      "stencil_layers"
+    ],
+    "doc": "Movie Pipeline Deferred Pass Base\r\n\r\n**C++ Source:**\r\n\r\n- **Plugin**: MovieRenderPipeline\r\n- **Module**: MovieRenderPipelineRenderPasses\r\n- **File**: MoviePipelineDeferredPasses.h\r\n\r\n**Editor Properties:** (see get_editor_property/set_editor_property)\r\n\r\n- ``accumulator_includes_alpha`` (bool):  [Read-Write] Should multiple temporal/spatial samples accumulate the alpha channel? This adds ~30% cost to the\r\n  accumulation so you should not enable it unless necessary. You must delete both the sky and fog to ensure\r\n  that they do not make all pixels opaque.\r\n- ``actor_layers`` (Array[ActorLayer]):  [Read-Write] For each layer in the array, the world will be rendered and then a stencil mask will clip all pixels not affected\r\n  by the objects on that layer. This is NOT a true layer system, as translucent objects will show opaque objects from\r\n  another layer behind them. Does not write out additional post-process materials per-layer as they will match the\r\n  base layer. Only works with materials that can write to custom depth.\r\n- ``add_default_layer`` (bool):  [Read-Write] If true, an additional stencil layer will be rendered which contains all objects which do not belong to layers\r\n  specified in the Stencil Layers. This is useful for wanting to isolate one or two layers but still have everything\r\n  else to composite them over without having to remember to add all objects to a default layer.\r\n- ``additional_post_process_materials`` (Array[MoviePipelinePostProcessPass]):  [Read-Write] An array of additional post-processing materials to run after the frame is rendered. Using this feature may add a notable amount of render time.\r\n- ``data_layers`` (Array[SoftObjectPath]):  [Read-Write] If the map you are working with is a World Partition map, you can specify Data layers instead of Actor Layers. If any\r\n  Data Layers are specified, this will take precedence over any ActorLayers in this config. Does not affect whether or\r\n  not the Data Layers are actually loaded, you must ensure layers are loaded for rendering.\r\n- ``disable_multisample_effects`` (bool):  [Read-Write] Certain passes don't support post-processing effects that blend pixels together. These include effects like\r\n  Depth of Field, Temporal Anti-Aliasing, Motion Blur and chromattic abberation. When these post processing\r\n  effects are used then each final output pixel is composed of the influence of many other pixels which is\r\n  undesirable when rendering out an object id pass (which does not support post processing). This checkbox lets\r\n  you disable them on a per-render basis instead of having to disable them in the editor as well.\r\n- ``render_main_pass`` (bool):  [Read-Write] This can be turned off if you're only doing a stencil-layer based render and don't need the main non-stencil approach.",
+    "truncated": false
+  }
+}
