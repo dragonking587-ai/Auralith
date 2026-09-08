@@ -5,6 +5,11 @@ Control plane:
   ChatGPT/GitHub -> unreal_bridge/commands/*.json -> this agent -> localhost TCP -> Unreal Editor
   Unreal Editor -> this agent -> unreal_bridge/results/*.json -> GitHub
 
+Render feedback:
+  Movie Render Queue finishes -> agent asks Unreal for fresh preview files -> agent
+  copies only whitelisted Saved/MovieRenders images into unreal_bridge/previews/latest
+  -> Git commit/push -> ChatGPT can inspect the actual rendered pixels.
+
 The agent binds only to 127.0.0.1 by default. It uses only the Python standard
 library plus the user's existing Git installation/authentication.
 """
@@ -15,11 +20,16 @@ import argparse
 import json
 import os
 from pathlib import Path
+import shutil
 import socket
 import subprocess
 import threading
 import time
 from typing import Any, Dict, Optional
+
+
+_GIT_LOCK = threading.RLock()
+_PREVIEW_EXTENSIONS = {".png", ".jpg", ".jpeg"}
 
 
 def log(message: str) -> None:
@@ -235,30 +245,204 @@ def write_result(repo: Path, command_id: str, result: Dict[str, Any]) -> Path:
 
 
 def pull_rebase(repo: Path, branch: str) -> None:
-    """Pull remote bridge updates without failing on temporary tracked edits.
-
-    The bridge can briefly have a modified result file between receiving an Unreal
-    response and committing it. --autostash protects that transient state while
-    ChatGPT may be adding new command files to the same control branch.
-    """
+    """Pull remote bridge updates without failing on temporary tracked edits."""
     run_git(repo, "pull", "--rebase", "--autostash", "origin", branch)
 
 
 def publish_result(repo: Path, branch: str, result_path: Path, command_id: str) -> None:
-    rel = result_path.relative_to(repo).as_posix()
-    run_git(repo, "add", "--", rel)
-    staged = run_git(repo, "diff", "--cached", "--quiet", check=False)
-    if staged.returncode == 0:
-        return
-    run_git(repo, "commit", "-m", f"unreal(result): {command_id}")
-    # ChatGPT may have added another command while Unreal was working. Rebase before push.
-    pull_rebase(repo, branch)
-    run_git(repo, "push", "origin", f"HEAD:{branch}")
+    with _GIT_LOCK:
+        rel = result_path.relative_to(repo).as_posix()
+        run_git(repo, "add", "--", rel)
+        staged = run_git(repo, "diff", "--cached", "--quiet", check=False)
+        if staged.returncode == 0:
+            return
+        run_git(repo, "commit", "-m", f"unreal(result): {command_id}")
+        pull_rebase(repo, branch)
+        run_git(repo, "push", "origin", f"HEAD:{branch}")
 
 
 def sync(repo: Path, branch: str) -> None:
-    run_git(repo, "checkout", branch)
-    pull_rebase(repo, branch)
+    with _GIT_LOCK:
+        run_git(repo, "checkout", branch)
+        pull_rebase(repo, branch)
+
+
+def _origin_slug(repo: Path) -> str:
+    try:
+        remote = run_git(repo, "remote", "get-url", "origin").stdout.strip()
+    except Exception:
+        return ""
+    if remote.startswith("git@github.com:"):
+        value = remote.split(":", 1)[1]
+    elif "github.com/" in remote:
+        value = remote.split("github.com/", 1)[1]
+    else:
+        return ""
+    value = value.split("?", 1)[0].split("#", 1)[0].strip("/")
+    if value.endswith(".git"):
+        value = value[:-4]
+    return value
+
+
+def _is_safe_preview_source(path: Path) -> bool:
+    try:
+        parts = [part.lower() for part in path.resolve().parts]
+    except Exception:
+        parts = [part.lower() for part in path.parts]
+    if "saved" not in parts or "movierenders" not in parts:
+        return False
+    return path.suffix.lower() in _PREVIEW_EXTENSIONS
+
+
+def publish_preview_artifacts(
+    repo: Path,
+    branch: str,
+    artifacts: list[Dict[str, Any]],
+    config: Dict[str, Any],
+    render_command_id: str,
+) -> Dict[str, Any]:
+    max_files = max(1, min(int(config.get("preview_max_files", 3)), 8))
+    max_bytes = max(1, int(float(config.get("preview_max_file_mb", 25)) * 1024 * 1024))
+    preview_root = repo / "unreal_bridge" / "previews" / "latest"
+    copied = []
+
+    with _GIT_LOCK:
+        if preview_root.exists():
+            for child in preview_root.iterdir():
+                if child.is_dir():
+                    shutil.rmtree(child)
+                else:
+                    child.unlink()
+        preview_root.mkdir(parents=True, exist_ok=True)
+
+        for item in artifacts[:max_files]:
+            source_text = str(item.get("local_path") or "").strip()
+            if not source_text:
+                continue
+            source = Path(source_text)
+            try:
+                if not source.exists() or not source.is_file() or not _is_safe_preview_source(source):
+                    log(f"Skipped unsafe/missing preview source: {source}")
+                    continue
+                size = source.stat().st_size
+                if size > max_bytes:
+                    log(f"Skipped preview larger than limit ({size} bytes): {source.name}")
+                    continue
+                destination = preview_root / f"{len(copied)+1:02d}-{source.name}"
+                shutil.copy2(source, destination)
+                copied.append({
+                    "name": destination.name,
+                    "repo_path": destination.relative_to(repo).as_posix(),
+                    "size_bytes": size,
+                    "source_name": source.name,
+                })
+            except OSError as exc:
+                log(f"Preview copy failed for {source}: {exc}")
+
+        slug = _origin_slug(repo)
+        for item in copied:
+            if slug:
+                item["raw_url"] = f"https://raw.githubusercontent.com/{slug}/{branch}/{item['repo_path']}"
+
+        manifest = {
+            "render_command_id": render_command_id,
+            "captured_at_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            "image_count": len(copied),
+            "images": copied,
+            "note": "Preview files are copied only from this Unreal project's Saved/MovieRenders output.",
+        }
+        manifest_path = preview_root / "manifest.json"
+        manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+        rel_root = preview_root.relative_to(repo).as_posix()
+        run_git(repo, "add", "-A", "--", rel_root)
+        staged = run_git(repo, "diff", "--cached", "--quiet", check=False)
+        if staged.returncode != 0:
+            run_git(repo, "commit", "-m", f"unreal(preview): {render_command_id}")
+            pull_rebase(repo, branch)
+            run_git(repo, "push", "origin", f"HEAD:{branch}")
+
+    log(f"Published render feedback: {len(copied)} preview image(s)")
+    return manifest
+
+
+def auto_publish_after_render(
+    repo: Path,
+    branch: str,
+    connection: UnrealConnection,
+    config: Dict[str, Any],
+    render_command_id: str,
+    render_started_epoch: float,
+) -> None:
+    if not bool(config.get("auto_publish_render_previews", True)):
+        return
+
+    poll_seconds = max(0.5, float(config.get("preview_poll_seconds", 2.0)))
+    wait_timeout = max(10.0, float(config.get("preview_wait_timeout_seconds", 900)))
+    max_files = max(1, min(int(config.get("preview_max_files", 3)), 8))
+    deadline = time.time() + wait_timeout
+    counter = 0
+
+    log("Automatic render feedback armed; waiting for Movie Render Queue to finish.")
+    while time.time() < deadline:
+        counter += 1
+        internal_id = f"__auto_render_status_{int(render_started_epoch)}_{counter}"
+        try:
+            status = connection.send_command(
+                {"id": internal_id, "action": "render_queue_status", "args": {}},
+                timeout=min(30.0, max(5.0, poll_seconds * 4.0)),
+            )
+        except Exception as exc:
+            log(f"Automatic render status check failed: {exc}")
+            return
+
+        if not status.get("ok"):
+            log(f"Automatic render status returned an error: {status.get('error', 'unknown error')}")
+            return
+        if not bool(status.get("data", {}).get("is_rendering", False)):
+            break
+        time.sleep(poll_seconds)
+    else:
+        log(f"Automatic render feedback timed out after {wait_timeout:.0f}s")
+        return
+
+    settle = max(0.0, float(config.get("preview_settle_seconds", 2.0)))
+    if settle:
+        time.sleep(settle)
+
+    manifest_id = f"__auto_render_manifest_{int(render_started_epoch)}"
+    try:
+        result = connection.send_command(
+            {
+                "id": manifest_id,
+                "action": "render_preview_manifest",
+                "args": {
+                    "since_epoch": max(0.0, render_started_epoch - 2.0),
+                    "max_files": max_files,
+                },
+            },
+            timeout=30.0,
+        )
+    except Exception as exc:
+        log(f"Automatic preview manifest failed: {exc}")
+        return
+
+    if not result.get("ok"):
+        log(
+            "Automatic preview manifest unavailable. Install/restart the newest Unreal bridge runtime. "
+            f"Error: {result.get('error', 'unknown error')}"
+        )
+        return
+
+    artifacts = list(result.get("data", {}).get("bridge_artifacts", []))
+    if not artifacts:
+        log("Render finished but no fresh PNG/JPG preview images were found in Saved/MovieRenders.")
+        return
+
+    try:
+        publish_preview_artifacts(repo, branch, artifacts, config, render_command_id)
+    except Exception as exc:
+        log(f"Preview files were found but GitHub publication failed: {exc}")
 
 
 def main() -> int:
@@ -282,6 +466,10 @@ def main() -> int:
     connection.start()
 
     log(f"Bridge branch: {branch}")
+    if bool(config.get("auto_publish_render_previews", True)):
+        log("Automatic render-preview feedback: ENABLED")
+    else:
+        log("Automatic render-preview feedback: disabled by local config")
     log("Waiting for Unreal Editor. Load unreal_bridge/unreal/auralith_unreal_bridge.py inside UE 5.7.")
 
     try:
@@ -339,9 +527,11 @@ def main() -> int:
                 else:
                     try:
                         log(f"Executing {command_id}: {command.get('action')}")
+                        render_started_epoch = time.time() if command.get("action") == "render_queue_start" else 0.0
                         result = connection.send_command(command, timeout=timeout)
                     except Exception as exc:
                         result = {"type": "result", "id": command_id, "ok": False, "error": str(exc)}
+                        render_started_epoch = 0.0
 
                 result_path = write_result(repo, command_id, result)
                 if auto_commit:
@@ -350,6 +540,21 @@ def main() -> int:
                     except Exception as exc:
                         log(f"Result saved locally but GitHub publish failed: {exc}")
                 log(f"Completed {command_id}: ok={result.get('ok', False)}")
+
+                if (
+                    command.get("action") == "render_queue_start"
+                    and result.get("ok")
+                    and bool(result.get("data", {}).get("started", False))
+                    and render_started_epoch > 0
+                ):
+                    auto_publish_after_render(
+                        repo,
+                        branch,
+                        connection,
+                        config,
+                        command_id,
+                        render_started_epoch,
+                    )
 
             time.sleep(poll_seconds)
     except KeyboardInterrupt:
