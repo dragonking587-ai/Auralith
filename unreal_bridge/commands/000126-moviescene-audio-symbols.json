@@ -1,0 +1,8 @@
+{
+  "id": "000126-moviescene-audio-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "MovieSceneAudio",
+    "limit": 1000
+  }
+}
