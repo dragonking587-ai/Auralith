@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000046-sandbox-bind-light",
+  "ok": true,
+  "action": "sequence_add_actor",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "actor": {
+      "_type": "UObject",
+      "name": "RectLight_0",
+      "path": "/Game/Main.Main:PersistentLevel.RectLight_0",
+      "class": "/Script/Engine.RectLight"
+    },
+    "binding": "<Struct 'MovieSceneBindingProxy' (0x0000022F2876DE80) {binding_id: {}, sequence: \"/Script/LevelSequence.LevelSequence'/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master'\"}>",
+    "binding_id": "<Struct 'Guid' (0x0000022F0BD1FE10) {}>"
+  }
+}
