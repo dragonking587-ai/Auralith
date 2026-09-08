@@ -1,0 +1,27 @@
+{
+  "type": "result",
+  "id": "000112-enlarge-backdrop",
+  "ok": true,
+  "action": "set_actor_transform",
+  "data": {
+    "actor": "/Game/Main.Main:PersistentLevel.StaticMeshActor_5",
+    "location": {
+      "x": 0.0,
+      "y": 430.0,
+      "z": 250.0,
+      "_type": "Vector"
+    },
+    "rotation": {
+      "pitch": 0.0,
+      "yaw": 0.0,
+      "roll": 0.0,
+      "_type": "Rotator"
+    },
+    "scale": {
+      "x": 14.0,
+      "y": 0.22,
+      "z": 6.5,
+      "_type": "Vector"
+    }
+  }
+}
