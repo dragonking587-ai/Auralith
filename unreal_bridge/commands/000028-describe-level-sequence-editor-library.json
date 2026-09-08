@@ -1,0 +1,8 @@
+{
+  "id": "000028-describe-level-sequence-editor-library",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "LevelSequenceEditorBlueprintLibrary",
+    "limit": 1000
+  }
+}
