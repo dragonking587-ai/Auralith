@@ -16,14 +16,17 @@ $ProjectDir = Split-Path -Parent $UProjectPath
 $BridgeRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $PythonSource = Join-Path $BridgeRoot "unreal\auralith_unreal_bridge.py"
 $ProductionSource = Join-Path $BridgeRoot "unreal\auralith_production_controls.py"
+$TestSceneSource = Join-Path $BridgeRoot "unreal\auralith_test_scene.py"
 $PythonDir = Join-Path $ProjectDir "Content\Python"
 $PythonTarget = Join-Path $PythonDir "auralith_unreal_bridge.py"
 $ProductionTarget = Join-Path $PythonDir "auralith_production_controls.py"
+$TestSceneTarget = Join-Path $PythonDir "auralith_test_scene.py"
 $InitTarget = Join-Path $PythonDir "init_unreal.py"
 
 New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
 Copy-Item -Force $PythonSource $PythonTarget
 Copy-Item -Force $ProductionSource $ProductionTarget
+Copy-Item -Force $TestSceneSource $TestSceneTarget
 
 $Begin = "# AURALITH_UNREAL_BRIDGE_BEGIN"
 $End = "# AURALITH_UNREAL_BRIDGE_END"
@@ -32,6 +35,7 @@ $Begin
 try:
     import auralith_unreal_bridge
     import auralith_production_controls
+    import auralith_test_scene
 except Exception as exc:
     import unreal
     unreal.log_error(f"[AuralithBridge] startup failed: {exc}")
@@ -74,6 +78,7 @@ Write-Host ""
 Write-Host "Installed Python modules:" -ForegroundColor Green
 Write-Host "  Content\Python\auralith_unreal_bridge.py"
 Write-Host "  Content\Python\auralith_production_controls.py"
+Write-Host "  Content\Python\auralith_test_scene.py"
 Write-Host ""
 Write-Host "In Unreal Engine 5.7 enable:" -ForegroundColor Yellow
 Write-Host "  - Python Editor Script Plugin"
