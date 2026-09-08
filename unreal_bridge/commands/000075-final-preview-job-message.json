@@ -1,0 +1,12 @@
+{
+  "id": "000075-final-preview-job-message",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0"
+    },
+    "method": "get_status_message",
+    "args": []
+  }
+}
