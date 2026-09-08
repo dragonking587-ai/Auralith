@@ -1,0 +1,9 @@
+{
+  "id": "000043-sandbox-material",
+  "action": "material_create",
+  "args": {
+    "name": "M_AuralithProduction_Base",
+    "path": "/Game/AuralithProduction/Materials",
+    "save": true
+  }
+}
