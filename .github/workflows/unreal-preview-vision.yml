@@ -35,7 +35,7 @@ jobs:
         run: |
           python - <<'PY'
           from pathlib import Path
-          import base64, io, json
+          import base64, io, json, textwrap
           from PIL import Image, ImageStat
 
           root = Path('unreal_bridge/previews/latest')
@@ -46,7 +46,7 @@ jobs:
               'images': [],
           }
 
-          for path in files:
+          for index, path in enumerate(files, start=1):
               with Image.open(path) as im:
                   rgb = im.convert('RGB')
                   original_size = {'width': rgb.width, 'height': rgb.height}
@@ -57,14 +57,22 @@ jobs:
                   out = io.BytesIO()
                   thumb.save(out, format='JPEG', quality=68, optimize=True, progressive=True)
                   raw = out.getvalue()
+                  encoded = base64.b64encode(raw).decode('ascii')
                   payload['images'].append({
                       'source_name': path.name,
                       'original_size': original_size,
                       'thumbnail_size': {'width': thumb.width, 'height': thumb.height},
                       'mean_rgb': mean,
                       'jpeg_bytes': len(raw),
-                      'jpeg_base64': base64.b64encode(raw).decode('ascii'),
+                      'base64_file': f'vision_{index:02d}.b64',
                   })
+                  wrapped = '\n'.join(textwrap.wrap(encoded, 76)) + '\n'
+                  (root / f'vision_{index:02d}.b64').write_text(wrapped, encoding='ascii')
+
+          for index in range(len(files) + 1, 4):
+              stale = root / f'vision_{index:02d}.b64'
+              if stale.exists():
+                  stale.unlink()
 
           out_path = root / 'vision_payload.json'
           out_path.write_text(json.dumps(payload, indent=2) + '\n', encoding='utf-8')
@@ -74,12 +82,12 @@ jobs:
       - name: Commit vision payload
         shell: bash
         run: |
-          if [ -z "$(git status --porcelain -- unreal_bridge/previews/latest/vision_payload.json)" ]; then
+          if [ -z "$(git status --porcelain -- unreal_bridge/previews/latest/vision_payload.json unreal_bridge/previews/latest/vision_*.b64)" ]; then
             echo "Vision payload unchanged."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add unreal_bridge/previews/latest/vision_payload.json
+          git add -A unreal_bridge/previews/latest/vision_payload.json unreal_bridge/previews/latest/vision_*.b64
           git commit -m "unreal(preview): publish compact vision payload"
           git push origin HEAD:unreal-control
