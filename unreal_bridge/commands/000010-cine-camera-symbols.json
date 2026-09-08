@@ -1,0 +1,5 @@
+{
+  "id": "000010-cine-camera-symbols",
+  "action": "list_unreal_symbols",
+  "args": {"filter": "cinecamera", "limit": 500}
+}
