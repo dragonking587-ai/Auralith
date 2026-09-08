@@ -1,0 +1,14 @@
+{
+  "type": "result",
+  "id": "000004-list-assets",
+  "ok": true,
+  "action": "list_assets",
+  "data": {
+    "path": "/Game",
+    "count": 1,
+    "assets": [
+      "/Game/Main.Main"
+    ],
+    "truncated": false
+  }
+}
