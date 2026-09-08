@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000111-skylight-refine",
+  "ok": false,
+  "action": "call_method",
+  "error": "Target has no callable method: set_brightness",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 514, in _action_call_method\n    raise ValueError(f\"Target has no callable method: {method_name}\")\nValueError: Target has no callable method: set_brightness\n"
+}
