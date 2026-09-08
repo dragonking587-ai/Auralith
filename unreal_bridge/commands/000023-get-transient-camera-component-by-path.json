@@ -1,0 +1,13 @@
+{
+  "id": "000023-get-transient-camera-component-by-path",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0"
+    },
+    "method": "get_cine_camera_component",
+    "args": [],
+    "kwargs": {}
+  }
+}
