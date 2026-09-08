@@ -1,0 +1,23 @@
+{
+  "type": "result",
+  "id": "000114-key-color-channel-fix",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "light_color",
+    "before": {
+      "r": 255,
+      "g": 150,
+      "b": 70,
+      "a": 255,
+      "_type": "Color"
+    },
+    "after": {
+      "r": 255,
+      "g": 150,
+      "b": 70,
+      "a": 255,
+      "_type": "Color"
+    }
+  }
+}
