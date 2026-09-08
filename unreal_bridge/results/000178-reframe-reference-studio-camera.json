@@ -1,0 +1,35 @@
+{
+  "type": "result",
+  "id": "000178-reframe-reference-studio-camera",
+  "ok": true,
+  "action": "camera_set",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_3",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_3",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    },
+    "component": {
+      "_type": "UObject",
+      "name": "CameraComponent",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_3.CameraComponent",
+      "class": "/Script/CinematicCamera.CineCameraComponent"
+    },
+    "location": {
+      "x": 0.0,
+      "y": -2350.0,
+      "z": 460.0,
+      "_type": "Vector"
+    },
+    "rotation": {
+      "pitch": -2.7000000476837167,
+      "yaw": 90.00000000000006,
+      "roll": 0.0,
+      "_type": "Rotator"
+    },
+    "focal_length": 30.0,
+    "aperture": 5.599999904632568,
+    "warnings": []
+  }
+}
