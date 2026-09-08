@@ -20,6 +20,8 @@ function replaceRegexOnce(text, re, to, label) {
 }
 
 let app = fs.readFileSync(appPath, "utf8");
+const appCRLF = app.includes("\r\n");
+app = app.replace(/\r\n/g, "\n");
 if (!app.includes("RC49_HOTFIX_SHAPES")) {
   app = replaceOnce(
     app,
@@ -77,13 +79,15 @@ if (!app.includes("RC49_HOTFIX_SHAPES")) {
     "realistic flame motion control"
   );
 
-  fs.writeFileSync(appPath, app);
+  fs.writeFileSync(appPath, appCRLF ? app.replace(/\n/g, "\r\n") : app);
   console.log("[rc.49.1 hotfix] patched App.tsx");
 } else {
   console.log("[rc.49.1 hotfix] App.tsx already patched");
 }
 
 let renderer = fs.readFileSync(rendererPath, "utf8");
+const rendererCRLF = renderer.includes("\r\n");
+renderer = renderer.replace(/\r\n/g, "\n");
 if (!renderer.includes("RC49_HOTFIX_FIRE_MOTION")) {
   renderer = replaceOnce(
     renderer,
@@ -113,7 +117,7 @@ if (!renderer.includes("RC49_HOTFIX_FIRE_MOTION")) {
     "shape field renderer"
   );
 
-  fs.writeFileSync(rendererPath, renderer);
+  fs.writeFileSync(rendererPath, rendererCRLF ? renderer.replace(/\n/g, "\r\n") : renderer);
   console.log("[rc.49.1 hotfix] patched renderer.ts");
 } else {
   console.log("[rc.49.1 hotfix] renderer.ts already patched");
