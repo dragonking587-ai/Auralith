@@ -1,0 +1,662 @@
+{
+  "type": "result",
+  "id": "000100-describe-key-light-component",
+  "ok": true,
+  "action": "describe_target",
+  "data": {
+    "type": "RectLightComponent",
+    "properties": [
+      {
+        "name": "absolute_location",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "absolute_rotation",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "absolute_scale",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "affect_global_illumination",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "affect_reflection",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "affect_translucent_lighting",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "affects_world",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "allow_mega_lights",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "attenuation_radius",
+        "value": 1000.0,
+        "editor_property": true
+      },
+      {
+        "name": "auto_activate",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "b_absolute_translation",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "barn_door_angle",
+        "value": 88.0,
+        "editor_property": true
+      },
+      {
+        "name": "barn_door_length",
+        "value": 20.0,
+        "editor_property": true
+      },
+      {
+        "name": "bloom_max_brightness",
+        "value": 100.0,
+        "editor_property": true
+      },
+      {
+        "name": "bloom_scale",
+        "value": 0.20000000298023224,
+        "editor_property": true
+      },
+      {
+        "name": "bloom_threshold",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "bloom_tint",
+        "value": {
+          "r": 255,
+          "g": 255,
+          "b": 255,
+          "a": 255,
+          "_type": "Color"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "brightness",
+        "value": 6500.0,
+        "editor_property": true
+      },
+      {
+        "name": "cast_deep_shadow",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "cast_dynamic_shadows",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "cast_raytraced_shadow",
+        "value": {
+          "_type": "CastRayTracedShadow",
+          "name": "USE_PROJECT_SETTING",
+          "value": "<CastRayTracedShadow.USE_PROJECT_SETTING: 1>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "cast_shadows",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "cast_shadows_from_cinematic_objects_only",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "cast_static_shadows",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "cast_translucent_shadows",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "cast_volumetric_shadow",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "component_tags",
+        "value": "<Array object at 0x000001EAEED7C330>",
+        "editor_property": true
+      },
+      {
+        "name": "contact_shadow_casting_intensity",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "contact_shadow_length",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "contact_shadow_length_in_ws",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "contact_shadow_non_casting_intensity",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "deep_shadow_layer_distribution",
+        "value": 0.5,
+        "editor_property": true
+      },
+      {
+        "name": "detail_mode",
+        "value": {
+          "_type": "DetailMode",
+          "name": "DM_LOW",
+          "value": "<DetailMode.DM_LOW: 0>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "diffuse_scale",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "disabled_brightness",
+        "value": 0.5,
+        "editor_property": true
+      },
+      {
+        "name": "enable_light_shaft_bloom",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "force_cached_shadows_for_movable_primitives",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "hidden_in_game",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "ies_brightness_scale",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "ies_texture",
+        "value": null,
+        "editor_property": true
+      },
+      {
+        "name": "indirect_lighting_intensity",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "intensity",
+        "value": 6500.0,
+        "editor_property": true
+      },
+      {
+        "name": "intensity_units",
+        "value": {
+          "_type": "LightUnits",
+          "name": "CANDELAS",
+          "value": "<LightUnits.CANDELAS: 1>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "inverse_exposure_blend",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "is_editor_only",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "light_color",
+        "value": {
+          "r": 255,
+          "g": 107,
+          "b": 20,
+          "a": 255,
+          "_type": "Color"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "light_function_cone_angle",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "light_function_fade_distance",
+        "value": 100000.0,
+        "editor_property": true
+      },
+      {
+        "name": "light_function_material",
+        "value": null,
+        "editor_property": true
+      },
+      {
+        "name": "light_function_scale",
+        "value": {
+          "x": 1024.0,
+          "y": 1024.0,
+          "z": 1024.0,
+          "_type": "Vector"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "lighting_channels",
+        "value": "<Struct 'LightingChannels' (0x000001EAD46DE94C) {channel0: True, channel1: False, channel2: False}>",
+        "editor_property": true
+      },
+      {
+        "name": "max_distance_fade_range",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "max_draw_distance",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "mega_lights_shadow_method",
+        "value": {
+          "_type": "MegaLightsShadowMethod",
+          "name": "DEFAULT",
+          "value": "<MegaLightsShadowMethod.DEFAULT: 0>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "mobility",
+        "value": {
+          "_type": "ComponentMobility",
+          "name": "STATIONARY",
+          "value": "<ComponentMobility.STATIONARY: 1>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "modify_frequency",
+        "value": {
+          "_type": "ComponentMobility",
+          "name": "STATIONARY",
+          "value": "<ComponentMobility.STATIONARY: 1>"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "override_ray_end_bias",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "ray_end_bias",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "ray_start_offset_depth_scale",
+        "value": 0.003000000026077032,
+        "editor_property": true
+      },
+      {
+        "name": "relative_location",
+        "value": {
+          "x": -250.0,
+          "y": -200.0,
+          "z": 430.0,
+          "_type": "Vector"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "relative_rotation",
+        "value": {
+          "pitch": -32.00000000000001,
+          "yaw": 40.000000000000014,
+          "roll": 0.0,
+          "_type": "Rotator"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "relative_scale3d",
+        "value": {
+          "x": 1.0,
+          "y": 1.0,
+          "z": 1.0,
+          "_type": "Vector"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "relative_translation",
+        "value": {
+          "x": -250.0,
+          "y": -200.0,
+          "z": 430.0,
+          "_type": "Vector"
+        },
+        "editor_property": true
+      },
+      {
+        "name": "replicate_using_registered_sub_object_list",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "replicates",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "samples_per_pixel",
+        "value": 1,
+        "editor_property": true
+      },
+      {
+        "name": "shadow_bias",
+        "value": 0.5,
+        "editor_property": true
+      },
+      {
+        "name": "shadow_resolution_scale",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "shadow_sharpen",
+        "value": 0.0,
+        "editor_property": true
+      },
+      {
+        "name": "shadow_slope_bias",
+        "value": 0.5,
+        "editor_property": true
+      },
+      {
+        "name": "should_update_physics_volume",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "source_height",
+        "value": 64.0,
+        "editor_property": true
+      },
+      {
+        "name": "source_texture",
+        "value": null,
+        "editor_property": true
+      },
+      {
+        "name": "source_texture_offset",
+        "value": "<Struct 'Vector2f' (0x000001EAD46DEA78) {}>",
+        "editor_property": true
+      },
+      {
+        "name": "source_texture_scale",
+        "value": "<Struct 'Vector2f' (0x000001EAD46DEA70) {}>",
+        "editor_property": true
+      },
+      {
+        "name": "source_width",
+        "value": 64.0,
+        "editor_property": true
+      },
+      {
+        "name": "specular_scale",
+        "value": 1.0,
+        "editor_property": true
+      },
+      {
+        "name": "temperature",
+        "value": 4200.0,
+        "editor_property": true
+      },
+      {
+        "name": "transmission",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "use_attach_parent_bound",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "use_ies_brightness",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "use_ray_traced_distance_field_shadows",
+        "value": false,
+        "editor_property": true
+      },
+      {
+        "name": "use_temperature",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "view_lighting_channels",
+        "value": "<Struct 'ViewLightingChannels' (0x000001EAD46DE94D) {view_channel0: True, view_channel1: False, view_channel2: False, view_channel3: False, view_channel4: False}>",
+        "editor_property": true
+      },
+      {
+        "name": "visible",
+        "value": true,
+        "editor_property": true
+      },
+      {
+        "name": "volumetric_scattering_intensity",
+        "value": 1.0,
+        "editor_property": true
+      }
+    ],
+    "methods": [
+      "acquire_editor_element_handle",
+      "activate",
+      "add_asset_user_data_of_class",
+      "add_local_offset",
+      "add_local_rotation",
+      "add_local_transform",
+      "add_relative_location",
+      "add_relative_rotation",
+      "add_tick_prerequisite_actor",
+      "add_tick_prerequisite_component",
+      "add_world_offset",
+      "add_world_rotation",
+      "add_world_transform",
+      "add_world_transform_keep_scale",
+      "attach_to",
+      "attach_to_component",
+      "call_method",
+      "cast",
+      "component_has_tag",
+      "deactivate",
+      "destroy_component",
+      "detach_from_component",
+      "detach_from_parent",
+      "does_socket_exist",
+      "get_all_socket_names",
+      "get_asset_user_data_of_class",
+      "get_attach_parent",
+      "get_attach_socket_name",
+      "get_child_component",
+      "get_children_components",
+      "get_class",
+      "get_component_tick_interval",
+      "get_component_velocity",
+      "get_default_object",
+      "get_editor_property",
+      "get_fname",
+      "get_forward_vector",
+      "get_full_name",
+      "get_light_color",
+      "get_name",
+      "get_num_children_components",
+      "get_outer",
+      "get_outermost",
+      "get_owner",
+      "get_package",
+      "get_parent_components",
+      "get_path_name",
+      "get_physics_volume",
+      "get_relative_transform",
+      "get_right_vector",
+      "get_socket_location",
+      "get_socket_quaternion",
+      "get_socket_rotation",
+      "get_socket_transform",
+      "get_typed_outer",
+      "get_units_conversion_factor",
+      "get_up_vector",
+      "get_world",
+      "get_world_location",
+      "get_world_rotation",
+      "get_world_scale",
+      "get_world_transform",
+      "has_asset_user_data_of_class",
+      "is_active",
+      "is_any_simulating_physics",
+      "is_being_destroyed",
+      "is_component_tick_enabled",
+      "is_editor_property_overridden",
+      "is_package_external",
+      "is_simulating_physics",
+      "is_visible",
+      "k2_attach_to",
+      "modify",
+      "receive_async_physics_tick",
+      "receive_begin_play",
+      "receive_end_play",
+      "receive_initialize_component",
+      "receive_tick",
+      "receive_uninitialize_component",
+      "remove_tick_prerequisite_actor",
+      "remove_tick_prerequisite_component",
+      "rename",
+      "reset_editor_property",
+      "reset_relative_transform",
+      "set_absolute",
+      "set_active",
+      "set_affect_global_illumination",
+      "set_affect_reflection",
+      "set_affect_translucent_lighting",
+      "set_attenuation_radius",
+      "set_auto_activate",
+      "set_barn_door_angle",
+      "set_barn_door_length",
+      "set_bloom_max_brightness",
+      "set_bloom_scale",
+      "set_bloom_threshold",
+      "set_bloom_tint",
+      "set_brightness",
+      "set_cast_deep_shadow",
+      "set_cast_raytraced_shadow",
+      "set_cast_raytraced_shadows",
+      "set_cast_shadows",
+      "set_cast_volumetric_shadow",
+      "set_component_tick_enabled",
+      "set_component_tick_interval",
+      "set_component_tick_interval_and_cooldown",
+      "set_diffuse_scale",
+      "set_editor_properties",
+      "set_editor_property",
+      "set_enable_light_shaft_bloom",
+      "set_force_cached_shadows_for_movable_primitives",
+      "set_hidden_in_game",
+      "set_ies_brightness_scale",
+      "set_ies_texture",
+      "set_indirect_lighting_intensity",
+      "set_intensity",
+      "set_intensity_units",
+      "set_is_replicated",
+      "set_light_color",
+      "set_light_function_disabled_brightness",
+      "set_light_function_fade_distance",
+      "set_light_function_material",
+      "set_light_function_scale",
+      "set_lighting_channels",
+      "set_max_distance_fade_range",
+      "set_max_draw_distance",
+      "set_mobility",
+      "set_relative_location",
+      "set_relative_location_and_rotation",
+      "set_relative_rotation",
+      "set_relative_scale3d",
+      "set_relative_transform",
+      "set_samples_per_pixel",
+      "set_shadow_bias",
+      "set_shadow_slope_bias",
+      "set_source_height",
+      "set_source_texture",
+      "set_source_width",
+      "set_specular_scale",
+      "set_temperature",
+      "set_tick_group",
+      "set_tickable_when_paused",
+      "set_transmission",
+      "set_use_ies_brightness",
+      "set_use_ray_traced_distance_field_shadows",
+      "set_use_temperature",
+      "set_visibility",
+      "set_volumetric_scattering_intensity",
+      "set_world_location",
+      "set_world_location_and_rotation",
+      "set_world_rotation",
+      "set_world_scale3d",
+      "set_world_transform",
+      "static_class",
+      "toggle_active",
+      "toggle_visibility"
+    ],
+    "other": [],
+    "truncated": false
+  }
+}
