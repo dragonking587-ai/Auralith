@@ -1,0 +1,8 @@
+{
+  "id": "000014-describe-sequencer-tools",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "SequencerTools",
+    "limit": 2000
+  }
+}
