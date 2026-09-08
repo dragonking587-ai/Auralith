@@ -1,0 +1,11 @@
+{
+  "id": "000042-sandbox-sequence",
+  "action": "sequence_create",
+  "args": {
+    "name": "AuralithProduction_Master",
+    "path": "/Game/AuralithProduction/Cinematics",
+    "fps": 24,
+    "duration_seconds": 10.0,
+    "save": true
+  }
+}
