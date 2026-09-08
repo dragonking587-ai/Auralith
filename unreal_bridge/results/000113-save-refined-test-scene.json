@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000113-save-refined-test-scene",
+  "ok": true,
+  "action": "save_current_level",
+  "data": {
+    "saved": true
+  }
+}
