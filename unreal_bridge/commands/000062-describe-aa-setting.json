@@ -1,0 +1,8 @@
+{
+  "id": "000062-describe-aa-setting",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineAntiAliasingSetting",
+    "limit": 500
+  }
+}
