@@ -41,7 +41,7 @@ jobs:
           root = Path('unreal_bridge/previews/latest')
           files = sorted([p for p in root.glob('*') if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])[:3]
           payload = {
-              'format': 'auralith-preview-vision-v2',
+              'format': 'auralith-preview-vision-v3',
               'source_count': len(files),
               'images': [],
           }
@@ -62,11 +62,12 @@ jobs:
                   wrapped = '\n'.join(textwrap.wrap(encoded, 76)) + '\n'
                   (root / f'vision_{index:02d}.b64').write_text(wrapped, encoding='ascii')
 
-                  coarse = rgb.resize((64, 36), Image.Resampling.BILINEAR)
-                  ppm_lines = ['P3', '64 36', '255']
+                  coarse_w, coarse_h = 32, 18
+                  coarse = rgb.resize((coarse_w, coarse_h), Image.Resampling.BILINEAR)
+                  ppm_lines = ['P3', f'{coarse_w} {coarse_h}', '255']
                   pixels = list(coarse.getdata())
-                  for y in range(36):
-                      row = pixels[y * 64:(y + 1) * 64]
+                  for y in range(coarse_h):
+                      row = pixels[y * coarse_w:(y + 1) * coarse_w]
                       ppm_lines.append(' '.join(f'{r} {g} {b}' for r, g, b in row))
                   ppm_name = f'vision_{index:02d}.ppm.txt'
                   (root / ppm_name).write_text('\n'.join(ppm_lines) + '\n', encoding='ascii')
@@ -75,7 +76,7 @@ jobs:
                       'source_name': path.name,
                       'original_size': original_size,
                       'thumbnail_size': {'width': thumb.width, 'height': thumb.height},
-                      'coarse_preview_size': {'width': 64, 'height': 36},
+                      'coarse_preview_size': {'width': coarse_w, 'height': coarse_h},
                       'mean_rgb': mean,
                       'jpeg_bytes': len(raw),
                       'base64_file': f'vision_{index:02d}.b64',
