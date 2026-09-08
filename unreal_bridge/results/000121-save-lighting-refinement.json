@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000121-save-lighting-refinement",
+  "ok": true,
+  "action": "save_current_level",
+  "data": {
+    "saved": true
+  }
+}
