@@ -1,0 +1,42 @@
+{
+  "type": "result",
+  "id": "000160-list-niagara-editor-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 6,
+    "symbols": [
+      {
+        "name": "NiagaraEditorDataBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorParametersAdapterBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorPlaybackType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorRotationMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorShapeType",
+        "type": "_EnumType",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
