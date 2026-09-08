@@ -1,0 +1,9 @@
+{
+  "id": "000117-describe-skylight",
+  "action": "describe_target",
+  "args": {
+    "target": {"kind": "actor", "name": "SkyLight"},
+    "include_values": true,
+    "limit": 500
+  }
+}
