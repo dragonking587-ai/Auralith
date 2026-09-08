@@ -1,0 +1,9 @@
+{
+  "id": "000181-describe-movie-pipeline-queue",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineQueue",
+    "filter": "job",
+    "limit": 200
+  }
+}
