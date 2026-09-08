@@ -1,0 +1,9 @@
+{
+  "id": "000066-add-final-preview-job",
+  "action": "render_queue_add_job",
+  "args": {
+    "name": "Auralith Test Scene Preview",
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "map": "/Game/Main.Main"
+  }
+}
