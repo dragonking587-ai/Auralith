@@ -1,0 +1,8 @@
+{
+  "id": "000016-describe-niagara-system",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "NiagaraSystem",
+    "limit": 2000
+  }
+}
