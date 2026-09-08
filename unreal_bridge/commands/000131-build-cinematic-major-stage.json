@@ -1,0 +1,5 @@
+{
+  "id": "000131-build-cinematic-major-stage",
+  "action": "cinematic_build_major_stage",
+  "args": {}
+}
