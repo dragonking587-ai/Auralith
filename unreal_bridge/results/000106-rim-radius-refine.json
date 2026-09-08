@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000106-rim-radius-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "attenuation_radius",
+    "before": 900.0,
+    "after": 650.0
+  }
+}
