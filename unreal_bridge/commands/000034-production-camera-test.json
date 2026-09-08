@@ -1,0 +1,13 @@
+{
+  "id": "000034-production-camera-test",
+  "action": "camera_create",
+  "args": {
+    "label": "Auralith_ProductionTestCamera",
+    "location": [300.0, 0.0, 180.0],
+    "rotation": [0.0, 0.0, 180.0],
+    "focal_length": 50.0,
+    "aperture": 2.8,
+    "aspect_ratio": 1.7777778,
+    "transient": true
+  }
+}
