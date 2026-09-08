@@ -1,0 +1,14 @@
+{
+  "type": "result",
+  "id": "000020-spawn-test-camera",
+  "ok": true,
+  "action": "spawn_actor",
+  "data": {
+    "actor": {
+      "_type": "UObject",
+      "name": "CineCameraActor_0",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0",
+      "class": "/Script/CinematicCamera.CineCameraActor"
+    }
+  }
+}
