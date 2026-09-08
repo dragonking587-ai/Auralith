@@ -1,0 +1,15 @@
+{
+  "type": "result",
+  "id": "000176-start-reference-studio-preview",
+  "ok": true,
+  "action": "render_queue_start",
+  "data": {
+    "started": true,
+    "executor": {
+      "_type": "UObject",
+      "name": "MoviePipelinePIEExecutor_3",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.MoviePipelinePIEExecutor_3",
+      "class": "/Script/MovieRenderPipelineEditor.MoviePipelinePIEExecutor"
+    }
+  }
+}
