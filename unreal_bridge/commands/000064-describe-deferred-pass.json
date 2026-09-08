@@ -1,0 +1,8 @@
+{
+  "id": "000064-describe-deferred-pass",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineDeferredPassBase",
+    "limit": 500
+  }
+}
