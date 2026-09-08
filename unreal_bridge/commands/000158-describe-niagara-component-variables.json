@@ -1,0 +1,9 @@
+{
+  "id": "000158-describe-niagara-component-variables",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "NiagaraComponent",
+    "filter": "variable",
+    "limit": 500
+  }
+}
