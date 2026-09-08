@@ -1,0 +1,9 @@
+{
+  "id": "000115-rim-color-channel-fix",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 255, "g": 90, "b": 35, "a": 255}
+  }
+}
