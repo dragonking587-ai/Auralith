@@ -1,0 +1,12 @@
+{
+  "type": "result",
+  "id": "000036-render-queue-status",
+  "ok": true,
+  "action": "render_queue_status",
+  "data": {
+    "is_rendering": false,
+    "is_queue_dirty": false,
+    "job_count": 0,
+    "jobs": []
+  }
+}
