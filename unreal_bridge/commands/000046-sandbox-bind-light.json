@@ -1,0 +1,9 @@
+{
+  "id": "000046-sandbox-bind-light",
+  "action": "sequence_add_actor",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "actor": "AuralithProduction_KeyLight",
+    "save": true
+  }
+}
