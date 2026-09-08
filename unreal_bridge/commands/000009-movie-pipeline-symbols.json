@@ -1,0 +1,5 @@
+{
+  "id": "000009-movie-pipeline-symbols",
+  "action": "list_unreal_symbols",
+  "args": {"filter": "moviepipeline", "limit": 1000}
+}
