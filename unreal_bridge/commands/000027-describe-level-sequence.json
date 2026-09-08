@@ -1,0 +1,8 @@
+{
+  "id": "000027-describe-level-sequence",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "LevelSequence",
+    "limit": 1000
+  }
+}
