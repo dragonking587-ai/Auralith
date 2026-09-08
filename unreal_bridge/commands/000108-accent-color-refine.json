@@ -1,0 +1,9 @@
+{
+  "id": "000108-accent-color-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.PointLight_1.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 255, "g": 90, "b": 15, "a": 255}
+  }
+}
