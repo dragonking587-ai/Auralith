@@ -1,0 +1,228 @@
+{
+  "type": "result",
+  "id": "000139-cinematic-stage-diagnostics",
+  "ok": true,
+  "action": "cinematic_stage_diagnostics",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "playback_start": 0,
+    "playback_end": 240,
+    "actors": [
+      {
+        "label": "AuralithProduction_Camera",
+        "class": "/Script/CinematicCamera.CineCameraActor",
+        "location": {
+          "x": -800.0,
+          "y": -800.0,
+          "z": 300.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithProduction_KeyLight",
+        "class": "/Script/Engine.RectLight",
+        "location": {
+          "x": -250.0,
+          "y": -200.0,
+          "z": 430.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_HeroSphere",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 100.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_Pedestal",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 100.0,
+          "z": 35.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_PillarLeft",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -275.0,
+          "y": 160.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_PillarRight",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 275.0,
+          "y": 160.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_Backdrop",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 430.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_RimLight",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": 250.0,
+          "y": 250.0,
+          "z": 330.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithTest_GoldAccent",
+        "class": "/Script/Engine.PointLight",
+        "location": {
+          "x": -250.0,
+          "y": 100.0,
+          "z": 210.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_FloorStage",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 100.0,
+          "z": -6.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_BackFrameTop",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 0.0,
+          "y": 405.0,
+          "z": 475.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_BackFrameLeft",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -590.0,
+          "y": 405.0,
+          "z": 235.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_BackFrameRight",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 590.0,
+          "y": 405.0,
+          "z": 235.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_ArchLeft",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": -410.0,
+          "y": 260.0,
+          "z": 205.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_ArchRight",
+        "class": "/Script/Engine.StaticMeshActor",
+        "location": {
+          "x": 410.0,
+          "y": 260.0,
+          "z": 205.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_Camera_B",
+        "class": "/Script/CinematicCamera.CineCameraActor",
+        "location": {
+          "x": 650.0,
+          "y": -650.0,
+          "z": 250.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_Camera_C",
+        "class": "/Script/CinematicCamera.CineCameraActor",
+        "location": {
+          "x": 0.0,
+          "y": -520.0,
+          "z": 185.0,
+          "_type": "Vector"
+        }
+      },
+      {
+        "label": "AuralithCine_HeroBurst",
+        "class": "/Script/Niagara.NiagaraActor",
+        "location": {
+          "x": 0.0,
+          "y": 100.0,
+          "z": 145.0,
+          "_type": "Vector"
+        }
+      }
+    ],
+    "master_tracks": [
+      {
+        "name": "MovieSceneCameraCutTrack_0",
+        "class": "/Script/MovieSceneTracks.MovieSceneCameraCutTrack",
+        "sections": 3
+      }
+    ],
+    "camera_cuts": [
+      {
+        "start": 0,
+        "end": 80,
+        "active": true,
+        "binding": "<Struct 'MovieSceneObjectBindingID' (0x0000024308C58BC0) {}>"
+      },
+      {
+        "start": 80,
+        "end": 160,
+        "active": true,
+        "binding": "<Struct 'MovieSceneObjectBindingID' (0x0000024308C58A00) {}>"
+      },
+      {
+        "start": 160,
+        "end": 240,
+        "active": true,
+        "binding": "<Struct 'MovieSceneObjectBindingID' (0x0000024308C58A40) {}>"
+      }
+    ],
+    "audio_sections": [],
+    "niagara_system_exists": true,
+    "obsidian_material_exists": true
+  }
+}
