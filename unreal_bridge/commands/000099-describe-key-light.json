@@ -1,0 +1,12 @@
+{
+  "id": "000099-describe-key-light",
+  "action": "describe_target",
+  "args": {
+    "target": {
+      "kind": "actor",
+      "name": "AuralithProduction_KeyLight"
+    },
+    "include_values": true,
+    "limit": 500
+  }
+}
