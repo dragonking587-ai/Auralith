@@ -1,0 +1,9 @@
+{
+  "id": "000162-describe-niagara-system-parameters",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "NiagaraSystem",
+    "filter": "parameter",
+    "limit": 500
+  }
+}
