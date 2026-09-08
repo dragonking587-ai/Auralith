@@ -8,5 +8,11 @@
   "allow_delete": false,
   "allow_console_commands": true,
   "allow_unsafe_python": false,
-  "auto_commit_results": true
+  "auto_commit_results": true,
+  "auto_publish_render_previews": true,
+  "preview_poll_seconds": 2.0,
+  "preview_wait_timeout_seconds": 900,
+  "preview_settle_seconds": 2.0,
+  "preview_max_files": 3,
+  "preview_max_file_mb": 25
 }
