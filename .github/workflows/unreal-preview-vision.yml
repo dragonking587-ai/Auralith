@@ -39,9 +39,9 @@ jobs:
           from PIL import Image, ImageStat
 
           root = Path('unreal_bridge/previews/latest')
-          files = sorted([p for p in root.glob('*') if p.suffix.lower() in {'.png', '.jpg', '.jpeg'}])[:3]
+          files = sorted([p for p in root.glob('*') if p.suffix.lower() in {'.png', '.jpg', '.jpeg'} and not p.name.startswith('vision_')])[:3]
           payload = {
-              'format': 'auralith-preview-vision-v3',
+              'format': 'auralith-preview-vision-v4',
               'source_count': len(files),
               'images': [],
           }
@@ -56,8 +56,10 @@ jobs:
                   stat = ImageStat.Stat(thumb)
                   mean = [round(v, 2) for v in stat.mean]
                   out = io.BytesIO()
-                  thumb.save(out, format='JPEG', quality=68, optimize=True, progressive=True)
+                  thumb.save(out, format='JPEG', quality=76, optimize=True)
                   raw = out.getvalue()
+                  thumb_name = f'vision_{index:02d}.jpg'
+                  (root / thumb_name).write_bytes(raw)
                   encoded = base64.b64encode(raw).decode('ascii')
                   wrapped = '\n'.join(textwrap.wrap(encoded, 76)) + '\n'
                   (root / f'vision_{index:02d}.b64').write_text(wrapped, encoding='ascii')
@@ -79,12 +81,13 @@ jobs:
                       'coarse_preview_size': {'width': coarse_w, 'height': coarse_h},
                       'mean_rgb': mean,
                       'jpeg_bytes': len(raw),
+                      'thumbnail_file': thumb_name,
                       'base64_file': f'vision_{index:02d}.b64',
                       'ppm_text_file': ppm_name,
                   })
 
           for index in range(len(files) + 1, 4):
-              for pattern in (f'vision_{index:02d}.b64', f'vision_{index:02d}.ppm.txt'):
+              for pattern in (f'vision_{index:02d}.jpg', f'vision_{index:02d}.b64', f'vision_{index:02d}.ppm.txt'):
                   stale = root / pattern
                   if stale.exists():
                       stale.unlink()
@@ -94,6 +97,16 @@ jobs:
           print(f'Wrote {out_path} with {len(payload["images"])} image(s)')
           PY
 
+      - name: Upload preview thumbnails
+        uses: actions/upload-artifact@v4
+        with:
+          name: auralith-preview-vision
+          path: |
+            unreal_bridge/previews/latest/vision_payload.json
+            unreal_bridge/previews/latest/vision_*.jpg
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Commit vision payload
         shell: bash
         run: |
@@ -102,7 +115,7 @@ jobs:
             exit 0
           fi
           git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config user.email "4189828+github-actions[bot]@users.noreply.github.com"
           git add -A unreal_bridge/previews/latest/vision_payload.json unreal_bridge/previews/latest/vision_*.b64 unreal_bridge/previews/latest/vision_*.ppm.txt
           git commit -m "unreal(preview): publish compact vision payload"
           git push origin HEAD:unreal-control
