@@ -1,0 +1,16 @@
+{
+  "type": "result",
+  "id": "000049-sandbox-verify-assets",
+  "ok": true,
+  "action": "list_assets",
+  "data": {
+    "path": "/Game/AuralithProduction",
+    "count": 3,
+    "assets": [
+      "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "/Game/AuralithProduction/Materials/M_AuralithProduction_Base.M_AuralithProduction_Base",
+      "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base"
+    ],
+    "truncated": false
+  }
+}
