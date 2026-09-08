@@ -1,0 +1,5 @@
+{
+  "id": "000052-describe-camera-cut-section",
+  "action": "describe_unreal_symbol",
+  "args": {"symbol": "MovieSceneCameraCutSection", "limit": 500}
+}
