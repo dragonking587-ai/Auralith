@@ -1,0 +1,19 @@
+{
+  "type": "result",
+  "id": "000149-list-production-assets-major-stage",
+  "ok": true,
+  "action": "list_assets",
+  "data": {
+    "path": "/Game/AuralithProduction",
+    "count": 6,
+    "assets": [
+      "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "/Game/AuralithProduction/Materials/M_AuralithCine_Obsidian.M_AuralithCine_Obsidian",
+      "/Game/AuralithProduction/Materials/M_AuralithProduction_Base.M_AuralithProduction_Base",
+      "/Game/AuralithProduction/Materials/M_AuralithTest_GoldGlow.M_AuralithTest_GoldGlow",
+      "/Game/AuralithProduction/VFX/NS_AuralithCine_RadialBurst.NS_AuralithCine_RadialBurst",
+      "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base"
+    ],
+    "truncated": false
+  }
+}
