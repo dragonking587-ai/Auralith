@@ -1,0 +1,8 @@
+{
+  "id": "000190-scale-studio-desk-title",
+  "action": "set_actor_transform",
+  "args": {
+    "actor": "AuralithStudio_DeskTitle",
+    "scale": [1.35, 1.35, 1.35]
+  }
+}
