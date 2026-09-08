@@ -1,16 +1,13 @@
 """Render-preview feedback for the Auralith Unreal Engine bridge.
 
-This module keeps render feedback scoped to the Unreal project's Saved/MovieRenders
-folder. It can prepare the active Movie Render Queue job for a PNG preview and
-return a manifest of freshly-rendered image files. The local Windows bridge then
-copies only those whitelisted images into unreal_bridge/previews/latest and pushes
-them to the unreal-control branch so ChatGPT can inspect the actual rendered pixels.
+V2 can build the transient MRQ job for the requested sequence/map before configuring
+preview quality. This prevents a preview request from accidentally reusing an older
+queue job. Render output remains scoped to the project's Saved/MovieRenders folder.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
-import math
 import time
 from typing import Any, Dict, List
 
@@ -32,13 +29,16 @@ def _safe_subdir(value: str) -> str:
     return "/".join(parts) or "AuralithBridgePreview"
 
 
-def _find_job(args: Dict[str, Any]):
+def _queue():
     subsystem = unreal.get_editor_subsystem(unreal.MoviePipelineQueueSubsystem)
-    queue = subsystem.get_queue()
+    return subsystem, subsystem.get_queue()
+
+
+def _find_job(args: Dict[str, Any]):
+    _subsystem, queue = _queue()
     jobs = list(queue.get_jobs())
     if not jobs:
         raise RuntimeError("Movie Render Queue has no jobs")
-
     requested_name = str(args.get("job_name", "")).strip()
     if requested_name:
         for job in jobs:
@@ -48,11 +48,52 @@ def _find_job(args: Dict[str, Any]):
             except Exception:
                 pass
         raise ValueError(f"Movie Render Queue job not found: {requested_name}")
-
     index = int(args.get("job_index", 0))
     if index < 0 or index >= len(jobs):
         raise IndexError(f"job_index {index} is outside the queue range 0..{len(jobs)-1}")
     return jobs[index]
+
+
+def _ensure_preview_job(args: Dict[str, Any], warnings: List[str]):
+    """Return the selected job, optionally replacing the transient queue.
+
+    If sequence is supplied we intentionally create/configure a job for that exact
+    sequence. clear_queue defaults to True in that mode so old preview jobs cannot
+    leak into a new render.
+    """
+    sequence_path = str(args.get("sequence", "")).strip()
+    map_path = str(args.get("map", "/Game/Main.Main")).strip() or "/Game/Main.Main"
+    if not sequence_path:
+        return _find_job(args)
+
+    subsystem, queue = _queue()
+    if subsystem.is_rendering():
+        raise RuntimeError("Cannot replace Movie Render Queue while a render is active")
+
+    clear_queue = bool(args.get("clear_queue", True))
+    if clear_queue:
+        try:
+            queue.delete_all_jobs()
+        except Exception as exc:
+            warnings.append(f"clear queue: {exc}")
+
+    jobs = list(queue.get_jobs())
+    if jobs and not clear_queue:
+        job = jobs[int(args.get("job_index", 0))]
+    else:
+        job = queue.allocate_new_job(unreal.MoviePipelineExecutorJob)
+
+    job_name = str(args.get("name") or args.get("job_name") or "Auralith Preview")
+    for prop, value in (
+        ("job_name", job_name),
+        ("sequence", unreal.SoftObjectPath(sequence_path)),
+        ("map", unreal.SoftObjectPath(map_path)),
+    ):
+        try:
+            job.set_editor_property(prop, value)
+        except Exception as exc:
+            warnings.append(f"job {prop}: {exc}")
+    return job
 
 
 def _set_property(target, name: str, value: Any, warnings: List[str]) -> None:
@@ -94,9 +135,10 @@ def _action_render_feedback_capabilities(args: Dict[str, Any]) -> Dict[str, Any]
         "MoviePipelineAntiAliasingSetting",
         "MoviePipelineImageSequenceOutput_PNG",
         "MoviePipelineDeferredPassBase",
+        "MoviePipelineQueue",
     )
     return {
-        "bridge_extension": "render-feedback-v1",
+        "bridge_extension": "render-feedback-v2-job-aware",
         "movie_renders_root": _movie_renders_root().as_posix(),
         "available_symbols": {name: hasattr(unreal, name) for name in symbols},
         "registered_actions": ["render_feedback_capabilities", "render_prepare_preview", "render_preview_manifest"],
@@ -104,25 +146,21 @@ def _action_render_feedback_capabilities(args: Dict[str, Any]) -> Dict[str, Any]
 
 
 def _action_render_prepare_preview(args: Dict[str, Any]) -> Dict[str, Any]:
-    """Configure an existing MRQ job for a predictable PNG preview render.
-
-    This changes only the selected queue job's transient configuration. It does not
-    start rendering and does not alter project-wide renderer settings.
-    """
-    job = _find_job(args)
+    """Create/select the requested MRQ job and configure predictable PNG output."""
+    warnings: List[str] = []
+    job = _ensure_preview_job(args, warnings)
     config = job.get_configuration()
     if not config:
         raise RuntimeError("Selected Movie Render Queue job has no configuration")
 
-    width = max(64, int(args.get("width", 1920)))
-    height = max(64, int(args.get("height", 1080)))
+    width = max(64, int(args.get("width", args.get("resolution_x", 1920))))
+    height = max(64, int(args.get("height", args.get("resolution_y", 1080))))
     fps = max(1, int(args.get("fps", 24)))
     spatial = max(1, int(args.get("spatial_samples", 1)))
     temporal = max(1, int(args.get("temporal_samples", 4)))
     subdir = _safe_subdir(str(args.get("output_subdir", "AuralithBridgePreview")))
     output_dir = _movie_renders_root() / Path(subdir)
     output_dir.mkdir(parents=True, exist_ok=True)
-    warnings: List[str] = []
     settings: Dict[str, str] = {}
 
     try:
@@ -134,6 +172,12 @@ def _action_render_prepare_preview(args: Dict[str, Any]) -> Dict[str, Any]:
         _set_property(output, "override_existing_output", True, warnings)
         _set_property(output, "use_custom_frame_rate", True, warnings)
         _set_property(output, "output_frame_rate", _frame_rate(fps), warnings)
+        if "frame_start" in args or "frame_end" in args:
+            _set_property(output, "use_custom_playback_range", True, warnings)
+            if "frame_start" in args:
+                _set_property(output, "custom_start_frame", int(args["frame_start"]), warnings)
+            if "frame_end" in args:
+                _set_property(output, "custom_end_frame", int(args["frame_end"]), warnings)
     except Exception as exc:
         warnings.append(f"output setting: {exc}")
 
@@ -169,9 +213,15 @@ def _action_render_prepare_preview(args: Dict[str, Any]) -> Dict[str, Any]:
     except Exception:
         pass
 
+    job_record = {"object": bridge._jsonify(job)}
+    for prop in ("job_name", "sequence", "map"):
+        try:
+            job_record[prop] = bridge._jsonify(job.get_editor_property(prop))
+        except Exception:
+            pass
+
     return {
-        "job": bridge._jsonify(job),
-        "job_name": str(job.get_editor_property("job_name")),
+        "job": job_record,
         "output_directory": output_dir.as_posix(),
         "resolution": {"x": width, "y": height},
         "fps": fps,
@@ -196,17 +246,10 @@ def _representative_files(files: List[Path], max_files: int) -> List[Path]:
 
 
 def _action_render_preview_manifest(args: Dict[str, Any]) -> Dict[str, Any]:
-    """Return fresh render images for the local bridge to publish.
-
-    The action never accepts an arbitrary source directory. It scans only
-    <Project>/Saved/MovieRenders, keeping local file publication constrained to
-    Unreal render output.
-    """
     root = _movie_renders_root()
     max_files = max(1, min(int(args.get("max_files", 3)), 8))
     since_epoch = float(args.get("since_epoch", 0.0) or 0.0)
     extensions = {".png", ".jpg", ".jpeg"}
-
     candidates: List[Path] = []
     if root.exists():
         for path in root.rglob("*"):
@@ -218,7 +261,6 @@ def _action_render_preview_manifest(args: Dict[str, Any]) -> Dict[str, Any]:
                 candidates.append(path)
             except OSError:
                 continue
-
     candidates.sort(key=lambda p: (p.stat().st_mtime, p.as_posix()))
     selected = _representative_files(candidates, max_files)
     artifacts = []
@@ -231,7 +273,6 @@ def _action_render_preview_manifest(args: Dict[str, Any]) -> Dict[str, Any]:
             "modified_epoch": stat.st_mtime,
             "kind": "render_preview_image",
         })
-
     return {
         "movie_renders_root": root.as_posix(),
         "since_epoch": since_epoch,
@@ -246,6 +287,5 @@ _ACTIONS = {
     "render_prepare_preview": _action_render_prepare_preview,
     "render_preview_manifest": _action_render_preview_manifest,
 }
-
 bridge._ACTIONS.update(_ACTIONS)
-bridge._log(f"Render feedback registered: {', '.join(sorted(_ACTIONS))}")
+bridge._log(f"Render feedback v2 registered: {', '.join(sorted(_ACTIONS))}")
