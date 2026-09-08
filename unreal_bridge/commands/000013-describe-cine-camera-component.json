@@ -1,0 +1,8 @@
+{
+  "id": "000013-describe-cine-camera-component",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "CineCameraComponent",
+    "limit": 1500
+  }
+}
