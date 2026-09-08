@@ -1,0 +1,9 @@
+{
+  "id": "000045-sandbox-bind-camera",
+  "action": "sequence_add_actor",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "actor": "AuralithProduction_Camera",
+    "save": true
+  }
+}
