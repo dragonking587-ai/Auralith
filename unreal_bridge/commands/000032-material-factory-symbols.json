@@ -1,0 +1,8 @@
+{
+  "id": "000032-material-factory-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "MaterialFactory",
+    "limit": 100
+  }
+}
