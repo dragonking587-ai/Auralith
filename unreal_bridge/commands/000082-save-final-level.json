@@ -1,0 +1,5 @@
+{
+  "id": "000082-save-final-level",
+  "action": "save_current_level",
+  "args": {}
+}
