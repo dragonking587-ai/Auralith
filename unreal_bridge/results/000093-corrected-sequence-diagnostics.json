@@ -1,0 +1,54 @@
+{
+  "type": "result",
+  "id": "000093-corrected-sequence-diagnostics",
+  "ok": true,
+  "action": "scene_sequence_diagnostics",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "AuralithProduction_Master",
+      "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "display_rate": "<Struct 'FrameRate' (0x000001EB1C6742E0) {numerator: 24, denominator: 1}>",
+    "playback_start": 0,
+    "playback_end": 240,
+    "bindings": [
+      {
+        "display_name": "AuralithProduction_Camera",
+        "name": "AuralithProduction_Camera",
+        "id": "<Struct 'Guid' (0x000001EB5A751750) {}>",
+        "valid": true,
+        "tracks": [
+          {
+            "name": "MovieScene3DTransformTrack_1",
+            "class": "/Script/MovieSceneTracks.MovieScene3DTransformTrack",
+            "sections": 1
+          }
+        ]
+      },
+      {
+        "display_name": "AuralithProduction_KeyLight",
+        "name": "AuralithProduction_KeyLight",
+        "id": "<Struct 'Guid' (0x000001EB5A751990) {}>",
+        "valid": true,
+        "tracks": []
+      }
+    ],
+    "master_tracks": [
+      {
+        "name": "MovieSceneCameraCutTrack_0",
+        "class": "/Script/MovieSceneTracks.MovieSceneCameraCutTrack",
+        "sections": 1
+      }
+    ],
+    "camera_cuts": [
+      {
+        "start": 0,
+        "end": 240,
+        "active": true,
+        "binding": "<Struct 'MovieSceneObjectBindingID' (0x000001EB1C946F20) {}>"
+      }
+    ]
+  }
+}
