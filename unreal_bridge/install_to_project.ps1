@@ -29,28 +29,45 @@ $CinematicStageTarget = Join-Path $PythonDir "auralith_cinematic_stage.py"
 $HotReloadTarget = Join-Path $PythonDir "auralith_hot_reload.py"
 $InitTarget = Join-Path $PythonDir "init_unreal.py"
 
+$CopyMap = @(
+    @{ Source = $PythonSource; Target = $PythonTarget },
+    @{ Source = $ProductionSource; Target = $ProductionTarget },
+    @{ Source = $TestSceneSource; Target = $TestSceneTarget },
+    @{ Source = $RenderFeedbackSource; Target = $RenderFeedbackTarget },
+    @{ Source = $CinematicStageSource; Target = $CinematicStageTarget },
+    @{ Source = $HotReloadSource; Target = $HotReloadTarget }
+)
+
 New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
-Copy-Item -Force $PythonSource $PythonTarget
-Copy-Item -Force $ProductionSource $ProductionTarget
-Copy-Item -Force $TestSceneSource $TestSceneTarget
-Copy-Item -Force $RenderFeedbackSource $RenderFeedbackTarget
-Copy-Item -Force $CinematicStageSource $CinematicStageTarget
-Copy-Item -Force $HotReloadSource $HotReloadTarget
+foreach ($Item in $CopyMap) {
+    if (-not (Test-Path $Item.Source)) {
+        throw "Required bridge module is missing from the clone: $($Item.Source)"
+    }
+    Copy-Item -Force $Item.Source $Item.Target
+    if (-not (Test-Path $Item.Target)) {
+        throw "Bridge module copy failed: $($Item.Target)"
+    }
+}
 
 $Begin = "# AURALITH_UNREAL_BRIDGE_BEGIN"
 $End = "# AURALITH_UNREAL_BRIDGE_END"
 $Bootstrap = @"
 $Begin
-try:
-    import auralith_unreal_bridge
-    import auralith_production_controls
-    import auralith_test_scene
-    import auralith_render_feedback
-    import auralith_cinematic_stage
-    import auralith_hot_reload
-except Exception as exc:
-    import unreal
-    unreal.log_error(f"[AuralithBridge] startup failed: {exc}")
+import unreal
+
+def _auralith_import(name):
+    try:
+        __import__(name)
+        unreal.log(f"[AuralithBridge] loaded {name}")
+    except Exception as exc:
+        unreal.log_error(f"[AuralithBridge] failed to load {name}: {exc}")
+
+_auralith_import("auralith_unreal_bridge")
+_auralith_import("auralith_production_controls")
+_auralith_import("auralith_test_scene")
+_auralith_import("auralith_render_feedback")
+_auralith_import("auralith_cinematic_stage")
+_auralith_import("auralith_hot_reload")
 $End
 "@
 
@@ -88,12 +105,9 @@ Write-Host "Bridge runtime installed into:" -ForegroundColor Green
 Write-Host "  $ProjectDir"
 Write-Host ""
 Write-Host "Installed Python modules:" -ForegroundColor Green
-Write-Host "  Content\Python\auralith_unreal_bridge.py"
-Write-Host "  Content\Python\auralith_production_controls.py"
-Write-Host "  Content\Python\auralith_test_scene.py"
-Write-Host "  Content\Python\auralith_render_feedback.py"
-Write-Host "  Content\Python\auralith_cinematic_stage.py"
-Write-Host "  Content\Python\auralith_hot_reload.py"
+foreach ($Item in $CopyMap) {
+    Write-Host "  Content\Python\$(Split-Path -Leaf $Item.Target)"
+}
 Write-Host ""
 Write-Host "In Unreal Engine 5.7 enable:" -ForegroundColor Yellow
 Write-Host "  - Python Editor Script Plugin"
