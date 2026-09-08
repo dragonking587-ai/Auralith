@@ -1,0 +1,9 @@
+{
+  "id": "000044-sandbox-niagara",
+  "action": "niagara_create_system",
+  "args": {
+    "name": "NS_AuralithProduction_Base",
+    "path": "/Game/AuralithProduction/VFX",
+    "save": true
+  }
+}
