@@ -1,0 +1,8 @@
+{
+  "id": "000129-describe-audio-section",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MovieSceneAudioSection",
+    "limit": 1200
+  }
+}
