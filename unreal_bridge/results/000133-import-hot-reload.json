@@ -1,0 +1,9 @@
+{
+  "type": "result",
+  "id": "000133-import-hot-reload",
+  "ok": true,
+  "action": "execute_console",
+  "data": {
+    "executed": "py import auralith_hot_reload"
+  }
+}
