@@ -1,0 +1,9 @@
+{
+  "id": "000112-enlarge-backdrop",
+  "action": "set_actor_transform",
+  "args": {
+    "actor": "AuralithTest_Backdrop",
+    "location": [0, 430, 250],
+    "scale": [14.0, 0.22, 6.5]
+  }
+}
