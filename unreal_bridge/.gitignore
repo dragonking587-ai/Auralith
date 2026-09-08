@@ -1,0 +1,5 @@
+local_config.json
+bridge_state.json
+__pycache__/
+*.pyc
+*.log
