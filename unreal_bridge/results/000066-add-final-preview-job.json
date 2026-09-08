@@ -1,0 +1,22 @@
+{
+  "type": "result",
+  "id": "000066-add-final-preview-job",
+  "ok": true,
+  "action": "render_queue_add_job",
+  "data": {
+    "job": {
+      "object": {
+        "_type": "UObject",
+        "name": "MoviePipelineExecutorJob_0",
+        "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0",
+        "class": "/Script/MovieRenderPipelineCore.MoviePipelineExecutorJob"
+      },
+      "job_name": "Auralith Test Scene Preview",
+      "author": "",
+      "sequence": "<Struct 'SoftObjectPath' (0x00000188EF4E1540) {}>",
+      "map": "<Struct 'SoftObjectPath' (0x00000188EF4E1568) {}>"
+    },
+    "queue_job_count": 1,
+    "warnings": []
+  }
+}
