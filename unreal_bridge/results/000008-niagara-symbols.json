@@ -1,0 +1,1292 @@
+{
+  "type": "result",
+  "id": "000008-niagara-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 256,
+    "symbols": [
+      {
+        "name": "AnimNotifyState_TimedNiagaraEffect",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimNotifyState_TimedNiagaraEffectAdvanced",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimNotify_PlayNiagaraEffect",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AsyncNiagaraCaptureSimCache",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AsyncNiagaraCaptureSimCache_OnCaptureComplete",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomNiagaraSolvers",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraBoolParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraCacheParams",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraCacheSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraCacheTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraColorParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraEmitterSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraEmitterSectionBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraEmitterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraFloatParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraIntegerParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraSystemSpawnSection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraSystemTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraTrackRecorder",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneNiagaraVectorParameterTrack",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraAgeUpdateMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraAnimNotifyProgressType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraAssetTagDefinitionReference",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraBakerFunctionLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraBakerStaticMeshFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraBaselineController",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraBaselineController_Basic",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCVarConditionResponse",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraClipboardEditorScriptingUtilities",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraClipboardFunctionInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraClipboardFunction_OnPastedFunctionCallNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCompilationMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCompileErrorSeverity",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCullProxyComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCullProxyMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCullReaction",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraCulledComponentInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDIRigidMeshCollisionFunctionLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannel",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelAsset",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelAssetFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelHandler",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelHandler_GameplayBurst",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelHandler_Global",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelHandler_Islands",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelHandler_MapBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelReader",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelReference",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelSearchParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelUpdateContext",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelVariable",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataChannelWriter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterface",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayBool",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayDistributionInt",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayFloat",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayFloat2",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayFloat3",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayFloat4",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayFunctionLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayInt32",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayMatrix",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayMesh",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayNiagaraID",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayQuat",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceArrayUInt8",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceAudioPlayerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceEmitterBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceEmitterBindingMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid2DCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid2DCollectionReader",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid3D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid3DCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceGrid3DCollectionReader",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceIntRenderTarget2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceRWBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceRenderTarget2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceRenderTarget2DArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceRenderTargetCube",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceRenderTargetVolume",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceSceneCapture2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceStaticMesh",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceUObjectPropertyReader",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDefaultGpuTranslucentLatency",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDefaultRendererMotionVectorSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDefaultRendererPixelCoverageMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDefaultSortPrecision",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDeviceProfileRedirectMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDeviceProfileStateEntry",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDynamicInputScriptFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorDataBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorParametersAdapterBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorPlaybackType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorRotationMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEditorPreviewActorShapeType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEffect",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEffectRendererProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEffectType",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEffectTypeFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterCalculateBoundMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterDefaultSummaryState",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilityOverride",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilityOverrides",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilitySettingsArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScriptProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEventScriptProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraFunctionLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraFunctionScriptFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraGlobalBudgetScaling",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraGpuBufferFormat",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraGpuSyncMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraID",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraInterpolatedSpawnMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraLensEffectBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraLightRendererProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraLinearRamp",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraLwcTileUpdateMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMaterialAttributeBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMergeable",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMeshLODMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMeshPivotOffsetSpace",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMeshRendererMeshProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMeshRendererMeshPropertiesBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMipMapGeneration",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraMipMapGenerationType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraModuleDependency",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraModuleDependencyScriptConstraint",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraModuleDependencyType",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraModuleScriptFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraNodeFunctionCall",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraNodeWithDynamicPins",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraNotifyOnChanged",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraNumericOutputTypeSelectionMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraOcclusionQueryMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterBindingWithValue",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterCollectionFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterCollectionInstance",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterCollectionInstanceFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterDefinitionsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParameterStore",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraParticleCallbackHandler",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPerfBaselineActor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPerfBaselineStats",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPlatformSet",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPlatformSetCVarCondition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPlatformSetRedirect",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPosition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamFloat",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamInt32",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamLinearColor",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamVector",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamVector2D",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewAxis_InterpParamVector4",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewGrid",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPreviewGridResetMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPythonEmitter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPythonModule",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraPythonScriptModuleInput",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererGpuTranslucentLatency",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialScalarParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialStaticBoolParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialTextureParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMaterialVectorParameter",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMotionVectorSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererPixelCoverageMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererReadbackParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererSortPrecision",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererSourceDataMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScalabilityOverrides",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScalabilityUpdateFrequency",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScript",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScriptBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScriptFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScriptLibraryVisibility",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScriptSourceBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScriptTemplateSpecification",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSequence",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSignificanceHandler",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCache",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheAttributeCaptureMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheCaptureParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheCreateParameters",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheFunctionLibrary",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheSectionPlayMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimCacheSectionStretchMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimStageExecutionLoopEditorData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimTarget",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSimulationStageBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSortMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSpawnInfo",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSpriteAlignment",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSpriteFacingMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSpriteRendererProperties",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraStackEntry",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraStackItem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraStackModuleItem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraStatelessEmitterTemplateFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraStripScriptByteCodeOption",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystem",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemCollection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemCollectionData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilityOverride",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilityOverrides",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilitySettingsArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemSpawnSectionEndBehavior",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemSpawnSectionEvaluateBehavior",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemSpawnSectionStartBehavior",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemVisibilityCullingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraTickBehavior",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraTypeDefinition",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraTypeDefinitionHandle",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraUObjectPropertyReaderRemap",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraUserParameterBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraValidationRule",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraValidationRuleSet",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraValidationRuleSetFactoryNew",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraVariable",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraVariableAttributeBinding",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraVariableBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraVariant",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraVariantMode",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "OnNewNiagaraDataChannelPublish",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnNiagaraScriptCompilationComplete",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnNiagaraSystemFinished",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "UpgradeNiagaraEmitterContext",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "UpgradeNiagaraScriptResults",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VersionedNiagaraEmitterData",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
