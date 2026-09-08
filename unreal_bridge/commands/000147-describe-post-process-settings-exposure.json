@@ -1,0 +1,8 @@
+{
+  "id": "000147-describe-post-process-settings-exposure",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "PostProcessSettings",
+    "name_filter": "exposure"
+  }
+}
