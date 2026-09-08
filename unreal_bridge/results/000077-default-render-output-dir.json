@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000077-default-render-output-dir",
+  "ok": true,
+  "action": "get_property",
+  "data": {
+    "property": "output_directory",
+    "value": "<Struct 'DirectoryPath' (0x000001881DBDE2D0) {path: \"{project_dir}/Saved/MovieRenders/\"}>"
+  }
+}
