@@ -1,0 +1,9 @@
+{
+  "id": "000088-add-feedback-preview-job",
+  "action": "render_queue_add_job",
+  "args": {
+    "name": "Auralith Visual Feedback Preview",
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+    "map": "/Game/Main.Main"
+  }
+}
