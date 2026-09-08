@@ -18,11 +18,15 @@ $PythonSource = Join-Path $BridgeRoot "unreal\auralith_unreal_bridge.py"
 $ProductionSource = Join-Path $BridgeRoot "unreal\auralith_production_controls.py"
 $TestSceneSource = Join-Path $BridgeRoot "unreal\auralith_test_scene.py"
 $RenderFeedbackSource = Join-Path $BridgeRoot "unreal\auralith_render_feedback.py"
+$CinematicStageSource = Join-Path $BridgeRoot "unreal\auralith_cinematic_stage.py"
+$HotReloadSource = Join-Path $BridgeRoot "unreal\auralith_hot_reload.py"
 $PythonDir = Join-Path $ProjectDir "Content\Python"
 $PythonTarget = Join-Path $PythonDir "auralith_unreal_bridge.py"
 $ProductionTarget = Join-Path $PythonDir "auralith_production_controls.py"
 $TestSceneTarget = Join-Path $PythonDir "auralith_test_scene.py"
 $RenderFeedbackTarget = Join-Path $PythonDir "auralith_render_feedback.py"
+$CinematicStageTarget = Join-Path $PythonDir "auralith_cinematic_stage.py"
+$HotReloadTarget = Join-Path $PythonDir "auralith_hot_reload.py"
 $InitTarget = Join-Path $PythonDir "init_unreal.py"
 
 New-Item -ItemType Directory -Force -Path $PythonDir | Out-Null
@@ -30,6 +34,8 @@ Copy-Item -Force $PythonSource $PythonTarget
 Copy-Item -Force $ProductionSource $ProductionTarget
 Copy-Item -Force $TestSceneSource $TestSceneTarget
 Copy-Item -Force $RenderFeedbackSource $RenderFeedbackTarget
+Copy-Item -Force $CinematicStageSource $CinematicStageTarget
+Copy-Item -Force $HotReloadSource $HotReloadTarget
 
 $Begin = "# AURALITH_UNREAL_BRIDGE_BEGIN"
 $End = "# AURALITH_UNREAL_BRIDGE_END"
@@ -40,6 +46,8 @@ try:
     import auralith_production_controls
     import auralith_test_scene
     import auralith_render_feedback
+    import auralith_cinematic_stage
+    import auralith_hot_reload
 except Exception as exc:
     import unreal
     unreal.log_error(f"[AuralithBridge] startup failed: {exc}")
@@ -84,6 +92,8 @@ Write-Host "  Content\Python\auralith_unreal_bridge.py"
 Write-Host "  Content\Python\auralith_production_controls.py"
 Write-Host "  Content\Python\auralith_test_scene.py"
 Write-Host "  Content\Python\auralith_render_feedback.py"
+Write-Host "  Content\Python\auralith_cinematic_stage.py"
+Write-Host "  Content\Python\auralith_hot_reload.py"
 Write-Host ""
 Write-Host "In Unreal Engine 5.7 enable:" -ForegroundColor Yellow
 Write-Host "  - Python Editor Script Plugin"
