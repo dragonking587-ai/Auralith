@@ -1,0 +1,8 @@
+{
+  "id": "000019-renderer-settings-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "RendererSettings",
+    "limit": 1000
+  }
+}
