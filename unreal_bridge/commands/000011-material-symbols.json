@@ -1,0 +1,5 @@
+{
+  "id": "000011-material-symbols",
+  "action": "list_unreal_symbols",
+  "args": {"filter": "material", "limit": 1000}
+}
