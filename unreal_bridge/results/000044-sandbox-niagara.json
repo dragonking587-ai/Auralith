@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000044-sandbox-niagara",
+  "ok": true,
+  "action": "niagara_create_system",
+  "data": {
+    "system": {
+      "_type": "UObject",
+      "name": "NS_AuralithProduction_Base",
+      "path": "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base",
+      "class": "/Script/Niagara.NiagaraSystem"
+    },
+    "object_path": "/Game/AuralithProduction/VFX/NS_AuralithProduction_Base.NS_AuralithProduction_Base",
+    "existed": false,
+    "saved": true
+  }
+}
