@@ -1,0 +1,8 @@
+{
+  "id": "000127-describe-camera-cut-track",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MovieSceneCameraCutTrack",
+    "limit": 1000
+  }
+}
