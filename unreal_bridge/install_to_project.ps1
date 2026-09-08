@@ -27,9 +27,7 @@ $End = "# AURALITH_UNREAL_BRIDGE_END"
 $Bootstrap = @"
 $Begin
 try:
-    import importlib
     import auralith_unreal_bridge
-    importlib.reload(auralith_unreal_bridge)
 except Exception as exc:
     import unreal
     unreal.log_error(f"[AuralithBridge] startup failed: {exc}")
