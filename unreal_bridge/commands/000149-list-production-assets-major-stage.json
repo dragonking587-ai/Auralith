@@ -1,0 +1,10 @@
+{
+  "id": "000149-list-production-assets-major-stage",
+  "action": "list_assets",
+  "args": {
+    "path": "/Game/AuralithProduction",
+    "recursive": true,
+    "include_folder": false,
+    "limit": 500
+  }
+}
