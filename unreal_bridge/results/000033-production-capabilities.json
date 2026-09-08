@@ -1,0 +1,40 @@
+{
+  "type": "result",
+  "id": "000033-production-capabilities",
+  "ok": true,
+  "action": "production_capabilities",
+  "data": {
+    "bridge_extension": "production-controls-v1",
+    "available_symbols": {
+      "CineCameraActor": true,
+      "PointLight": true,
+      "SpotLight": true,
+      "RectLight": true,
+      "DirectionalLight": true,
+      "LevelSequence": true,
+      "LevelSequenceFactoryNew": true,
+      "NiagaraSystem": true,
+      "NiagaraSystemFactoryNew": true,
+      "Material": true,
+      "MaterialFactoryNew": true,
+      "MaterialEditingLibrary": true,
+      "MoviePipelineQueueSubsystem": true,
+      "MoviePipelineExecutorJob": true,
+      "MoviePipelinePIEExecutor": true
+    },
+    "registered_actions": [
+      "camera_create",
+      "camera_set",
+      "light_create",
+      "material_add_expression",
+      "material_create",
+      "niagara_create_system",
+      "production_capabilities",
+      "render_queue_add_job",
+      "render_queue_start",
+      "render_queue_status",
+      "sequence_add_actor",
+      "sequence_create"
+    ]
+  }
+}
