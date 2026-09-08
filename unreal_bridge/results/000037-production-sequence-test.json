@@ -1,0 +1,20 @@
+{
+  "type": "result",
+  "id": "000037-production-sequence-test",
+  "ok": true,
+  "action": "sequence_create",
+  "data": {
+    "sequence": {
+      "_type": "UObject",
+      "name": "Auralith_ProductionTestSequence",
+      "path": "/Game/AuralithBridgeTests/Cinematics/Auralith_ProductionTestSequence.Auralith_ProductionTestSequence",
+      "class": "/Script/LevelSequence.LevelSequence"
+    },
+    "object_path": "/Game/AuralithBridgeTests/Cinematics/Auralith_ProductionTestSequence.Auralith_ProductionTestSequence",
+    "existed": false,
+    "fps": 24,
+    "duration_seconds": 5.0,
+    "saved": false,
+    "warnings": []
+  }
+}
