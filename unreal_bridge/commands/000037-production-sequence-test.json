@@ -1,0 +1,11 @@
+{
+  "id": "000037-production-sequence-test",
+  "action": "sequence_create",
+  "args": {
+    "name": "Auralith_ProductionTestSequence",
+    "path": "/Game/AuralithBridgeTests/Cinematics",
+    "fps": 24,
+    "duration_seconds": 5.0,
+    "save": false
+  }
+}
