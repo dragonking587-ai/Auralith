@@ -1,0 +1,2551 @@
+{
+  "type": "result",
+  "id": "000006-settings-classes",
+  "ok": true,
+  "action": "list_settings_classes",
+  "data": {
+    "settings_symbols": [
+      {
+        "name": "AbcCompressionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcConversionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcGeometryCacheSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcMaterialSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcNormalGenerationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcSamplingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AbcStaticMeshSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AmbisonicsEncodingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimBoneCompressionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimBoneCompressionSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimCurveCompressionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimCurveCompressionSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimPhysSimSpaceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AnimationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AppleARKitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AssetThumbnailWidgetSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AttenuationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AttenuationSubmixSendSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioAnalyzerNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioAnalyzerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioEndpointSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioLinkSettingsAbstract",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioMaterialEnvelopeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioSynesthesiaNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioSynesthesiaNRTSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioSynesthesiaSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioSynesthesiaSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioVolumeSubmixOverrideSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AudioVolumeSubmixSendSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "AutomationViewSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BakeToControlRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BakingAnimationKeySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BakingKeySettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "BaseAttenuationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BatchRetargetSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BodyMoverGoalSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BodyMoverSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "BroadphaseSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CSVImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraExposureSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraFilmbackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraFocusSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraLensSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraLookatTrackingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CameraTrackingFocusSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosBreakingEventRequestSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosCollisionEventRequestSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosPhysicsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosRemovalEventRequestSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosSolverDestructionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ChaosTrailingEventRequestSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraRigRailSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CineCameraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ColorGradePerRangeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ColorGradingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ColumnVisibilitySetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ComponentCollisionSettingsChangedSignature",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CompositeTemperatureSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ComputeDistanceFieldSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ConstantQNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ConstantQSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigPoseMirrorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigPoseProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigPythonSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ControlRigSnapSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ConvolutionBloomSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CreateControlPoseAssetRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "CustomAttributeSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DeveloperSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationFailoverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationGlobalMediaSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_CameraAdvancedRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_CameraRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_CameraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_ChromakeyRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_ChromakeySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_ChromakeySettingsSource",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_GlobalChromakeySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_LightcardRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_LightcardSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_OverlayAdvancedRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationICVFX_StageSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationNetworkSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationTile_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationUpscalerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_ColorGradingMiscSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_ColorGradingRenderingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_ColorGradingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_ColorGradingWhiteBalanceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_CustomPostprocessSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterConfigurationViewport_RenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DisplayClusterMoviePipelineSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DistanceFieldToTextureSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DummyEndpointSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "DynamicsBandSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EditorPerProjectUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EditorScriptingMeshReductionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EditorScriptingMeshReductionSettings_Deprecated",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EditorUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EngineShowFlagsSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputLocalPlayerSubsystem_OnUserSettingsPostInitialized",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputUserSettings_EnhancedInputUserSettingsApplied",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputUserSettings_EnhancedInputUserSettingsChanged",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputUserSettings_MappableKeyProfileChanged",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "EnhancedInputUserSettings_MappingContextRegisteredWithSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FBIKBoneSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FBIKGoalSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FBIKSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FilmStockSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FloorConstraintChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FloorConstraintSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FontOutlineSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "FontSdfSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ForceFeedbackAttenuationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GLTFOverrideMaterialBakeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GameMapsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GameUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GaussianSumBloomSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcessSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_CollisionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_NormalsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_PreprocessSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_SimplifySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_TextureSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_UVSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GenerateStaticMeshLODProcess_UVSettings_PatchBuilder",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GeometryCacheStreamerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GeometryScriptMeshProjectionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomBuildSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomCacheImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomConversionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomDataflowSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "GroomSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderCustomHLODActorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderInstancingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderMeshApproximateSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderMeshMergeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderMeshSimplifySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HLODBuilderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairAdvancedRenderingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairDecimationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairDeformationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairGeometrySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairInterpolationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairLODSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairShadowSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairSimulationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "HairSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetAdditivePoseOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetAlignPoleVectorOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetCopyBasePoseOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetCurveRemapOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetFKChainsOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetFilterBoneOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetFloorConstraintOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetGlobalSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetIKChainsOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetOpSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetPelvisMotionOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetPinBoneOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetRootMotionOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetRunIKRigOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetScaleSourceOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetSpeedPlantingOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetStretchChainOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRetargetStrideWarpingOpSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigBodyMoverGoalSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigBodyMoverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigBoneSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigFBIKBoneSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigFBIKGoalSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigFBIKSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigGoalSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigLimbSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigPoleSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigSetTransformSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigSolverSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigStretchLimbBoneSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "IKRigStretchLimbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InputSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InstancedFoliageSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeContentImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeFbxTranslatorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeProjectSettingsScript",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeSceneImportSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeTestPlanPipelineSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeTranslatorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InterchangeVolumeTranslatorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "InteriorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LKFSNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LKFSSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LandscapeTargetLayerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LensBloomSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LensImperfectionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LensSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceBurnInInitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceCameraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequencePlaybackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSequenceWithShotsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSnapshotsEditorDataManagementSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LevelSnapshotsEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightCardAlphaGradientSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassDirectionalLightSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassLightSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassMaterialInterfaceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassParameterizedMaterialSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassPointLightSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassPrimitiveSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LightmassWorldInfoSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LimbSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LimbSolverSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LiveLinkCurveConversionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LiveLinkSourceBufferManagementSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LiveLinkSourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LiveLinkSubjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LoadAnimToControlRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LoudnessNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "LoudnessSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MaterialProxySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MediaSourceCacheSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MediaSourceColorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MediaTextureResourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MegascansMaterialParentSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MergeAnimLayerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshApproximationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshBuildSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshDeformerInstanceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshInstancingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshMergingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshNaniteSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshProxySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshRayTracingProxySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeshReductionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MeterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MockInputUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ModularRigModuleSettingsForClipboard",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ModularRigModuleSettingsSetForClipboard",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ModularRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MontageBlendSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphCameraSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphDebugSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphGlobalOutputSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphOutputSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphPostRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphQuickRenderModeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphQuickRenderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphRemoveRenderSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphVersioningSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieGraphWarmUpSettingNode",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineAntiAliasingSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineBurnInSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCameraSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineColorSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineCommandLineEncoderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineConsoleVariableSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineDebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineGameOverrideSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineHighResSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineInProcessExecutorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineOutputSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelinePIEExecutorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineSetting_BlueprintBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MoviePipelineViewFamilySetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieRenderGraphEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieRenderPipelineProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneAnimationTrackRecorderEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneAnimationTrackRecorderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneCaptureSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneEasingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneSequencePlaybackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneTakeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneTrackRecorderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneUserExportFBXControlRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneUserImportFBXControlRigSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MovieSceneUserImportFBXSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "MultiUserObjectReplicationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NaniteSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsData",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsDataAsset",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsDefaultReplication",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsNetworkPhysicsComponent",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsPredictiveInterpolation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsResimulation",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NetworkPhysicsSettingsResimulationErrorCorrection",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDataInterfaceAudioPlayerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraDefaultRendererMotionVectorSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraEmitterScalabilitySettingsArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraRendererMotionVectorSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "NiagaraScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilitySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemScalabilitySettingsArray",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "NiagaraSystemVisibilityCullingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OcclusionPluginSourceSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnGameUserSettingsUINeedsUpdate",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OnsetNRTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OpenColorIOColorConversionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "OptimusDeformerInstanceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PBIKBoneSetting",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PBIKSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PerPlatformSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsAssetSolverSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsPredictionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsReplicationLODSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsReplicationResimulationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PhysicsSettingsCore",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PlaneConstraintAxisSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "PlateCropSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PlatformSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PlayerMappableKeySettingBehaviors",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "PlayerMappableKeySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PoleSolverSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PoleVectorSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "PostProcessSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "QuartzClockSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RadialBoxSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RangeSettingEnum",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "ResonanceAudioReverbPluginSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ResonanceAudioSoundfieldSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ResonanceAudioSpatializationSourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ResonanceAudioSpatializationSourceSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetFKChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetFKChainSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetGlobalSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetIKChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetIKChainSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetPoleVectorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetPoseOpSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetRootSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetSpeedPlantSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetSpeedPlantingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetStretchChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetStrideWarpChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RetargetStrideWarpSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ReverbPluginSourceSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ReverbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigConnectorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigControlSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigGraphDisplaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigHierarchySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigMirrorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigModuleSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigSpacePickerBakeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_AimBone_DebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_AimConstraint_AdvancedSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_FitChainToCurve_DebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddAnimationChannel2DLimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddAnimationChannelEmptyLimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddAnimationChannelRotatorLimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddAnimationChannelSingleLimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddAnimationChannelVectorLimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlFloat_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlFloat_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlInteger_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlInteger_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlRotator_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlRotator_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlTransform_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlTransform_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlVector2D_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlVector2D_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlVector_LimitSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControlVector_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControl_ProxySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControl_Settings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyAddControl_ShapeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchyGetShapeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_HierarchySetShapeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_ParentConstraintMath_AdvancedSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_ParentConstraint_AdvancedSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_PointSimulation_DebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_RotationConstraint_AdvancedSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_SpringIK_DebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigUnit_TwoBoneIKSimple_DebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMCompileSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMDebugDrawSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMDrawSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "RigVMEdGraphDisplaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMMirrorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMParserASTSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMPythonSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMRuntimeSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RigVMTrait_OptimusDeformerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "RootPrePullSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SetTransformSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SettingsDOF",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SimSpaceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SingleModifierPerNodeWithTargetSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMeshBuildSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMeshLODGroupSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMeshLODSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SkeletalMeshOptimizationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SlateBrushOutlineSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SlatePostSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SlateRHIRendererSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SolverBreakingFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SolverCollisionFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SolverRemovalFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SolverTrailingFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundAttenuationPluginSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundAttenuationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundConcurrencySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundModulationDefaultRoutingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundModulationDefaultSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundModulationDestinationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundSubmixSpectralAnalysisBandSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundWaveCloudStreamingPlatformSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundfieldEffectSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundfieldEncodingSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundfieldEndpointSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SoundwaveSampleRateSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SourceDataOverridePluginSourceSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectBitCrusherBaseSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectBitCrusherSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectChorusBaseSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectChorusSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectConvolutionReverbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectDynamicsProcessorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectEQSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectEnvelopeFollowerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectFilterAudioBusModulationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectFoldbackDistortionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectIndividualFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectMidSideSpreaderSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectMotionFilterModulationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectMotionFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectPannerSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectPhaserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectRingModulationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectSimpleDelaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectStereoDelaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SourceEffectWaveShaperSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SpatializationPluginSourceSettingsBase",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SphericalPoseReaderDebugSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StaticMeshLODGenerationSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StaticMeshLODGenerationSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StaticMeshReductionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StretchChainSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StretchLimbBoneSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StretchLimbSettingsWrapper",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "StripAnimDataOnDedicatedServerSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectConvolutionReverbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectDelaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectDynamicProcessorFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectDynamicsProcessorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectFilterSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectFlexiverbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectMultibandCompressorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectReverbFastSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectReverbSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectStereoDelaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectStereoToQuadSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectSubmixEQSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SubmixEffectTapDelaySettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "SynesthesiaSpectrumAnalysisSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakePresetSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderAudioInputSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderLevelVisibilitySourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderMicrophoneAudioSourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderProjectSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderPropertyTrackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderTrackSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TakeRecorderWorldSourceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TargetChainFKSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TargetChainIKSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TargetChainSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TargetChainSpeedPlantSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TargetRootSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TextureCompressionSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "TextureCookPlatformTilingSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "TextureMipGenSettings",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "TexturePowerOfTwoSetting",
+        "type": "_EnumType",
+        "callable": true
+      },
+      {
+        "name": "TextureSourceColorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TimecodeCustomAttributeNameSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "TransformGizmoEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "USkeletalMeshReductionSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "UVMapSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VCamConnectionTargetSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VCamInputSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VPSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "ValidateAssetsSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VariableFrameStrippingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VariableFrameStrippingSettingsFactory",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VirtualCameraUserSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VirtualScoutingEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VirtualScoutingSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "VoiceSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "WaveTableSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "WorldSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "XRCreativeEditorSettings",
+        "type": "type",
+        "callable": true
+      },
+      {
+        "name": "XRCreativeSettings",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "count": 508
+  }
+}
