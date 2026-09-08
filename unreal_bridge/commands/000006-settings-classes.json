@@ -1,0 +1,5 @@
+{
+  "id": "000006-settings-classes",
+  "action": "list_settings_classes",
+  "args": {"limit": 1000}
+}
