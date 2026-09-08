@@ -1,0 +1,78 @@
+{
+  "format": "auralith-preview-vision-v4",
+  "source_count": 3,
+  "images": [
+    {
+      "source_name": "01-AuralithPreview_0000.png",
+      "original_size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "thumbnail_size": {
+        "width": 512,
+        "height": 288
+      },
+      "coarse_preview_size": {
+        "width": 32,
+        "height": 18
+      },
+      "mean_rgb": [
+        84.51,
+        73.93,
+        86.88
+      ],
+      "jpeg_bytes": 12751,
+      "thumbnail_file": "vision_01.jpg",
+      "base64_file": "vision_01.b64",
+      "ppm_text_file": "vision_01.ppm.txt"
+    },
+    {
+      "source_name": "02-AuralithPreview_0120.png",
+      "original_size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "thumbnail_size": {
+        "width": 512,
+        "height": 288
+      },
+      "coarse_preview_size": {
+        "width": 32,
+        "height": 18
+      },
+      "mean_rgb": [
+        153.28,
+        113.24,
+        87.13
+      ],
+      "jpeg_bytes": 10939,
+      "thumbnail_file": "vision_02.jpg",
+      "base64_file": "vision_02.b64",
+      "ppm_text_file": "vision_02.ppm.txt"
+    },
+    {
+      "source_name": "03-AuralithPreview_0239.png",
+      "original_size": {
+        "width": 1920,
+        "height": 1080
+      },
+      "thumbnail_size": {
+        "width": 512,
+        "height": 288
+      },
+      "coarse_preview_size": {
+        "width": 32,
+        "height": 18
+      },
+      "mean_rgb": [
+        198.74,
+        172.38,
+        140.09
+      ],
+      "jpeg_bytes": 6790,
+      "thumbnail_file": "vision_03.jpg",
+      "base64_file": "vision_03.b64",
+      "ppm_text_file": "vision_03.ppm.txt"
+    }
+  ]
+}
