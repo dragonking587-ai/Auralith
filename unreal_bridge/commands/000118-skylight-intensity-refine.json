@@ -1,0 +1,9 @@
+{
+  "id": "000118-skylight-intensity-refine",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.SkyLight_0.SkyLightComponent0"},
+    "property": "intensity_scale",
+    "value": 0.25
+  }
+}
