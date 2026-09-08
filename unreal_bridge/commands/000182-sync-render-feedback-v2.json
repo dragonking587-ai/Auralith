@@ -1,0 +1,8 @@
+{
+  "id": "000182-sync-render-feedback-v2",
+  "action": "bridge_sync_extensions",
+  "args": {
+    "source_root": "C:\\Users\\lordo\\Documents\\Auralith-Unreal-Bridge\\unreal_bridge\\unreal",
+    "modules": ["auralith_render_feedback"]
+  }
+}
