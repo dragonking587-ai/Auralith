@@ -1,0 +1,12 @@
+{
+  "id": "000100-describe-key-light-component",
+  "action": "describe_target",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0"
+    },
+    "include_values": true,
+    "limit": 1000
+  }
+}
