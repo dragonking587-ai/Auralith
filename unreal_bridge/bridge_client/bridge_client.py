@@ -234,6 +234,16 @@ def write_result(repo: Path, command_id: str, result: Dict[str, Any]) -> Path:
     return path
 
 
+def pull_rebase(repo: Path, branch: str) -> None:
+    """Pull remote bridge updates without failing on temporary tracked edits.
+
+    The bridge can briefly have a modified result file between receiving an Unreal
+    response and committing it. --autostash protects that transient state while
+    ChatGPT may be adding new command files to the same control branch.
+    """
+    run_git(repo, "pull", "--rebase", "--autostash", "origin", branch)
+
+
 def publish_result(repo: Path, branch: str, result_path: Path, command_id: str) -> None:
     rel = result_path.relative_to(repo).as_posix()
     run_git(repo, "add", "--", rel)
@@ -242,13 +252,13 @@ def publish_result(repo: Path, branch: str, result_path: Path, command_id: str) 
         return
     run_git(repo, "commit", "-m", f"unreal(result): {command_id}")
     # ChatGPT may have added another command while Unreal was working. Rebase before push.
-    run_git(repo, "pull", "--rebase", "origin", branch)
+    pull_rebase(repo, branch)
     run_git(repo, "push", "origin", f"HEAD:{branch}")
 
 
 def sync(repo: Path, branch: str) -> None:
     run_git(repo, "checkout", branch)
-    run_git(repo, "pull", "--rebase", "origin", branch)
+    pull_rebase(repo, branch)
 
 
 def main() -> int:
