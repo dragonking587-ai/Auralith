@@ -1,0 +1,12 @@
+{
+  "id": "000185-tighten-reference-studio-camera",
+  "action": "camera_set",
+  "args": {
+    "actor": "AuralithStudio_Camera",
+    "location": [0, -1850, 430],
+    "rotation": {"roll": 0, "pitch": -3.2, "yaw": 90},
+    "focal_length": 32,
+    "aperture": 5.0,
+    "aspect_ratio": 1.7777778
+  }
+}
