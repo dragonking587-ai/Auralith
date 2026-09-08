@@ -1,0 +1,15 @@
+{
+  "id": "000179-prepare-reference-studio-v2-preview",
+  "action": "render_prepare_preview",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithStudio_Master.AuralithStudio_Master",
+    "map": "/Game/Main.Main",
+    "output_subdir": "ReferenceStudioV2",
+    "resolution_x": 1920,
+    "resolution_y": 1080,
+    "fps": 24,
+    "spatial_samples": 1,
+    "temporal_samples": 4,
+    "clear_queue": true
+  }
+}
