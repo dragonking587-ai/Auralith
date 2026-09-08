@@ -1,0 +1,12 @@
+{
+  "id": "000059-describe-render-job",
+  "action": "describe_target",
+  "args": {
+    "target": {
+      "kind": "object",
+      "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0"
+    },
+    "limit": 500,
+    "include_values": true
+  }
+}
