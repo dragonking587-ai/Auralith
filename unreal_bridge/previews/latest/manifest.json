@@ -1,26 +1,26 @@
 {
-  "render_command_id": "000156-start-effects-baseline-preview",
-  "captured_at_utc": "2026-09-08T20:51:42Z",
+  "render_command_id": "000171-start-polished-v3-preview",
+  "captured_at_utc": "2026-09-08T21:05:35Z",
   "image_count": 3,
   "images": [
     {
       "name": "01-AuralithPreview_0000.png",
       "repo_path": "unreal_bridge/previews/latest/01-AuralithPreview_0000.png",
-      "size_bytes": 2165115,
+      "size_bytes": 1649654,
       "source_name": "AuralithPreview_0000.png",
       "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/01-AuralithPreview_0000.png"
     },
     {
       "name": "02-AuralithPreview_0040.png",
       "repo_path": "unreal_bridge/previews/latest/02-AuralithPreview_0040.png",
-      "size_bytes": 1893017,
+      "size_bytes": 1660856,
       "source_name": "AuralithPreview_0040.png",
       "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/02-AuralithPreview_0040.png"
     },
     {
       "name": "03-AuralithPreview_0079.png",
       "repo_path": "unreal_bridge/previews/latest/03-AuralithPreview_0079.png",
-      "size_bytes": 1883786,
+      "size_bytes": 1666159,
       "source_name": "AuralithPreview_0079.png",
       "raw_url": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/unreal-control/unreal_bridge/previews/latest/03-AuralithPreview_0079.png"
     }
