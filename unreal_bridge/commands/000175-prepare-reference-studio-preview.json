@@ -1,0 +1,16 @@
+{
+  "id": "000175-prepare-reference-studio-preview",
+  "action": "render_prepare_preview",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithStudio_Master.AuralithStudio_Master",
+    "map": "/Game/Main.Main",
+    "name": "Obsidian Wolf Reference Studio Preview",
+    "output_subdir": "ReferenceStudioV1",
+    "resolution_x": 1920,
+    "resolution_y": 1080,
+    "fps": 24,
+    "spatial_samples": 1,
+    "temporal_samples": 4,
+    "clear_queue": true
+  }
+}
