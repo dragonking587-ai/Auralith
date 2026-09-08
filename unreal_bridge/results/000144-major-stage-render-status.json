@@ -1,0 +1,25 @@
+{
+  "type": "result",
+  "id": "000144-major-stage-render-status",
+  "ok": true,
+  "action": "render_queue_status",
+  "data": {
+    "is_rendering": false,
+    "is_queue_dirty": true,
+    "job_count": 1,
+    "jobs": [
+      {
+        "object": {
+          "_type": "UObject",
+          "name": "MoviePipelineExecutorJob_0",
+          "path": "/Engine/Transient.DisplayClusterEditorEngine_0:MoviePipelineQueueSubsystem_0.EditorMoviePipelineQueue.MoviePipelineExecutorJob_0",
+          "class": "/Script/MovieRenderPipelineCore.MoviePipelineExecutorJob"
+        },
+        "job_name": "Auralith Major Stage Preview",
+        "author": "",
+        "sequence": "<Struct 'SoftObjectPath' (0x000002438175E900) {}>",
+        "map": "<Struct 'SoftObjectPath' (0x000002438175E928) {}>"
+      }
+    ]
+  }
+}
