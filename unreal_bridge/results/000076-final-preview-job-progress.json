@@ -1,0 +1,10 @@
+{
+  "type": "result",
+  "id": "000076-final-preview-job-progress",
+  "ok": true,
+  "action": "call_method",
+  "data": {
+    "method": "get_status_progress",
+    "result": 0.0
+  }
+}
