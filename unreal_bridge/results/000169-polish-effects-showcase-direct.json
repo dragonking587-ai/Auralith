@@ -1,0 +1,78 @@
+{
+  "type": "result",
+  "id": "000169-polish-effects-showcase-direct",
+  "ok": true,
+  "action": "cinematic_polish_effect_showcase",
+  "data": {
+    "finished_effect_prototypes": [
+      {
+        "name": "Obsidian Core Pulse",
+        "type": "procedural material + reactive light + subtle Niagara",
+        "material": "/Game/AuralithProduction/Materials/M_AuralithFX_ObsidianCorePulse.M_AuralithFX_ObsidianCorePulse"
+      },
+      {
+        "name": "Gold Rail Pulse",
+        "type": "procedural emissive backdrop accent",
+        "material": "/Game/AuralithProduction/Materials/M_AuralithFX_GoldPulse.M_AuralithFX_GoldPulse"
+      },
+      {
+        "name": "Blue Header Pulse",
+        "type": "procedural emissive backdrop accent",
+        "material": "/Game/AuralithProduction/Materials/M_AuralithFX_BluePulse.M_AuralithFX_BluePulse"
+      }
+    ],
+    "animated_lights": [
+      {
+        "actor": "AuralithFX_GoldPulseLight",
+        "keys": [
+          {
+            "frame": 0,
+            "value": 190.0
+          },
+          {
+            "frame": 60,
+            "value": 390.0
+          },
+          {
+            "frame": 120,
+            "value": 220.0
+          },
+          {
+            "frame": 180,
+            "value": 360.0
+          },
+          {
+            "frame": 239,
+            "value": 200.0
+          }
+        ]
+      },
+      {
+        "actor": "AuralithFX_BluePulseLight",
+        "keys": [
+          {
+            "frame": 0,
+            "value": 430.0
+          },
+          {
+            "frame": 60,
+            "value": 240.0
+          },
+          {
+            "frame": 120,
+            "value": 470.0
+          },
+          {
+            "frame": 180,
+            "value": 260.0
+          },
+          {
+            "frame": 239,
+            "value": 400.0
+          }
+        ]
+      }
+    ],
+    "warnings": []
+  }
+}
