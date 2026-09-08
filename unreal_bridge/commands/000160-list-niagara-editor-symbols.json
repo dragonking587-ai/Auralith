@@ -1,0 +1,8 @@
+{
+  "id": "000160-list-niagara-editor-symbols",
+  "action": "list_unreal_symbols",
+  "args": {
+    "filter": "NiagaraEditor",
+    "limit": 1000
+  }
+}
