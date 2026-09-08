@@ -1,0 +1,29 @@
+{
+  "type": "result",
+  "id": "000137-cinematic-capabilities-after-repair",
+  "ok": true,
+  "action": "cinematic_stage_capabilities",
+  "data": {
+    "bridge_extension": "cinematic-stage-v1",
+    "available_symbols": {
+      "MovieSceneCameraCutTrack": true,
+      "MovieSceneFloatTrack": true,
+      "MovieSceneAudioTrack": true,
+      "MovieSceneAudioSection": true,
+      "NiagaraActor": true,
+      "NiagaraComponent": true,
+      "EditorAssetLibrary": true
+    },
+    "niagara_template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst",
+    "registered_actions": [
+      "cinematic_add_audio_track",
+      "cinematic_animate_lighting",
+      "cinematic_build_major_stage",
+      "cinematic_build_multicam",
+      "cinematic_expand_environment",
+      "cinematic_spawn_niagara",
+      "cinematic_stage_capabilities",
+      "cinematic_stage_diagnostics"
+    ]
+  }
+}
