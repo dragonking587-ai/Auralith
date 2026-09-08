@@ -1,0 +1,21 @@
+{
+  "type": "result",
+  "id": "000086-render-feedback-capabilities",
+  "ok": true,
+  "action": "render_feedback_capabilities",
+  "data": {
+    "bridge_extension": "render-feedback-v1",
+    "movie_renders_root": "../../../../../../Users/lordo/AppData/Local/UnrealEngine/5.7/Saved/MovieRenders",
+    "available_symbols": {
+      "MoviePipelineOutputSetting": true,
+      "MoviePipelineAntiAliasingSetting": true,
+      "MoviePipelineImageSequenceOutput_PNG": true,
+      "MoviePipelineDeferredPassBase": true
+    },
+    "registered_actions": [
+      "render_feedback_capabilities",
+      "render_prepare_preview",
+      "render_preview_manifest"
+    ]
+  }
+}
