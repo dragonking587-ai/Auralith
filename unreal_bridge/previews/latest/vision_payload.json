@@ -1,5 +1,5 @@
 {
-  "format": "auralith-preview-vision-v2",
+  "format": "auralith-preview-vision-v3",
   "source_count": 3,
   "images": [
     {
@@ -13,8 +13,8 @@
         "height": 288
       },
       "coarse_preview_size": {
-        "width": 64,
-        "height": 36
+        "width": 32,
+        "height": 18
       },
       "mean_rgb": [
         162.86,
@@ -36,8 +36,8 @@
         "height": 288
       },
       "coarse_preview_size": {
-        "width": 64,
-        "height": 36
+        "width": 32,
+        "height": 18
       },
       "mean_rgb": [
         158.42,
@@ -59,8 +59,8 @@
         "height": 288
       },
       "coarse_preview_size": {
-        "width": 64,
-        "height": 36
+        "width": 32,
+        "height": 18
       },
       "mean_rgb": [
         162.73,
