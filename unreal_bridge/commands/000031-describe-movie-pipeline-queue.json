@@ -1,0 +1,8 @@
+{
+  "id": "000031-describe-movie-pipeline-queue",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MoviePipelineQueue",
+    "limit": 1000
+  }
+}
