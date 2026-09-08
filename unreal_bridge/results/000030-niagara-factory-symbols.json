@@ -1,0 +1,17 @@
+{
+  "type": "result",
+  "id": "000030-niagara-factory-symbols",
+  "ok": true,
+  "action": "list_unreal_symbols",
+  "data": {
+    "count": 1,
+    "symbols": [
+      {
+        "name": "NiagaraSystemFactoryNew",
+        "type": "type",
+        "callable": true
+      }
+    ],
+    "truncated": false
+  }
+}
