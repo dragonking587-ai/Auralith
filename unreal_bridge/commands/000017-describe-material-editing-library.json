@@ -1,0 +1,8 @@
+{
+  "id": "000017-describe-material-editing-library",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "MaterialEditingLibrary",
+    "limit": 3000
+  }
+}
