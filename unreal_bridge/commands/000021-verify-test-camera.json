@@ -1,0 +1,7 @@
+{
+  "id": "000021-verify-test-camera",
+  "action": "list_actors",
+  "args": {
+    "limit": 100
+  }
+}
