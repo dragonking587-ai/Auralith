@@ -1,0 +1,13 @@
+{
+  "id": "000159-describe-niagara-system-exposed",
+  "action": "describe_target",
+  "args": {
+    "target": {
+      "kind": "asset",
+      "path": "/Game/AuralithProduction/VFX/NS_AuralithFX_EnergyBurst.NS_AuralithFX_EnergyBurst"
+    },
+    "filter": "exposed",
+    "limit": 500,
+    "include_values": true
+  }
+}
