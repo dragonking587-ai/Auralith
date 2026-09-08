@@ -1,0 +1,15 @@
+{
+  "type": "result",
+  "id": "000023-get-transient-camera-component-by-path",
+  "ok": true,
+  "action": "call_method",
+  "data": {
+    "method": "get_cine_camera_component",
+    "result": {
+      "_type": "UObject",
+      "name": "CameraComponent",
+      "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0.CameraComponent",
+      "class": "/Script/CinematicCamera.CineCameraComponent"
+    }
+  }
+}
