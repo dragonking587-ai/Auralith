@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000022-get-test-camera-component",
+  "ok": false,
+  "action": "call_method",
+  "error": "Actor not found: AuralithBridge_TestCamera",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 510, in _action_call_method\n    target = _resolve_target(dict(args[\"target\"]))\n             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 189, in _resolve_target\n    return _find_actor(str(spec.get(\"id\") or spec.get(\"name\") or spec.get(\"path\") or \"\"))\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 183, in _find_actor\n    raise ValueError(f\"Actor not found: {identifier}\")\nValueError: Actor not found: AuralithBridge_TestCamera\n"
+}
