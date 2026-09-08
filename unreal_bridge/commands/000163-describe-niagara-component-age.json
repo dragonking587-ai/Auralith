@@ -1,0 +1,9 @@
+{
+  "id": "000163-describe-niagara-component-age",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "NiagaraComponent",
+    "filter": "age",
+    "limit": 500
+  }
+}
