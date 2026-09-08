@@ -1,0 +1,50 @@
+{
+  "type": "result",
+  "id": "000054-describe-binding-proxy",
+  "ok": true,
+  "action": "describe_unreal_symbol",
+  "data": {
+    "symbol": "MovieSceneBindingProxy",
+    "type": "type",
+    "callable": true,
+    "methods": [
+      "add_track",
+      "assign",
+      "cast",
+      "copy",
+      "export_text",
+      "find_tracks_by_exact_type",
+      "find_tracks_by_type",
+      "get_child_possessables",
+      "get_display_name",
+      "get_editor_property",
+      "get_id",
+      "get_name",
+      "get_object_template",
+      "get_parent",
+      "get_possessed_object_class",
+      "get_sorting_order",
+      "get_tracks",
+      "import_text",
+      "is_valid",
+      "move_binding_contents",
+      "remove",
+      "remove_track",
+      "set_display_name",
+      "set_editor_properties",
+      "set_editor_property",
+      "set_name",
+      "set_parent",
+      "set_sorting_order",
+      "set_spawnable_binding_id",
+      "static_struct",
+      "to_tuple"
+    ],
+    "fields": [
+      "binding_id",
+      "sequence"
+    ],
+    "doc": "Movie Scene Binding Proxy represents the binding ID (an FGuid) and the corresponding sequence that it relates to.\nThis is primarily used for scripting where there is no support for FMovieSceneSequenceID and use cases where\nmanaging multiple bindings with their corresponding sequences is necessary.\r\n\r\n**C++ Source:**\r\n\r\n- **Module**: MovieScene\r\n- **File**: MovieSceneBindingProxy.h\r\n\r\n**Editor Properties:** (see get_editor_property/set_editor_property)\r\n\r\n- ``binding_id`` (Guid):  [Read-Write]\r\n- ``sequence`` (MovieSceneSequence):  [Read-Write]",
+    "truncated": false
+  }
+}
