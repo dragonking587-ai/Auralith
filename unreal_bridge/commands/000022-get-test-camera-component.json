@@ -1,0 +1,13 @@
+{
+  "id": "000022-get-test-camera-component",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "actor",
+      "id": "AuralithBridge_TestCamera"
+    },
+    "method": "get_cine_camera_component",
+    "args": [],
+    "kwargs": {}
+  }
+}
