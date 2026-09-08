@@ -1,0 +1,8 @@
+{
+  "type": "result",
+  "id": "000145-describe-post-process-volume",
+  "ok": false,
+  "action": "describe_unreal_symbol",
+  "error": "'symbol'",
+  "traceback": "Traceback (most recent call last):\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 622, in _execute\n    data = handler(args)\n           ^^^^^^^^^^^^^\n  File \"C:\\Users/lordo/Documents/Unreal Projects/MyProject2/Content/Python\\auralith_unreal_bridge.py\", line 337, in _action_describe_unreal_symbol\n    name = str(args[\"symbol\"])\n               ~~~~^^^^^^^^^^\nKeyError: 'symbol'\n"
+}
