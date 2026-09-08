@@ -1,0 +1,5 @@
+{
+  "id": "000054-describe-binding-proxy",
+  "action": "describe_unreal_symbol",
+  "args": {"symbol": "MovieSceneBindingProxy", "limit": 500}
+}
