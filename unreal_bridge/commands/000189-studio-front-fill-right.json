@@ -1,0 +1,13 @@
+{
+  "id": "000189-studio-front-fill-right",
+  "action": "light_create",
+  "args": {
+    "type": "point",
+    "label": "AuralithStudio_FrontFillRight",
+    "location": [430, -520, 430],
+    "intensity": 950,
+    "attenuation_radius": 1700,
+    "color": {"r": 0.42, "g": 0.20, "b": 0.72, "a": 1.0},
+    "transient": false
+  }
+}
