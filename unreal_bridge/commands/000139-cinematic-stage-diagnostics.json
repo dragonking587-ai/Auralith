@@ -1,0 +1,7 @@
+{
+  "id": "000139-cinematic-stage-diagnostics",
+  "action": "cinematic_stage_diagnostics",
+  "args": {
+    "sequence": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master"
+  }
+}
