@@ -1,0 +1,775 @@
+{
+  "type": "result",
+  "id": "000154-prepare-effect-production",
+  "ok": true,
+  "action": "cinematic_prepare_effect_production",
+  "data": {
+    "environment": {
+      "actors": [
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_6",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_6",
+          "class": "/Script/Engine.StaticMeshActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_7",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_7",
+          "class": "/Script/Engine.StaticMeshActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_8",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_8",
+          "class": "/Script/Engine.StaticMeshActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_9",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_9",
+          "class": "/Script/Engine.StaticMeshActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_10",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_10",
+          "class": "/Script/Engine.StaticMeshActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "StaticMeshActor_11",
+          "path": "/Game/Main.Main:PersistentLevel.StaticMeshActor_11",
+          "class": "/Script/Engine.StaticMeshActor"
+        }
+      ],
+      "created_labels": [],
+      "obsidian_material": {
+        "_type": "UObject",
+        "name": "M_AuralithCine_Obsidian",
+        "path": "/Game/AuralithProduction/Materials/M_AuralithCine_Obsidian.M_AuralithCine_Obsidian",
+        "class": "/Script/Engine.Material"
+      },
+      "material_existed": true,
+      "saved_level": true,
+      "warnings": []
+    },
+    "multicam": {
+      "sequence": {
+        "_type": "UObject",
+        "name": "AuralithProduction_Master",
+        "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+        "class": "/Script/LevelSequence.LevelSequence"
+      },
+      "cameras": [
+        {
+          "_type": "UObject",
+          "name": "CineCameraActor_1",
+          "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_1",
+          "class": "/Script/CinematicCamera.CineCameraActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "CineCameraActor_0",
+          "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_0",
+          "class": "/Script/CinematicCamera.CineCameraActor"
+        },
+        {
+          "_type": "UObject",
+          "name": "CineCameraActor_2",
+          "path": "/Game/Main.Main:PersistentLevel.CineCameraActor_2",
+          "class": "/Script/CinematicCamera.CineCameraActor"
+        }
+      ],
+      "created_cameras": [],
+      "removed_previous_camera_cut_sections": 3,
+      "camera_cuts": [
+        {
+          "camera": "AuralithProduction_Camera",
+          "start": 0,
+          "end": 80,
+          "assignment_mode": "object_binding_id"
+        },
+        {
+          "camera": "AuralithCine_Camera_B",
+          "start": 80,
+          "end": 160,
+          "assignment_mode": "object_binding_id"
+        },
+        {
+          "camera": "AuralithCine_Camera_C",
+          "start": 160,
+          "end": 240,
+          "assignment_mode": "object_binding_id"
+        }
+      ],
+      "warnings": []
+    },
+    "base_lighting": {
+      "sequence": {
+        "_type": "UObject",
+        "name": "AuralithProduction_Master",
+        "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+        "class": "/Script/LevelSequence.LevelSequence"
+      },
+      "tracks": [
+        {
+          "actor": "AuralithProduction_KeyLight",
+          "component": {
+            "_type": "UObject",
+            "name": "LightComponent0",
+            "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0",
+            "class": "/Script/Engine.RectLightComponent"
+          },
+          "keys": [
+            {
+              "frame": 0,
+              "value": 850.0
+            },
+            {
+              "frame": 120,
+              "value": 1250.0
+            },
+            {
+              "frame": 239,
+              "value": 900.0
+            }
+          ]
+        },
+        {
+          "actor": "AuralithTest_GoldAccent",
+          "component": {
+            "_type": "UObject",
+            "name": "LightComponent0",
+            "path": "/Game/Main.Main:PersistentLevel.PointLight_1.LightComponent0",
+            "class": "/Script/Engine.PointLightComponent"
+          },
+          "keys": [
+            {
+              "frame": 0,
+              "value": 250.0
+            },
+            {
+              "frame": 120,
+              "value": 650.0
+            },
+            {
+              "frame": 239,
+              "value": 350.0
+            }
+          ]
+        },
+        {
+          "actor": "AuralithTest_RimLight",
+          "component": {
+            "_type": "UObject",
+            "name": "LightComponent0",
+            "path": "/Game/Main.Main:PersistentLevel.PointLight_0.LightComponent0",
+            "class": "/Script/Engine.PointLightComponent"
+          },
+          "keys": [
+            {
+              "frame": 0,
+              "value": 400.0
+            },
+            {
+              "frame": 120,
+              "value": 850.0
+            },
+            {
+              "frame": 239,
+              "value": 500.0
+            }
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "look": {
+      "actor": {
+        "_type": "UObject",
+        "name": "PostProcessVolume_0",
+        "path": "/Game/Main.Main:PersistentLevel.PostProcessVolume_0",
+        "class": "/Script/Engine.PostProcessVolume"
+      },
+      "created": true,
+      "warnings": []
+    },
+    "atmosphere": {
+      "fog_component": {
+        "_type": "UObject",
+        "name": "HeightFogComponent0",
+        "path": "/Game/Main.Main:PersistentLevel.ExponentialHeightFog_0.HeightFogComponent0",
+        "class": "/Script/Engine.ExponentialHeightFogComponent"
+      },
+      "skylight": {
+        "_type": "UObject",
+        "name": "SkyLight_0",
+        "path": "/Game/Main.Main:PersistentLevel.SkyLight_0",
+        "class": "/Script/Engine.SkyLight"
+      },
+      "warnings": [
+        "volumetric_fog: ExponentialHeightFogComponent: Failed to find property 'volumetric_fog' for attribute 'volumetric_fog' on 'ExponentialHeightFogComponent'",
+        "volumetric_fog_view_distance: ExponentialHeightFogComponent: Failed to find property 'volumetric_fog_view_distance' for attribute 'volumetric_fog_view_distance' on 'ExponentialHeightFogComponent'"
+      ]
+    },
+    "effect_library": {
+      "effects": [
+        {
+          "key": "energy_burst",
+          "label": "AuralithFX_EnergyBurst",
+          "actor": {
+            "_type": "UObject",
+            "name": "NiagaraActor_1",
+            "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_1",
+            "class": "/Script/Niagara.NiagaraActor"
+          },
+          "system": {
+            "_type": "UObject",
+            "name": "NS_AuralithFX_EnergyBurst",
+            "path": "/Game/AuralithProduction/VFX/NS_AuralithFX_EnergyBurst.NS_AuralithFX_EnergyBurst",
+            "class": "/Script/Niagara.NiagaraSystem"
+          },
+          "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst"
+        },
+        {
+          "key": "impact_burst",
+          "label": "AuralithFX_ImpactBurst",
+          "actor": {
+            "_type": "UObject",
+            "name": "NiagaraActor_2",
+            "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_2",
+            "class": "/Script/Niagara.NiagaraActor"
+          },
+          "system": {
+            "_type": "UObject",
+            "name": "NS_AuralithFX_ImpactBurst",
+            "path": "/Game/AuralithProduction/VFX/NS_AuralithFX_ImpactBurst.NS_AuralithFX_ImpactBurst",
+            "class": "/Script/Niagara.NiagaraSystem"
+          },
+          "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion"
+        },
+        {
+          "key": "directional_burst",
+          "label": "AuralithFX_DirectionalBurst",
+          "actor": {
+            "_type": "UObject",
+            "name": "NiagaraActor_3",
+            "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_3",
+            "class": "/Script/Niagara.NiagaraActor"
+          },
+          "system": {
+            "_type": "UObject",
+            "name": "NS_AuralithFX_DirectionalBurst",
+            "path": "/Game/AuralithProduction/VFX/NS_AuralithFX_DirectionalBurst.NS_AuralithFX_DirectionalBurst",
+            "class": "/Script/Niagara.NiagaraSystem"
+          },
+          "template": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst"
+        },
+        {
+          "key": "fountain",
+          "label": "AuralithFX_Fountain",
+          "actor": {
+            "_type": "UObject",
+            "name": "NiagaraActor_4",
+            "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_4",
+            "class": "/Script/Niagara.NiagaraActor"
+          },
+          "system": {
+            "_type": "UObject",
+            "name": "NS_AuralithFX_Fountain",
+            "path": "/Game/AuralithProduction/VFX/NS_AuralithFX_Fountain.NS_AuralithFX_Fountain",
+            "class": "/Script/Niagara.NiagaraSystem"
+          },
+          "template": "/Niagara/DefaultAssets/Templates/Systems/FountainLightweight.FountainLightweight"
+        }
+      ],
+      "materials": [
+        "/Game/AuralithProduction/Materials/M_AuralithFX_GoldGlow.M_AuralithFX_GoldGlow",
+        "/Game/AuralithProduction/Materials/M_AuralithFX_BlueGlow.M_AuralithFX_BlueGlow"
+      ],
+      "created_assets": [
+        "/Game/AuralithProduction/Materials/M_AuralithFX_GoldGlow.M_AuralithFX_GoldGlow",
+        "/Game/AuralithProduction/Materials/M_AuralithFX_BlueGlow.M_AuralithFX_BlueGlow",
+        "/Game/AuralithProduction/VFX/NS_AuralithFX_EnergyBurst.NS_AuralithFX_EnergyBurst",
+        "/Game/AuralithProduction/VFX/NS_AuralithFX_ImpactBurst.NS_AuralithFX_ImpactBurst",
+        "/Game/AuralithProduction/VFX/NS_AuralithFX_DirectionalBurst.NS_AuralithFX_DirectionalBurst",
+        "/Game/AuralithProduction/VFX/NS_AuralithFX_Fountain.NS_AuralithFX_Fountain"
+      ],
+      "created_actors": [
+        "AuralithFX_EnergyBurst",
+        "AuralithFX_ImpactBurst",
+        "AuralithFX_DirectionalBurst",
+        "AuralithFX_Fountain",
+        "AuralithFX_GoldRailLeft",
+        "AuralithFX_GoldRailRight",
+        "AuralithFX_BlueHeader",
+        "AuralithFX_HeroGlowDisc",
+        "AuralithFX_GoldPulse",
+        "AuralithFX_BluePulse"
+      ],
+      "animated_effect_lights": [
+        {
+          "actor": "AuralithFX_GoldPulse",
+          "component": {
+            "_type": "UObject",
+            "name": "LightComponent0",
+            "path": "/Game/Main.Main:PersistentLevel.PointLight_2.LightComponent0",
+            "class": "/Script/Engine.PointLightComponent"
+          },
+          "keys": [
+            {
+              "frame": 0,
+              "value": 220.0
+            },
+            {
+              "frame": 60,
+              "value": 700.0
+            },
+            {
+              "frame": 120,
+              "value": 280.0
+            },
+            {
+              "frame": 180,
+              "value": 650.0
+            },
+            {
+              "frame": 239,
+              "value": 220.0
+            }
+          ]
+        },
+        {
+          "actor": "AuralithFX_BluePulse",
+          "component": {
+            "_type": "UObject",
+            "name": "LightComponent0",
+            "path": "/Game/Main.Main:PersistentLevel.PointLight_3.LightComponent0",
+            "class": "/Script/Engine.PointLightComponent"
+          },
+          "keys": [
+            {
+              "frame": 0,
+              "value": 620.0
+            },
+            {
+              "frame": 60,
+              "value": 260.0
+            },
+            {
+              "frame": 120,
+              "value": 760.0
+            },
+            {
+              "frame": 180,
+              "value": 300.0
+            },
+            {
+              "frame": 239,
+              "value": 580.0
+            }
+          ]
+        }
+      ],
+      "warnings": []
+    },
+    "diagnostics": {
+      "sequence": {
+        "_type": "UObject",
+        "name": "AuralithProduction_Master",
+        "path": "/Game/AuralithProduction/Cinematics/AuralithProduction_Master.AuralithProduction_Master",
+        "class": "/Script/LevelSequence.LevelSequence"
+      },
+      "playback_start": 0,
+      "playback_end": 240,
+      "actors": [
+        {
+          "label": "AuralithProduction_Camera",
+          "class": "/Script/CinematicCamera.CineCameraActor",
+          "location": {
+            "x": -800.0,
+            "y": -800.0,
+            "z": 300.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithProduction_KeyLight",
+          "class": "/Script/Engine.RectLight",
+          "location": {
+            "x": -250.0,
+            "y": -200.0,
+            "z": 430.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_HeroSphere",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": 145.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_Pedestal",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": 35.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_PillarLeft",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": -275.0,
+            "y": 160.0,
+            "z": 145.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_PillarRight",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 275.0,
+            "y": 160.0,
+            "z": 145.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_Backdrop",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 430.0,
+            "z": 250.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_RimLight",
+          "class": "/Script/Engine.PointLight",
+          "location": {
+            "x": 250.0,
+            "y": 250.0,
+            "z": 330.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithTest_GoldAccent",
+          "class": "/Script/Engine.PointLight",
+          "location": {
+            "x": -250.0,
+            "y": 100.0,
+            "z": 210.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_FloorStage",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": -6.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_BackFrameTop",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 405.0,
+            "z": 475.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_BackFrameLeft",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": -590.0,
+            "y": 405.0,
+            "z": 235.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_BackFrameRight",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 590.0,
+            "y": 405.0,
+            "z": 235.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_ArchLeft",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": -410.0,
+            "y": 260.0,
+            "z": 205.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_ArchRight",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 410.0,
+            "y": 260.0,
+            "z": 205.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_Camera_B",
+          "class": "/Script/CinematicCamera.CineCameraActor",
+          "location": {
+            "x": 650.0,
+            "y": -650.0,
+            "z": 250.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_Camera_C",
+          "class": "/Script/CinematicCamera.CineCameraActor",
+          "location": {
+            "x": 0.0,
+            "y": -520.0,
+            "z": 185.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithCine_HeroBurst",
+          "class": "/Script/Niagara.NiagaraActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": 145.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_PostProcess",
+          "class": "/Script/Engine.PostProcessVolume",
+          "location": {
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_EnergyBurst",
+          "class": "/Script/Niagara.NiagaraActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": 145.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_ImpactBurst",
+          "class": "/Script/Niagara.NiagaraActor",
+          "location": {
+            "x": -260.0,
+            "y": 120.0,
+            "z": 95.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_DirectionalBurst",
+          "class": "/Script/Niagara.NiagaraActor",
+          "location": {
+            "x": 260.0,
+            "y": 120.0,
+            "z": 95.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_Fountain",
+          "class": "/Script/Niagara.NiagaraActor",
+          "location": {
+            "x": 0.0,
+            "y": 255.0,
+            "z": 5.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_GoldRailLeft",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": -395.0,
+            "y": 385.0,
+            "z": 215.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_GoldRailRight",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 395.0,
+            "y": 385.0,
+            "z": 215.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_BlueHeader",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 392.0,
+            "z": 420.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_HeroGlowDisc",
+          "class": "/Script/Engine.StaticMeshActor",
+          "location": {
+            "x": 0.0,
+            "y": 100.0,
+            "z": 7.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_GoldPulse",
+          "class": "/Script/Engine.PointLight",
+          "location": {
+            "x": -180.0,
+            "y": 20.0,
+            "z": 210.0,
+            "_type": "Vector"
+          }
+        },
+        {
+          "label": "AuralithFX_BluePulse",
+          "class": "/Script/Engine.PointLight",
+          "location": {
+            "x": 180.0,
+            "y": 180.0,
+            "z": 245.0,
+            "_type": "Vector"
+          }
+        }
+      ],
+      "master_tracks": [
+        {
+          "name": "MovieSceneCameraCutTrack_0",
+          "class": "/Script/MovieSceneTracks.MovieSceneCameraCutTrack",
+          "sections": 3
+        }
+      ],
+      "camera_cuts": [
+        {
+          "start": 0,
+          "end": 80,
+          "active": true,
+          "binding": "<Struct 'MovieSceneObjectBindingID' (0x000002430B4CA240) {}>"
+        },
+        {
+          "start": 80,
+          "end": 160,
+          "active": true,
+          "binding": "<Struct 'MovieSceneObjectBindingID' (0x000002430B4CA2C0) {}>"
+        },
+        {
+          "start": 160,
+          "end": 240,
+          "active": true,
+          "binding": "<Struct 'MovieSceneObjectBindingID' (0x000002430B4C6F40) {}>"
+        }
+      ],
+      "audio_sections": [],
+      "niagara_system_exists": true,
+      "obsidian_material_exists": true,
+      "effects": {
+        "effects": [
+          {
+            "key": "energy_burst",
+            "label": "AuralithFX_EnergyBurst",
+            "actor_exists": true,
+            "system_exists": true,
+            "component": {
+              "_type": "UObject",
+              "name": "NiagaraComponent0",
+              "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_1.NiagaraComponent0",
+              "class": "/Script/Niagara.NiagaraComponent"
+            },
+            "active": true,
+            "template": "/Niagara/DefaultAssets/Templates/Systems/RadialBurst.RadialBurst"
+          },
+          {
+            "key": "impact_burst",
+            "label": "AuralithFX_ImpactBurst",
+            "actor_exists": true,
+            "system_exists": true,
+            "component": {
+              "_type": "UObject",
+              "name": "NiagaraComponent0",
+              "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_2.NiagaraComponent0",
+              "class": "/Script/Niagara.NiagaraComponent"
+            },
+            "active": true,
+            "template": "/Niagara/DefaultAssets/Templates/Systems/SimpleExplosion.SimpleExplosion"
+          },
+          {
+            "key": "directional_burst",
+            "label": "AuralithFX_DirectionalBurst",
+            "actor_exists": true,
+            "system_exists": true,
+            "component": {
+              "_type": "UObject",
+              "name": "NiagaraComponent0",
+              "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_3.NiagaraComponent0",
+              "class": "/Script/Niagara.NiagaraComponent"
+            },
+            "active": true,
+            "template": "/Niagara/DefaultAssets/Templates/Systems/DirectionalBurst.DirectionalBurst"
+          },
+          {
+            "key": "fountain",
+            "label": "AuralithFX_Fountain",
+            "actor_exists": true,
+            "system_exists": true,
+            "component": {
+              "_type": "UObject",
+              "name": "NiagaraComponent0",
+              "path": "/Game/Main.Main:PersistentLevel.NiagaraActor_4.NiagaraComponent0",
+              "class": "/Script/Niagara.NiagaraComponent"
+            },
+            "active": true,
+            "template": "/Niagara/DefaultAssets/Templates/Systems/FountainLightweight.FountainLightweight"
+          }
+        ],
+        "gold_material": true,
+        "blue_material": true,
+        "post_process": true,
+        "gold_pulse_light": true,
+        "blue_pulse_light": true
+      }
+    }
+  }
+}
