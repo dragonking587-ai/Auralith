@@ -22,6 +22,54 @@ UObject* UAuralithBridgeBlueprintLibrary::GetDefaultObjectByClassPath(const FStr
     return DefaultObject;
 }
 
+bool UAuralithBridgeBlueprintLibrary::GetReflectedPropertyNames(
+    UObject* Target,
+    TArray<FString>& Properties,
+    FString& Error)
+{
+    Properties.Reset();
+    Error.Reset();
+    if (!Target)
+    {
+        Error = TEXT("Target is null.");
+        return false;
+    }
+
+    for (TFieldIterator<FProperty> It(Target->GetClass()); It; ++It)
+    {
+        if (const FProperty* Property = *It)
+        {
+            Properties.Add(Property->GetName());
+        }
+    }
+    Properties.Sort();
+    return true;
+}
+
+bool UAuralithBridgeBlueprintLibrary::GetReflectedFunctionNames(
+    UObject* Target,
+    TArray<FString>& Functions,
+    FString& Error)
+{
+    Functions.Reset();
+    Error.Reset();
+    if (!Target)
+    {
+        Error = TEXT("Target is null.");
+        return false;
+    }
+
+    for (TFieldIterator<UFunction> It(Target->GetClass()); It; ++It)
+    {
+        if (const UFunction* Function = *It)
+        {
+            Functions.Add(Function->GetName());
+        }
+    }
+    Functions.Sort();
+    return true;
+}
+
 bool UAuralithBridgeBlueprintLibrary::GetObjectPropertyAsString(
     UObject* Target,
     FName PropertyName,
