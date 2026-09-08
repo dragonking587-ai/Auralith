@@ -1,0 +1,15 @@
+{
+  "type": "result",
+  "id": "000150-get-niagara-asset-property",
+  "ok": true,
+  "action": "get_property",
+  "data": {
+    "property": "asset",
+    "value": {
+      "_type": "UObject",
+      "name": "NS_AuralithCine_RadialBurst",
+      "path": "/Game/AuralithProduction/VFX/NS_AuralithCine_RadialBurst.NS_AuralithCine_RadialBurst",
+      "class": "/Script/Niagara.NiagaraSystem"
+    }
+  }
+}
