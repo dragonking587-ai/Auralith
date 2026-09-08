@@ -1,0 +1,5 @@
+{
+  "id": "000002-project-info",
+  "action": "get_project_info",
+  "args": {}
+}
