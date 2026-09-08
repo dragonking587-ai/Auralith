@@ -1,0 +1,13 @@
+{
+  "id": "000005-editor-world",
+  "action": "call_method",
+  "args": {
+    "target": {
+      "kind": "editor_subsystem",
+      "class": "UnrealEditorSubsystem"
+    },
+    "method": "get_editor_world",
+    "args": [],
+    "kwargs": {}
+  }
+}
