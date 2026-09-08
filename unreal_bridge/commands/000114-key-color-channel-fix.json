@@ -1,0 +1,9 @@
+{
+  "id": "000114-key-color-channel-fix",
+  "action": "set_property",
+  "args": {
+    "target": {"kind": "object", "path": "/Game/Main.Main:PersistentLevel.RectLight_0.LightComponent0"},
+    "property": "light_color",
+    "value": {"r": 70, "g": 150, "b": 255, "a": 255}
+  }
+}
