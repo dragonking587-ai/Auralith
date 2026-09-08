@@ -1,0 +1,8 @@
+{
+  "id": "000012-describe-cine-camera-actor",
+  "action": "describe_unreal_symbol",
+  "args": {
+    "symbol": "CineCameraActor",
+    "limit": 1000
+  }
+}
