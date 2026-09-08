@@ -1,0 +1,11 @@
+{
+  "type": "result",
+  "id": "000107-accent-intensity-refine",
+  "ok": true,
+  "action": "set_property",
+  "data": {
+    "property": "intensity",
+    "before": 2200.0,
+    "after": 500.0
+  }
+}
