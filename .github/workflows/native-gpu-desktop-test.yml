@@ -1,0 +1,88 @@
+name: Auralith Desktop Native GPU Testing
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "effects/native-gpu-testing"
+    paths:
+      - "apps/auralith-tauri/**"
+      - ".github/workflows/native-gpu-desktop-test.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  build-windows-native-gpu-test:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/auralith-tauri
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - name: Install frontend
+        run: npm install
+
+      - name: Build frontend and type-check experimental audio bridge
+        run: npm run build
+
+      - name: Build virtual camera DLL
+        working-directory: apps/auralith-tauri/vcam
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if (-not $vs) { throw "Visual Studio C++ tools not found" }
+          $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvars64.bat"
+          cmd /c "`"$vcvars`" && cl /nologo /LD /EHsc /O2 /DUNICODE /D_UNICODE auralith_reborn_vcam.cpp /link /DEF:auralith_reborn_vcam.def strmiids.lib ole32.lib oleaut32.lib uuid.lib kernel32.lib user32.lib advapi32.lib"
+
+      - name: Stage virtual camera DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
+
+      - name: Cargo check native GPU integration
+        shell: pwsh
+        run: |
+          cargo check --manifest-path src-tauri/Cargo.toml
+
+      - name: Build isolated Auralith Native GPU test installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
+
+      - name: Collect installer
+        shell: pwsh
+        run: |
+          $v = (Get-Content VERSION -Raw).Trim()
+          $exe = Get-ChildItem -Recurse src-tauri/target/release/bundle -Filter *.exe | Where-Object { $_.Name -match "setup|nsis" } | Select-Object -First 1
+          if (-not $exe) { throw "NSIS installer not found" }
+          New-Item -ItemType Directory -Force dist-native-gpu-testing | Out-Null
+          $name = "Auralith-Native-GPU-Testing-$v-x64-Setup.exe"
+          Copy-Item $exe.FullName "dist-native-gpu-testing/$name"
+          $hash = (Get-FileHash "dist-native-gpu-testing/$name" -Algorithm SHA256).Hash.ToLower()
+          "$name  $hash" | Set-Content dist-native-gpu-testing/SHA256SUMS.txt
+          @"
+          AURALITH NATIVE GPU TESTING — NOT A PUBLIC RELEASE
+
+          Branch: effects/native-gpu-testing
+          This installer is isolated from the normal Auralith release/update channel.
+          Native Rust + wgpu is capability-gated. WebGL remains the visual fallback while effects migrate one at a time.
+          "@ | Set-Content dist-native-gpu-testing/README.txt
+          Get-ChildItem dist-native-gpu-testing | Format-Table Name,Length
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Auralith-Desktop-Native-GPU-Testing
+          path: apps/auralith-tauri/dist-native-gpu-testing/*
+          retention-days: 14
