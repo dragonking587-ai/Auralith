@@ -1,5 +1,6 @@
 mod vcam;
 mod poll_server;
+mod native_gpu;
 
 #[cfg(windows)]
 mod capture {
@@ -63,6 +64,7 @@ pub fn run() {
         .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_process::init())
         .manage(std::sync::Arc::new(poll_server::PollServer::default()))
+        .manage(std::sync::Arc::new(native_gpu::NativeGpuBridge::default()))
         .invoke_handler(tauri::generate_handler![
             vcam::vcam_status,
             vcam::vcam_install,
@@ -74,7 +76,10 @@ pub fn run() {
             poll_server::poll_server_set_hub,
             poll_server::poll_open_local,
             poll_server::poll_detach_host,
-            poll_server::open_host_console
+            poll_server::open_host_console,
+            native_gpu::native_gpu_probe,
+            native_gpu::native_gpu_set_audio,
+            native_gpu::native_gpu_latest_audio
         ])
         .setup(|app| {
             #[cfg(windows)]
