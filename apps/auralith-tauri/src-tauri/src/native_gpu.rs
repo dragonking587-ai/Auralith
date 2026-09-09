@@ -40,67 +40,22 @@ pub struct NativeGpuInfo {
     pub driver: String,
     pub driver_info: String,
     pub compute_pipeline_ok: bool,
+    pub visual_output_ready: bool,
     pub migrated_effects: Vec<&'static str>,
-    pub next_particle_upgrades: Vec<&'static str>,
+    pub native_compute_ready: Vec<&'static str>,
 }
 
-// This small compute kernel is intentionally effect-shaped instead of a meaningless
-// arithmetic smoke test. It is the common particle-state contract for Sparks, Embers,
-// Energy Sparks, Dust Motes, Ash, Snow, Fireflies, Spores and Celestial Stars. Each
-// migrated effect will use its own forces/material/render pass rather than a generic
-// square sprite emitter.
-const PARTICLE_COMPUTE_SMOKE_TEST: &str = r#"
-struct AudioFrame {
-    bands: vec4<f32>,
-    impulses: vec4<f32>,
-};
-
-struct Particle {
-    position_life: vec4<f32>,
-    velocity_heat: vec4<f32>,
-};
-
-@group(0) @binding(0) var<uniform> audio: AudioFrame;
-@group(0) @binding(1) var<storage, read_write> particles: array<Particle>;
-
-fn hash11(v: f32) -> f32 {
-    return fract(sin(v * 91.3458 + 17.173) * 47453.5453);
-}
-
-@compute @workgroup_size(64)
-fn cs_main(@builtin(global_invocation_id) gid: vec3<u32>) {
-    let i = gid.x;
-    if (i >= arrayLength(&particles)) { return; }
-
-    var p = particles[i];
-    let seed = f32(i) + 1.0;
-    let dt = 1.0 / 60.0;
-    let bass = clamp(audio.bands.x, 0.0, 1.0);
-    let high = clamp(audio.bands.w, 0.0, 1.0);
-    let beat = clamp(audio.impulses.x, 0.0, 1.0);
-    let transient = clamp(audio.impulses.y, 0.0, 1.0);
-
-    p.velocity_heat.y += (0.22 + bass * 0.38) * dt;
-    p.velocity_heat.x += (hash11(seed * 3.7) - 0.5) * (0.08 + high * 0.12) * dt;
-    p.position_life.xy += p.velocity_heat.xy * dt;
-    p.position_life.w -= dt * (0.35 + hash11(seed) * 0.28);
-    p.velocity_heat.w = max(0.0, p.velocity_heat.w - dt * 0.30);
-
-    if (p.position_life.w <= 0.0 || beat > 0.92 || transient > 0.94) {
-        let side = hash11(seed * 5.3) - 0.5;
-        p.position_life = vec4<f32>(side * 0.35, -0.55, 0.0, 0.65 + hash11(seed * 7.1) * 0.55);
-        p.velocity_heat = vec4<f32>(side * (0.16 + high * 0.20), 0.45 + bass * 0.65, 0.0, 0.75 + transient * 0.25);
-    }
-    particles[i] = p;
-}
-"#;
+const NATIVE_PARTICLE_COMPUTE: &str = include_str!("native_particles.wgsl");
 
 #[tauri::command]
 pub fn native_gpu_set_audio(
     state: State<'_, Arc<NativeGpuBridge>>,
     frame: NativeAudioFrame,
 ) -> Result<(), String> {
-    let mut audio = state.audio.lock().map_err(|_| "native GPU audio bridge lock failed".to_string())?;
+    let mut audio = state
+        .audio
+        .lock()
+        .map_err(|_| "native GPU audio bridge lock failed".to_string())?;
     *audio = NativeAudioFrame {
         raw: frame.raw.clamp(0.0, 1.0),
         rms: frame.rms.clamp(0.0, 1.0),
@@ -148,14 +103,15 @@ pub async fn native_gpu_probe() -> Result<NativeGpuInfo, String> {
         .await
         .map_err(|e| format!("Native GPU device creation failed: {e}"))?;
 
-    // Force WGSL validation and compute-pipeline creation during the probe. This catches
-    // unsupported shader/compiler paths before an effect is selected live.
+    // Force WGSL validation and compute-pipeline creation during the probe. The shader
+    // is the real effect-specific particle simulation contract, not a dummy add kernel.
+    // A failed driver/compiler path therefore fails here before a live scene can select it.
     let shader = device.create_shader_module(wgpu::ShaderModuleDescriptor {
-        label: Some("Auralith Native Particle Compute Smoke Test"),
-        source: wgpu::ShaderSource::Wgsl(PARTICLE_COMPUTE_SMOKE_TEST.into()),
+        label: Some("Auralith Native Particle Physics"),
+        source: wgpu::ShaderSource::Wgsl(NATIVE_PARTICLE_COMPUTE.into()),
     });
     let _pipeline = device.create_compute_pipeline(&wgpu::ComputePipelineDescriptor {
-        label: Some("Auralith Native Particle Compute Smoke Test Pipeline"),
+        label: Some("Auralith Native Particle Physics Pipeline"),
         layout: None,
         module: &shader,
         entry_point: "cs_main",
@@ -169,8 +125,11 @@ pub async fn native_gpu_probe() -> Result<NativeGpuInfo, String> {
         driver: info.driver,
         driver_info: info.driver_info,
         compute_pipeline_ok: true,
-        migrated_effects: vec!["RealisticFlame"],
-        next_particle_upgrades: vec![
+        // Offscreen/native compositing into Auralith's scene canvas is the next gate.
+        // Until that is complete, the production WebGL renderer remains the visual fallback.
+        visual_output_ready: false,
+        migrated_effects: vec![],
+        native_compute_ready: vec![
             "Sparks",
             "EnergySparks",
             "Embers",
