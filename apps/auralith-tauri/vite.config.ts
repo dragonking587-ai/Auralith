@@ -2,9 +2,10 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { resolve } from "node:path";
 import { auralithParticleUpgradePlugin } from "./build/particleUpgradePlugin";
+import { auralithParticleUpgradePhase2Plugin } from "./build/particleUpgradePhase2Plugin";
 
 export default defineConfig({
-  plugins: [auralithParticleUpgradePlugin(), react()],
+  plugins: [auralithParticleUpgradePlugin(), auralithParticleUpgradePhase2Plugin(), react()],
   clearScreen: false,
   server: { port: 1420, strictPort: true },
   envPrefix: ["VITE_", "TAURI_"],
