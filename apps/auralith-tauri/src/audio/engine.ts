@@ -129,6 +129,13 @@ export class AudioEngine {
   private lastBeatMs = -10_000;
   private prevPeak = 0;
 
+  // The browser audio analyzer remains the source of truth for capture because it already
+  // handles Auralith's microphone/system-audio flow well. We mirror only compact normalized
+  // physics into Rust at ~30 Hz. Native compute interpolates between frames, avoiding a large
+  // FFT IPC payload and keeping the UI thread light.
+  private nativePushAt = 0;
+  private nativePushUnavailable = false;
+
   stop() {
     cancelAnimationFrame(this.raf);
     this.raf = 0;
@@ -150,6 +157,7 @@ export class AudioEngine {
     this.beatEnv = 0;
     this.transientEnv = 0;
     this.prevPeak = 0;
+    this.nativePushAt = 0;
   }
 
   async startDemo() {
@@ -216,6 +224,18 @@ export class AudioEngine {
     };
     this.attach(ctx, src, tracks[0]!.label || "Shared audio");
     this.status = "CAPTURING";
+  }
+
+  private pushNativeAudio(now: number, frame: AudioSnapshot) {
+    if (this.nativePushUnavailable || now - this.nativePushAt < 30) return;
+    this.nativePushAt = now;
+    void import("@tauri-apps/api/core")
+      .then(({ invoke }) => invoke("native_gpu_set_audio", { frame }))
+      .catch(() => {
+        // Browser-only dev sessions and older production builds do not expose this command.
+        // Disable further attempts for this engine instance rather than spamming IPC errors.
+        this.nativePushUnavailable = true;
+      });
   }
 
   private attach(ctx: AudioContext, node: AudioNode, label: string) {
@@ -338,6 +358,7 @@ export class AudioEngine {
         transient: clamp(this.transientEnv, 0, 1),
       };
 
+      this.pushNativeAudio(now, this.snapshot);
       this.raf = requestAnimationFrame(tick);
     };
 
