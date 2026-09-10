@@ -1,57 +1,49 @@
-# Auralith 1.0.0-rc.49.3 — Cinematic Render Pipeline
+# Auralith 1.0.0-rc.49.3.1 — Render Pipeline Recovery Fix
 
-## What’s New
+## Critical Fix
 
-Auralith Reborn keeps the established rc.49 interface and workflow while upgrading the rendering engine underneath it.
+RC.49.3 introduced a cinematic Three.js renderer that shared the same WebGL canvas/context as Auralith’s proven rc.49 renderer. On affected Windows/WebView2 systems, the two renderers could invalidate each other’s WebGL state, causing backdrops and effects to appear blank or fail to update.
 
-### Cinematic Rendering Pipeline
-- Added a Three.js-managed cinematic compositor on the existing Reborn/Tauri application.
-- Added HDR-capable intermediate rendering with bloom for brighter, more natural light bleed.
-- Added subtle audio-reactive chromatic aberration, film grain, vignette, and final output/color processing.
-- Preserved transparent output behavior for OBS-style overlay capture.
-- Preserved automatic fallback to the proven rc.49 renderer if the cinematic pipeline cannot initialize or render safely.
+RC.49.3.1 fixes that architecture instead of disabling the render upgrade.
 
-### Dedicated GPU Particle Effects
-The following point/emitter effects now use a dedicated Three.js GPU particle layer rather than the monolithic legacy effect shader:
-- Sparks
-- Energy Sparks
-- Embers
-- Fireflies
-- Snow
-- Ash
-- Dust Motes
-- Bioluminescent Spores
+### Images / Backdrops
+- Restored the proven rc.49 renderer as the authoritative backdrop and prop renderer.
+- Removed the rc.49.3 build-time mutations to the base renderer’s WebGL context and clear behavior.
+- The cinematic renderer no longer owns or resets the backdrop renderer’s textures, programs, buffers, framebuffer bindings, or pixel-store state.
+- Update recovery now serializes the current project/backdrop before restart so temporary blob URLs are not relied on for the recovery snapshot.
 
-These effects now have effect-specific motion such as ballistic spark trajectories, buoyant embers, organic firefly wandering/blinking, depth-varied snow, and atmospheric drifting particles.
+### Effects
+- The complete project and all 80 normal effects are always rendered through the proven rc.49 engine first.
+- Three.js particle and volumetric effects now run as an enhancement layer instead of replacing the rc.49 effect.
+- If Three.js is unavailable, a shader fails, or the cinematic layer encounters a frame error, the rc.49 effect remains visible and functional underneath.
+- Removed the project-object-identity split cache that could leave effect routing stale after editor changes.
 
-### Dedicated GPU Volumetric / Atmospheric Effects
-The following point/emitter effects now use a dedicated GPU volumetric layer with distinct shader behavior:
-- Magic Energy
-- Plasma
-- Void Energy
-- Portal
-- Vortex
-- Smoke / Fog
-- Mist
-- Atmospheric Haze
-- Frozen Breath
-- Aurora
-- Cosmic Nebula
-- Spectral Aura
+### Isolated Cinematic Pipeline
+- Three.js now receives its own transparent WebGL2 canvas and context.
+- The cinematic canvas is layered above the rc.49 canvas inside the existing stage without changing the visible UI layout.
+- Post-processing alpha is derived from visible cinematic light instead of opaque black post-process pixels, preventing the overlay from covering the loaded image.
+- Particle and volumetric enhancements remain limited to appropriate point / emitter / stamp placements; trace, shape, prop and other placements continue to use the rc.49 renderer.
 
-Magic Energy retains its existing realism quality, response/decay, color, and individual audio-band influence controls.
+### Clean Output / Virtual Camera Safety
+- Clean-frame readback uses the rc.49 frame as the guaranteed base.
+- When a cinematic overlay is active, its pixels are alpha-composited into the clean-frame readback.
+- If cinematic readback fails, the rc.49 clean frame is returned instead of a blank frame.
 
-### Audio-Reactive Cinematic Response
-The new rendering layers continue using Auralith’s existing audio system, including Bass, Low, Mid, High, Beat, and Transient data. The cinematic compositor smooths those values for organic movement while individual effects use the appropriate bands for their own physical or visual behavior.
+### Build-Time Regression Guard
+RC.49.3.1 adds a build audit that fails CI unless all of these conditions remain true:
+- rc.49 base WebGL context is preserved;
+- Three.js uses an isolated WebGL2 canvas;
+- the full rc.49 project is rendered as the safety underlay;
+- stale split caching is absent;
+- cinematic overlay alpha is transparent-safe;
+- updater recovery serializes the backdrop;
+- the pinned Three.js runtime dependency is present.
 
-### Compatibility
-- The rc.49 UI, controls, layout, project schema, and workflow remain intact.
-- Trace, Shape, and Prop/SDF placements continue using the existing rc.49 path renderer until those placement modes are migrated to the new engine.
-- Existing project files remain compatible.
-- Existing capture and virtual-camera plumbing remains in place.
+## UI Compatibility
+No rc.49 visual layout, controls, buttons, effect names, editor tools, project workflow, marker behavior, or styling were redesigned for this fix.
 
 ## Update Compatibility
-The existing Auralith Reborn updater identifier, public key, endpoints, and signing chain are preserved. Compatible rc.49 installations can update to **1.0.0-rc.49.3** through **Check for Updates → Download & Install** once the signed updater manifest is published.
+Auralith Reborn **1.0.0-rc.49.3** can update directly to **1.0.0-rc.49.3.1** using the existing signed updater chain. The application identifier, updater public key, endpoints, installer mode, and updater-artifact generation remain unchanged.
 
 ## WINDOWS SMARTSCREEN NOTICE
 Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
@@ -63,9 +55,7 @@ If the installer was downloaded from the official Auralith GitHub release, use:
 Do not disable Windows SmartScreen or Windows Defender.
 
 ## Installing on Windows
-1. Download **Auralith-Reborn-1.0.0-rc.49.3-x64-Setup.exe** from the official release.
-2. Double-click the installer.
-3. If Windows shows “Windows protected your PC,” click **More info**.
-4. Confirm the file came from the official `dragonking587-ai/Auralith` repository and click **Run anyway**.
-5. Continue installation normally.
-6. Launch Auralith Reborn.
+1. In rc.49.3, use **Check for Updates** and install **1.0.0-rc.49.3.1**, or download the installer from the official GitHub release.
+2. If Windows shows “Windows protected your PC,” click **More info**.
+3. Confirm the file came from the official `dragonking587-ai/Auralith` repository and click **Run anyway**.
+4. Launch Auralith Reborn and verify your image and effects load normally.
