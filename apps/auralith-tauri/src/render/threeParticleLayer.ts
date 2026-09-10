@@ -38,8 +38,6 @@ const VERT = /* glsl */`
   varying float vHeat;
   varying float vTwinkle;
 
-  float hash1(float x) { return fract(sin(x * 91.713 + 17.17) * 43758.5453123); }
-
   void main() {
     float rate = 0.16 + uP0 * 0.85;
     float age = fract(uTime * rate * (0.55 + aSeed.z * 0.9) + aSeed.w);
@@ -50,7 +48,6 @@ const VERT = /* glsl */`
     float size = 2.0;
 
     if (uMode < 1.5) {
-      // Sparks: ballistic, gravity-driven and short lived.
       float side = aSeed.x < 0.5 ? -1.0 : 1.0;
       float theta = mix(0.32, 1.30, aSeed.y);
       float speed = mix(0.46, 1.15, aSeed.z) * (0.8 + uP1 * 0.75 + uTransient * 0.28);
@@ -61,7 +58,6 @@ const VERT = /* glsl */`
       heat = 1.0 - age;
       size = mix(1.7, 4.0, aSeed.y) * (0.8 + uHigh * 0.25);
     } else if (uMode < 2.5) {
-      // Energy sparks: radial electrical discharge with transient expansion.
       float angle = aSeed.x * 6.2831853;
       float speed = mix(0.38, 1.15, aSeed.y) * (0.75 + uTransient * 0.45 + uBeat * 0.22);
       vec2 dir = vec2(cos(angle), sin(angle));
@@ -71,14 +67,12 @@ const VERT = /* glsl */`
       heat = 0.9 - age * 0.5;
       size = mix(1.8, 3.8, aSeed.z) * (0.9 + uHigh * 0.35);
     } else if (uMode < 3.5) {
-      // Embers: buoyant rise, slow cooling and turbulent lateral drift.
       pos.x = (aSeed.x - 0.5) * 1.35 + sin(age * 8.0 + aSeed.z * 25.0) * (0.07 + uP2 * 0.07);
       pos.y = -0.88 + age * (1.55 + uP1 * 0.75);
       pos.x += sin(uTime * (0.4 + aSeed.y) + aSeed.w * 41.0) * 0.05;
       heat = 1.0 - age * 0.72;
       size = mix(2.2, 5.2, aSeed.y);
     } else if (uMode < 4.5) {
-      // Fireflies: persistent organic wander plus independent blink rhythms.
       float phase = aSeed.w * 31.0;
       float wander = 0.18 + uP1 * 0.22;
       pos.x = (aSeed.x - 0.5) * 1.55 + sin(uTime * (0.20 + aSeed.z * 0.34) + phase) * wander;
@@ -90,7 +84,6 @@ const VERT = /* glsl */`
       heat = blink;
       size = mix(3.0, 6.6, aSeed.y) * (0.9 + blink * 0.35);
     } else if (uMode < 5.5) {
-      // Snow: layered fall speeds, drift and depth-scaled flakes.
       float depth = 0.35 + aSeed.z * 0.65;
       pos.y = 1.18 - age * 2.36;
       pos.x = (aSeed.x - 0.5) * 1.85 + sin(uTime * (0.16 + depth * 0.24) + aSeed.w * 29.0) * (0.07 + uP2 * 0.15);
@@ -98,7 +91,6 @@ const VERT = /* glsl */`
       heat = depth;
       size = mix(1.8, 5.8, depth);
     } else if (uMode < 6.5) {
-      // Ash: irregular slow fall with turbulent tumbling.
       pos.y = 1.12 - age * 2.24;
       pos.x = (aSeed.x - 0.5) * 1.85 + sin(uTime * (0.26 + aSeed.z * 0.30) + aSeed.w * 37.0) * (0.10 + uP1 * 0.14);
       pos.x += sin(age * 19.0 + aSeed.y * 20.0) * 0.045;
@@ -106,7 +98,6 @@ const VERT = /* glsl */`
       heat = 0.12;
       size = mix(2.0, 5.0, aSeed.y);
     } else if (uMode < 7.5) {
-      // Dust: slow depth parallax and subtle reflective twinkle.
       float phase = aSeed.w * 39.0;
       pos.x = (aSeed.x - 0.5) * 1.85 + sin(uTime * (0.07 + aSeed.z * 0.08) + phase) * 0.13;
       pos.y = (aSeed.y - 0.5) * 1.65 + cos(uTime * (0.05 + aSeed.x * 0.07) + phase) * 0.09;
@@ -115,7 +106,6 @@ const VERT = /* glsl */`
       heat = 0.25;
       size = mix(1.4, 4.1, aSeed.z);
     } else {
-      // Bioluminescent spores: buoyant helical drift and organic pulsing.
       float phase = aSeed.w * 35.0;
       pos.y = -1.0 + age * 2.0;
       pos.x = (aSeed.x - 0.5) * 1.55 + sin(age * 9.0 + phase + uTime * 0.35) * (0.08 + uP2 * 0.10);
@@ -154,9 +144,6 @@ const FRAG = /* glsl */`
     float edge = smoothstep(1.0, 0.52, d);
     vec3 color = mix(uColorB, uColorA, vHeat);
     color = mix(color, uColorC, core * (0.45 + vHeat * 0.55));
-
-    // Energy-like particles are deliberately super-white in the core so the
-    // half-float composer can create genuine bloom instead of painted blur.
     float emission = 1.0 + core * (uMode < 2.5 ? 2.1 : 1.15) + vHeat * 0.55;
     float alpha = (core * 0.88 + halo * 0.32) * edge * vLife * vTwinkle * uOpacity;
     alpha *= 0.45 + clamp(uDrive, 0.0, 2.0) * 0.55;
@@ -186,7 +173,6 @@ function createSeedGeometry(max = 192) {
   const positions = new Float32Array(max * 3);
   const seeds = new Float32Array(max * 4);
   for (let i = 0; i < max; i++) {
-    // Stable deterministic seeds avoid visible particle popping between frames.
     const h = (n: number) => {
       const x = Math.sin((i + 1) * n * 12.9898) * 43758.5453;
       return x - Math.floor(x);
@@ -207,22 +193,10 @@ function makeMaterial() {
     vertexShader: VERT,
     fragmentShader: FRAG,
     uniforms: {
-      uTime: { value: 0 },
-      uMode: { value: 1 },
-      uP0: { value: 0.65 },
-      uP1: { value: 0.5 },
-      uP2: { value: 0.4 },
-      uBass: { value: 0 },
-      uLow: { value: 0 },
-      uMid: { value: 0 },
-      uHigh: { value: 0 },
-      uBeat: { value: 0 },
-      uTransient: { value: 0 },
-      uDrive: { value: 1 },
-      uPointScale: { value: 1 },
-      uColorA: { value: new THREE.Color("#ffd27a") },
-      uColorB: { value: new THREE.Color("#ff6a2a") },
-      uColorC: { value: new THREE.Color("#ffffff") },
+      uTime: { value: 0 }, uMode: { value: 1 }, uP0: { value: 0.65 }, uP1: { value: 0.5 }, uP2: { value: 0.4 },
+      uBass: { value: 0 }, uLow: { value: 0 }, uMid: { value: 0 }, uHigh: { value: 0 }, uBeat: { value: 0 }, uTransient: { value: 0 },
+      uDrive: { value: 1 }, uPointScale: { value: 1 },
+      uColorA: { value: new THREE.Color("#ffd27a") }, uColorB: { value: new THREE.Color("#ff6a2a") }, uColorC: { value: new THREE.Color("#ffffff") },
       uOpacity: { value: 0.55 },
     },
     transparent: true,
@@ -235,9 +209,7 @@ function makeMaterial() {
 
 function effectDrive(effect: EffectInstance, snapshot: AudioSnapshot, project: Project) {
   const selected = effect.audio === "Manual" ? 1 : bandOf(snapshot, effect.audio);
-  const modulation = effect.audio === "Manual"
-    ? effect.intensity
-    : effect.intensity * (1 - effect.audioInfluence + effect.audioInfluence * selected);
+  const modulation = effect.audio === "Manual" ? effect.intensity : effect.intensity * (1 - effect.audioInfluence + effect.audioInfluence * selected);
   return modulation * project.masters.intensity;
 }
 
@@ -248,23 +220,17 @@ export class ThreeParticleLayer {
 
   constructor(private scene: THREE.Scene) {}
 
-  update(
-    project: Project,
-    snapshot: AudioSnapshot,
-    width: number,
-    height: number,
-    viewport: { x: number; y: number; w: number; h: number },
-    colorOverrides?: Record<string, string>,
-  ) {
+  update(project: Project, snapshot: AudioSnapshot, width: number, height: number, viewport: { x: number; y: number; w: number; h: number }, colorOverrides?: Record<string, string>) {
     this.frame++;
     const count = qualityCount(project);
+    this.geometry.setDrawRange(0, count);
     const pointScale = Math.max(0.72, Math.min(2.2, height / 1080));
     const time = performance.now() / 1000;
 
     for (const region of project.regions) {
       for (const effect of region.effects) {
         if (!effect.enabled || !PARTICLE_KINDS.has(effect.kind)) continue;
-        this.updateEffect(region, effect, project, snapshot, width, height, viewport, time, count, pointScale, colorOverrides);
+        this.updateEffect(region, effect, project, snapshot, width, height, viewport, time, pointScale, colorOverrides);
       }
     }
 
@@ -276,19 +242,7 @@ export class ThreeParticleLayer {
     }
   }
 
-  private updateEffect(
-    region: Region,
-    effect: EffectInstance,
-    project: Project,
-    snapshot: AudioSnapshot,
-    width: number,
-    height: number,
-    viewport: { x: number; y: number; w: number; h: number },
-    time: number,
-    count: number,
-    pointScale: number,
-    colorOverrides?: Record<string, string>,
-  ) {
+  private updateEffect(region: Region, effect: EffectInstance, project: Project, snapshot: AudioSnapshot, width: number, height: number, viewport: { x: number; y: number; w: number; h: number }, time: number, pointScale: number, colorOverrides?: Record<string, string>) {
     let entry = this.entries.get(effect.id);
     if (!entry) {
       const material = makeMaterial();
@@ -303,16 +257,10 @@ export class ThreeParticleLayer {
 
     const xPx = viewport.x + ((region.x + (effect.offsetX || 0)) / project.width) * viewport.w;
     const yPx = viewport.y + ((region.y + (effect.offsetY || 0)) / project.height) * viewport.h;
-    const radiusPx = Math.max(
-      8,
-      (region.radius + (effect.expansion || 0) + (effect.spread || 0)) *
-        (viewport.w / project.width) *
-        Math.max(0.05, effect.fxScaleX || effect.scale || region.sx || 1),
-    );
+    const radiusPx = Math.max(8, (region.radius + (effect.expansion || 0) + (effect.spread || 0)) * (viewport.w / project.width) * Math.max(0.05, effect.fxScaleX || effect.scale || region.sx || 1));
 
     entry.points.position.set((xPx / width) * 2 - 1, 1 - (yPx / height) * 2, 0.12);
     entry.points.scale.set((radiusPx / width) * 2, (radiusPx / height) * 2, 1);
-    entry.geometry.setDrawRange(0, count);
 
     const u = entry.material.uniforms;
     u.uTime.value = time * effect.speed * project.masters.motion;
@@ -331,8 +279,6 @@ export class ThreeParticleLayer {
     u.uColorA.value.copy(color(colorOverrides?.[effect.id] || effect.color, "#ffd27a"));
     u.uColorB.value.copy(color(effect.color2, "#ff6a2a"));
     u.uColorC.value.copy(color(effect.color3, "#ffffff"));
-    // The Three layer adds high-frequency physical detail while the existing
-    // rc.49 source effect remains beneath it for exact project compatibility.
     u.uOpacity.value = Math.max(0, Math.min(1, effect.opacity * effect.brightness * 0.62));
   }
 
