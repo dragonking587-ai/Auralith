@@ -6,6 +6,12 @@ on:
       - "apps/auralith-tauri/**"
       - ".github/workflows/tauri-preview.yml"
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Publish this validated build and move updater-latest"
+        required: false
+        default: false
+        type: boolean
 jobs:
   windows:
     if: github.ref == 'refs/heads/tauri/auralith-reborn'
@@ -99,6 +105,7 @@ jobs:
           name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
           path: apps/auralith-tauri/dist-install/*
       - name: Publish GitHub Release
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
@@ -111,45 +118,20 @@ jobs:
           body: |
             # Auralith ${{ steps.ver.outputs.version }}
 
-            This release must include BOTH Windows installers on the same tag:
-            - Auralith-Reborn-${{ steps.ver.outputs.version }}-x64-Setup.exe
-            - Auralith-Host-Console-${{ steps.ver.outputs.version }}-x64-Setup.exe
+            Validated Auralith Reborn Windows release from tauri/auralith-reborn.
 
-            Host Console is attached by the companion workflow onto this same release.
-
-            Public installer. No Beta Access Code is required. The app opens directly.
+            Public installer. No Beta Access Code is required.
 
             ## WINDOWS SMARTSCREEN NOTICE
-
             Windows may show "Windows protected your PC" because this build does not yet have an established Windows code-signing reputation.
-
-            If downloaded from this official Auralith GitHub Release:
-
-            More info → Run anyway
-
-            Do not disable Windows security features.
-
-            ## Installing on Windows
-
-            1. Download Auralith Reborn from THIS official GitHub Release.
-            2. Double-click the installer.
-            3. Windows may display: "Windows protected your PC"
-            4. If the installer came from this official Auralith GitHub Release: click More info, confirm it is Auralith Reborn, then click Run anyway.
-            5. Continue installation normally.
-            6. Launch Auralith Reborn. No access code is required.
-
-            IMPORTANT:
-            Do NOT disable Windows SmartScreen.
-            Do NOT disable Windows Defender.
-            Do NOT use "Run anyway" for unofficial or unknown copies.
-
-            Only install Auralith Reborn from the official Auralith GitHub repository/release.
+            If downloaded from this official Auralith GitHub Release, use More info → Run anyway.
+            Do not disable Windows SmartScreen or Windows Defender.
 
             Installer: ${{ steps.ver.outputs.file }}
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
-
       - name: Rewrite latest.json from uploaded assets
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -179,17 +161,17 @@ jobs:
           $latest | ConvertTo-Json -Depth 6 | Set-Content dist-install/latest.json -Encoding utf8
           Write-Host "MAIN UPDATER URL $url HTTP $code"
           gh release upload $tag dist-install/latest.json --repo dragonking587-ai/Auralith --clobber
-
       - name: Publish updater-latest pointer
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: updater-latest
           name: Auralith Reborn updater metadata
           target_commitish: tauri/auralith-reborn
           prerelease: true
-          allow_updates: true
           files: |
             apps/auralith-tauri/dist-install/latest.json
           body: |
             Rolling updater metadata for Auralith Reborn.
             Points Check for Updates at the current signed Windows artifact.
+          overwrite_files: true
