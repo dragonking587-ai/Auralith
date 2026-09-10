@@ -88,7 +88,7 @@ jobs:
           $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$v/$enc"
           $latest = [ordered]@{
             version = $v
-            notes = "Auralith Reborn $v"
+            notes = "Auralith Reborn $v — cinematic render pipeline"
             pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             platforms = @{
               "windows-x86_64" = @{
@@ -105,20 +105,30 @@ jobs:
           name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
           path: apps/auralith-tauri/dist-install/*
       - name: Publish GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish ')) }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          name: Auralith Reborn ${{ steps.ver.outputs.version }}
+          name: Auralith Reborn ${{ steps.ver.outputs.version }} — Cinematic Render Pipeline
           target_commitish: tauri/auralith-reborn
           prerelease: false
           fail_on_unmatched_files: true
           files: |
             apps/auralith-tauri/dist-install/*
           body: |
-            # Auralith ${{ steps.ver.outputs.version }}
+            # Auralith ${{ steps.ver.outputs.version }} — Cinematic Render Pipeline
 
-            Validated Auralith Reborn Windows release from tauri/auralith-reborn.
+            This release continues the rc.49 Reborn application with the existing UI and workflow preserved while upgrading rendering underneath it.
+
+            ## New rendering pipeline
+            - Three.js-managed cinematic compositor on the existing Reborn/Tauri shell
+            - HDR-capable intermediate rendering and bloom
+            - Audio-reactive chromatic aberration, film grain, vignette and output color processing
+            - Dedicated GPU particle family for Sparks, Energy Sparks, Embers, Fireflies, Snow, Ash, Dust Motes and Bioluminescent Spores
+            - Dedicated GPU volumetric family for Magic Energy, Plasma, Void Energy, Portal, Vortex, Smoke/Fog, Mist, Atmospheric Haze, Aurora, Cosmic Nebula, Frozen Breath and Spectral Aura
+            - Existing trace/shape/prop SDF rendering retained for compatibility until those placement modes are migrated
+            - Automatic fallback to the rc.49 renderer if the cinematic pipeline cannot initialize
+            - Transparent capture path preserved for OBS-style overlays
 
             Public installer. No Beta Access Code is required.
 
@@ -131,7 +141,7 @@ jobs:
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
       - name: Rewrite latest.json from uploaded assets
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish ')) }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -154,7 +164,7 @@ jobs:
           }
           $latest = [ordered]@{
             version = $v
-            notes = "Auralith Reborn $v"
+            notes = "Auralith Reborn $v — cinematic render pipeline"
             pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             platforms = @{ "windows-x86_64" = @{ signature = $sig; url = $url } }
           }
@@ -162,7 +172,7 @@ jobs:
           Write-Host "MAIN UPDATER URL $url HTTP $code"
           gh release upload $tag dist-install/latest.json --repo dragonking587-ai/Auralith --clobber
       - name: Publish updater-latest pointer
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: ${{ (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish ')) }}
         uses: softprops/action-gh-release@v2
         with:
           tag_name: updater-latest
