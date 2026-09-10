@@ -48,6 +48,7 @@ const FINISH_SHADER = {
     grain: { value: 0.0 },
     vignette: { value: 0.0 },
     vignetteSoftness: { value: 0.45 },
+    overlayMode: { value: 0.0 },
   },
   vertexShader: FULLSCREEN_VERTEX,
   fragmentShader: /* glsl */`
@@ -56,6 +57,7 @@ const FINISH_SHADER = {
     uniform float grain;
     uniform float vignette;
     uniform float vignetteSoftness;
+    uniform float overlayMode;
     varying vec2 vUv;
 
     float filmNoise(vec2 p) {
@@ -71,7 +73,14 @@ const FINISH_SHADER = {
       float n = filmNoise(vUv * vec2(1733.0, 941.0)) - 0.5;
       float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
       c.rgb += n * grain * mix(0.55, 0.16, clamp(luma, 0.0, 1.0));
-      gl_FragColor = vec4(max(c.rgb, vec3(0.0)), c.a);
+      c.rgb = max(c.rgb, vec3(0.0));
+
+      // Post-processing can create luminous pixels outside the original effect
+      // alpha. In transparent capture mode, promote that luminance into alpha so
+      // OBS/stream compositors retain bloom halos instead of clipping them.
+      float glowAlpha = clamp(max(max(c.r, c.g), c.b) * 0.72, 0.0, 1.0);
+      float outAlpha = mix(c.a, max(c.a, glowAlpha), overlayMode);
+      gl_FragColor = vec4(c.rgb, outAlpha);
     }
   `,
 };
@@ -276,6 +285,7 @@ export class CinematicPipeline {
     this.finishPass.uniforms.grain.value = clamp((atmospheric ? 0.008 : 0.0025) * quality + this.audio.high * 0.0025, 0, 0.014);
     this.finishPass.uniforms.vignette.value = clamp((darkFocus ? 0.11 : 0.025) + this.audio.bass * (darkFocus ? 0.025 : 0.008), 0, 0.16);
     this.finishPass.uniforms.vignetteSoftness.value = darkFocus ? 0.42 : 0.50;
+    this.finishPass.uniforms.overlayMode.value = project.backdropDataUrl ? 0.0 : 1.0;
   }
 
   render(snapshot: AudioSnapshot, project: Project) {
