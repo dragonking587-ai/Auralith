@@ -1,4 +1,4 @@
-name: Auralith Native Core
+name: Auralith Main Windows
 
 on:
   workflow_dispatch:
@@ -17,6 +17,9 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           dotnet-version: "8.0.415"
+      - name: Verify UI handlers
+        shell: pwsh
+        run: ./tools/Verify-UiHandlers.ps1
       - name: Restore
         run: dotnet restore Auralith.sln
       - name: Build
@@ -25,6 +28,7 @@ jobs:
         run: |
           dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
           dotnet test tests/Auralith.Audio.Tests/Auralith.Audio.Tests.csproj -c Release -p:Platform=x64
+          dotnet test tests/Auralith.Rendering.Tests/Auralith.Rendering.Tests.csproj -c Release -p:Platform=x64
       - name: Publish app
         run: dotnet publish src/Auralith.App/Auralith.App.csproj -c Release -r win-x64 --self-contained true -p:Platform=x64 -p:WindowsPackageType=None -o artifacts/Auralith
       - name: Publish updater helper
@@ -40,6 +44,7 @@ jobs:
           $pri = Get-ChildItem artifacts/Auralith -Filter *.pri -Recurse
           if ($pri.Count -lt 3) { throw "Expected PRI packages" }
           if (-not (Test-Path artifacts/Auralith/Microsoft.WindowsAppRuntime.Bootstrap.dll)) { throw "Bootstrap missing" }
+          if (-not (Get-ChildItem artifacts/Auralith -Recurse -Filter SkiaSharp.dll | Select-Object -First 1)) { throw "SkiaSharp.dll missing from publish payload" }
       - name: Install Inno Setup
         shell: pwsh
         run: choco install innosetup --no-progress -y
@@ -93,13 +98,13 @@ jobs:
             assetName = $env:SETUP
             sha256 = $hash
             publishedAt = (Get-Date).ToUniversalTime().ToString("o")
-            releaseNotes = "Auralith $env:VER installer"
+            releaseNotes = "Auralith $env:VER — SkiaSharp Effects Engine 2"
           } | ConvertTo-Json
           Set-Content artifacts/update.json $manifest
           echo "SHA=$hash" >> $env:GITHUB_ENV
       - uses: actions/upload-artifact@v4
         with:
-          name: Auralith-Native-Windows
+          name: Auralith-Main-Windows
           path: |
             artifacts/*-Setup.exe
             artifacts/*.sha256
@@ -110,15 +115,19 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           prerelease: true
-          name: Auralith Native — ${{ env.VER }} Installer
+          name: Auralith — ${{ env.VER }} Installer
           body: |
-            Pre-release / unsigned test installer.
+            Release candidate built from the main branch.
 
-            Native C# / WinUI 3 / D3D11 rebuild.
+            Auralith Effects Engine 2:
+            - SkiaSharp CPU raster rendering and layered compositing.
+            - Persistent particles, audio envelopes, and lightning simulation.
+            - Upgraded sparks, embers, swarm/firefly behavior, flame, rain, snow, fog, aurora, water, energy and outline effects.
+            - Direct3D 11 remains the Windows presentation/output transport only.
+            - CI audits every visible XAML button/event handler and dynamically-created effect button wiring.
+            - All 80 EffectKind values are exercised through multi-frame rendering regression tests.
+
             Per-user install: %LOCALAPPDATA%\Programs\Auralith
-            Image loading repair, Clean Capture, Check for Updates.
-
-            Not included: Trace, Stamp, Emitter, WASAPI, effect library.
           files: |
             artifacts/${{ env.SETUP }}
             artifacts/${{ env.SETUP }}.sha256
