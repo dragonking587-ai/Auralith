@@ -1,11 +1,11 @@
 {
   "name": "auralith-tauri-preview",
   "private": true,
-  "version": "1.0.0-rc.49.1",
+  "version": "1.0.0-rc.49.2",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/apply-rc49-hotfix.mjs && vite",
-    "build": "node scripts/apply-rc49-hotfix.mjs && vite build",
+    "dev": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && vite",
+    "build": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && vite build",
     "preview": "vite preview",
     "icon:generate": "tauri icon src/assets/auralith-app-icon.svg",
     "tauri": "tauri"
