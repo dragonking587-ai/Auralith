@@ -8,18 +8,8 @@ const VOLUME_KINDS = new Set<EffectKind>([
 ]);
 
 const MODE: Partial<Record<EffectKind, number>> = {
-  MagicEnergy: 1,
-  Plasma: 2,
-  VoidEnergy: 3,
-  Portal: 4,
-  Vortex: 5,
-  SmokeFog: 6,
-  Mist: 7,
-  AtmosphericHaze: 8,
-  FrozenBreath: 9,
-  Aurora: 10,
-  CosmicNebula: 11,
-  SpectralAura: 12,
+  MagicEnergy: 1, Plasma: 2, VoidEnergy: 3, Portal: 4, Vortex: 5, SmokeFog: 6,
+  Mist: 7, AtmosphericHaze: 8, FrozenBreath: 9, Aurora: 10, CosmicNebula: 11, SpectralAura: 12,
 };
 
 const VERT = /* glsl */`
@@ -33,23 +23,9 @@ const VERT = /* glsl */`
 const FRAG = /* glsl */`
   precision highp float;
   varying vec2 vUv;
-  uniform float uTime;
-  uniform float uMode;
-  uniform float uP0;
-  uniform float uP1;
-  uniform float uP2;
-  uniform float uDrive;
-  uniform float uBass;
-  uniform float uLow;
-  uniform float uMid;
-  uniform float uHigh;
-  uniform float uBeat;
-  uniform float uTransient;
-  uniform float uOpacity;
-  uniform float uQuality;
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
-  uniform vec3 uColorC;
+  uniform float uTime, uMode, uP0, uP1, uP2, uDrive;
+  uniform float uBass, uLow, uMid, uHigh, uBeat, uTransient, uOpacity, uQuality;
+  uniform vec3 uColorA, uColorB, uColorC;
 
   float hash(vec2 p) { return fract(sin(dot(p, vec2(127.1,311.7))) * 43758.5453123); }
   float noise2(vec2 p) {
@@ -73,7 +49,7 @@ const FRAG = /* glsl */`
   void main() {
     vec2 p = (vUv - 0.5) * 2.0;
     float d = length(p);
-    float radial = smoothstep(1.18, 0.08, d);
+    float radial = 1.0 - smoothstep(0.08, 1.18, d);
     float edge = 1.0 - smoothstep(0.80, 1.12, d);
     float drive = clamp(uDrive, 0.0, 2.0);
     float alpha = 0.0;
@@ -163,7 +139,7 @@ const FRAG = /* glsl */`
       // FROZEN BREATH — expanding cold plume with crystalline high-frequency sparkle.
       vec2 q=warp(p*1.05+vec2(-uTime*(0.035+uP0*0.04),0.0),uTime*0.03,0.48+uP2*0.25);
       float cloud=fbm(q*2.1);
-      float plume=smoothstep(0.78,-0.85,p.x)*smoothstep(-1.0,0.9,p.x)*(1.0-smoothstep(0.82,1.25,d));
+      float plume=(1.0-smoothstep(-0.85,0.78,p.x))*smoothstep(-1.0,0.9,p.x)*(1.0-smoothstep(0.82,1.25,d));
       float crystal=pow(max(0.0,noise2(q*9.0+uTime*0.20)-0.78),5.0)*48.0*(0.12+uHigh);
       alpha=(smoothstep(0.35,0.72,cloud)*0.20+crystal*0.10)*plume*(0.34+drive*0.38);
       col=mix(uColorB,uColorA,cloud); col=mix(col,uColorC,clamp(crystal,0.0,1.0));
