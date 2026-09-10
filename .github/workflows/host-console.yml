@@ -2,6 +2,12 @@ name: Build Auralith Host Console
 
 on:
   workflow_dispatch:
+    inputs:
+      publish:
+        description: "Attach Host Console to the current version release and move its updater pointer"
+        required: false
+        default: false
+        type: boolean
   push:
     branches: [tauri/auralith-reborn]
     paths:
@@ -75,6 +81,7 @@ jobs:
           name: Auralith-Host-Console-nsis
           path: apps/auralith-host-console/dist/*
       - name: Attach Host Console to the same version tag
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
