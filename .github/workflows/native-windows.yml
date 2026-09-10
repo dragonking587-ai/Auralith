@@ -113,9 +113,11 @@ jobs:
             artifacts/update.json
           if-no-files-found: error
       - name: GitHub Release
-        if: startsWith(github.ref, 'refs/tags/Auralith-Native-')
+        if: startsWith(github.ref, 'refs/tags/Auralith-Native-') || (github.ref == 'refs/heads/main' && contains(github.event.head_commit.message, '[publish rc.50]'))
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: Auralith-Native-${{ env.VER }}
+          target_commitish: ${{ github.sha }}
           prerelease: true
           name: Auralith — ${{ env.VER }} Installer
           body: |
