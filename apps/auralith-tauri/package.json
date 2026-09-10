@@ -4,8 +4,8 @@
   "version": "1.0.0-rc.49.2",
   "type": "module",
   "scripts": {
-    "dev": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && vite",
-    "build": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && vite build",
+    "dev": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && vite",
+    "build": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && vite build",
     "preview": "vite preview",
     "icon:generate": "tauri icon src/assets/auralith-app-icon.svg",
     "tauri": "tauri"
@@ -19,13 +19,15 @@
     "@vitejs/plugin-react": "^4.3.4",
     "qrcode": "^1.5.4",
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "three": "0.185.1"
   },
   "devDependencies": {
     "@tauri-apps/cli": "^2.1.0",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
+    "@types/three": "0.185.4",
     "typescript": "^5.6.3",
     "vite": "^5.4.11"
   }
