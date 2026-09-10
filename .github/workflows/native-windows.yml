@@ -3,6 +3,8 @@ name: Auralith Main Windows
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
     tags:
       - "Auralith-Native-*"
 
