@@ -23,6 +23,7 @@ public sealed class GpuCore : IDisposable
     private List<Region> _regions = new();
     private AudioBands _audio = new();
     private Scene _sceneSnap = new();
+    private readonly SkiaEffectsEngine _effects = new();
     private readonly object _gate = new();
     private Thread? _thread;
     private volatile bool _stop;
@@ -94,7 +95,7 @@ public sealed class GpuCore : IDisposable
     {
         if (_thread is { IsAlive: true }) return;
         _stop = false;
-        _thread = new Thread(Loop) { Name = "Auralith.GpuCore", IsBackground = true };
+        _thread = new Thread(Loop) { Name = "Auralith.RenderCore", IsBackground = true };
         _thread.SetApartmentState(ApartmentState.STA);
         _thread.Start();
     }
@@ -110,7 +111,7 @@ public sealed class GpuCore : IDisposable
     {
         try
         {
-            _stage = "Creating D3D11 device";
+            _stage = "Creating D3D11 output device";
             var hr = D3D11.D3D11CreateDevice(
                 null, DriverType.Hardware, DeviceCreationFlags.BgraSupport,
                 new[] { FeatureLevel.Level_11_0, FeatureLevel.Level_10_1 },
@@ -129,7 +130,7 @@ public sealed class GpuCore : IDisposable
                 _adapter = adapter.Description.Description;
 
             RecreateTexture();
-            _stage = "Running";
+            _stage = "Running — SkiaSharp CPU effects / D3D11 output";
             var clock = Stopwatch.StartNew();
             var fpsClock = Stopwatch.StartNew();
             var fpsCount = 0;
@@ -205,7 +206,7 @@ public sealed class GpuCore : IDisposable
         List<Region> regs; AudioBands bands; Scene snap;
         lock (_gate) { regs = _regions; bands = _audio; snap = _sceneSnap; }
         if (regs.Count > 0)
-            EffectRenderer.Apply(buf, w, h, regs, bands, snap, t);
+            _effects.Apply(buf, w, h, regs, bands, snap, t);
     }
 
     private static void BlitBackdrop(byte[] dest, int dw, int dh, byte[] src, int sw, int sh, FitMode fit)
@@ -252,5 +253,9 @@ public sealed class GpuCore : IDisposable
         }
     }
 
-    public void Dispose() => Stop();
+    public void Dispose()
+    {
+        Stop();
+        _effects.Dispose();
+    }
 }
