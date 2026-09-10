@@ -39,8 +39,14 @@ renderer = replaceOnce(
   renderer,
   'gl.clearColor(0.02, 0.02, 0.04, 1); gl.clear(gl.COLOR_BUFFER_BIT);',
   'gl.clearColor(0.02, 0.02, 0.04, this.hasBackdrop ? 1 : 0); gl.clear(gl.COLOR_BUFFER_BIT);',
-  "transparent clear"
+  "transparent outer clear"
+);
+renderer = replaceOnce(
+  renderer,
+  'gl.clearColor(0.05, 0.05, 0.07, 1); gl.clear(gl.COLOR_BUFFER_BIT);',
+  'gl.clearColor(0.05, 0.05, 0.07, this.hasBackdrop ? 1 : 0); gl.clear(gl.COLOR_BUFFER_BIT);',
+  "transparent scene clear"
 );
 fs.writeFileSync(rendererPath, renderer);
 
-console.log("[cinematic] Three.js compositor wired; rc.49 UI/layout source unchanged");
+console.log("[cinematic] Three.js compositor wired; transparent capture enabled; rc.49 UI/layout source unchanged");
