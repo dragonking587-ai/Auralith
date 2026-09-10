@@ -18,15 +18,17 @@ $buttonErrors = @()
 foreach ($m in $buttonMatches) {
     $attrs = $m.Groups['attrs'].Value
     $content = if ($attrs -match 'Content="([^"]+)"') { $Matches[1] } elseif ($attrs -match 'x:Name="([^"]+)"') { $Matches[1] } else { '<unnamed button>' }
-    if ($attrs -notmatch '\bClick="([A-Za-z_][A-Za-z0-9_]*)"') {
+    if ($attrs -notmatch '(?:^|\s)Click="([A-Za-z_][A-Za-z0-9_]*)"') {
         $buttonErrors += "XAML button '$content' has no Click handler."
     }
 }
 if ($buttonErrors.Count -gt 0) { throw ($buttonErrors -join [Environment]::NewLine) }
 
 # All declared XAML event handlers must resolve to a code-behind method.
-$eventPattern = '(?:Click|Checked|Unchecked|SelectionChanged|ValueChanged|PointerPressed|PointerMoved|PointerReleased|KeyDown)="(?<handler>[A-Za-z_][A-Za-z0-9_]*)"'
-$handlers = [regex]::Matches($xaml, $eventPattern) |
+# Require the attribute to start at whitespace so IsChecked="True" cannot be
+# mistaken for Checked="True".
+$eventPattern = '(?:^|\s)(?:Click|Checked|Unchecked|SelectionChanged|ValueChanged|PointerPressed|PointerMoved|PointerReleased|KeyDown)="(?<handler>[A-Za-z_][A-Za-z0-9_]*)"'
+$handlers = [regex]::Matches($xaml, $eventPattern, [System.Text.RegularExpressions.RegexOptions]::Multiline) |
     ForEach-Object { $_.Groups['handler'].Value } |
     Sort-Object -Unique
 
