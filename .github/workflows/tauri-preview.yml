@@ -105,9 +105,7 @@ jobs:
           name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
           path: apps/auralith-tauri/dist-install/*
       - name: Publish GitHub Release
-        if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.publish == true) ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish '))
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
@@ -143,9 +141,7 @@ jobs:
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
       - name: Rewrite latest.json from uploaded assets
-        if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.publish == true) ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish '))
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -176,9 +172,7 @@ jobs:
           Write-Host "MAIN UPDATER URL $url HTTP $code"
           gh release upload $tag dist-install/latest.json --repo dragonking587-ai/Auralith --clobber
       - name: Publish updater-latest pointer
-        if: >-
-          (github.event_name == 'workflow_dispatch' && inputs.publish == true) ||
-          (github.event_name == 'push' && startsWith(github.event.head_commit.message, 'release(reborn): publish '))
+        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         uses: softprops/action-gh-release@v2
         with:
           tag_name: updater-latest
