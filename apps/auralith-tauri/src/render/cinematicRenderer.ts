@@ -1,16 +1,16 @@
 import type { AudioSnapshot } from "../audio/engine";
 import type { Project } from "../scene/types";
+import { sceneViewport } from "../scene/transform";
 import { GlRenderer as LegacyGlRenderer } from "./renderer";
 import { CinematicPipeline } from "./cinematicPipeline";
 
 /**
  * Drop-in replacement for the original GlRenderer API used by rc.49's React UI.
  *
- * The existing renderer remains the source/effect pass so project files, trace
- * masks, effect IDs, reactions, props and all existing UI behavior remain intact.
- * A Three.js cinematic compositor then finishes the frame on the same WebGL2
- * context. If the compositor fails or WebGL2 is unavailable, Auralith falls back
- * to the original renderer rather than taking down the app.
+ * The existing renderer remains the compatibility/source pass so project files,
+ * trace masks, effect IDs, reactions, props and existing UI behavior remain
+ * intact. Three.js adds dedicated effect layers and cinematic post-processing on
+ * the same WebGL2 context. Any failure falls back to the proven rc.49 renderer.
  */
 export class GlRenderer {
   private legacy: LegacyGlRenderer;
@@ -23,13 +23,11 @@ export class GlRenderer {
 
   constructor(private canvas: HTMLCanvasElement) {
     this.legacy = new LegacyGlRenderer(canvas);
-
     const gl = canvas.getContext("webgl2") as WebGL2RenderingContext | null;
     if (!gl) {
       console.warn("CINEMATIC_PIPELINE_UNAVAILABLE reason=webgl2_missing fallback=legacy");
       return;
     }
-
     try {
       this.pipeline = new CinematicPipeline(canvas, gl);
     } catch (error) {
@@ -38,17 +36,9 @@ export class GlRenderer {
     }
   }
 
-  setBackdrop(img: HTMLImageElement | null) {
-    this.legacy.setBackdrop(img);
-  }
-
-  registerProp(id: string, img: HTMLImageElement) {
-    this.legacy.registerProp(id, img);
-  }
-
-  setNeonMask(src: HTMLCanvasElement | null) {
-    this.legacy.setNeonMask(src);
-  }
+  setBackdrop(img: HTMLImageElement | null) { this.legacy.setBackdrop(img); }
+  registerProp(id: string, img: HTMLImageElement) { this.legacy.registerProp(id, img); }
+  setNeonMask(src: HTMLCanvasElement | null) { this.legacy.setNeonMask(src); }
 
   draw(
     project: Project,
@@ -62,9 +52,10 @@ export class GlRenderer {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     const width = Math.max(2, Math.floor(cssW * dpr));
     const height = Math.max(2, Math.floor(cssH * dpr));
+    const viewport = viewCss
+      ? { x: viewCss.x * dpr, y: viewCss.y * dpr, w: viewCss.w * dpr, h: viewCss.h * dpr }
+      : sceneViewport(width, height, project.width, project.height, project.fit);
 
-    // Size Three.js before the legacy renderer draws. This prevents a resize
-    // from clearing the source framebuffer immediately before the copy pass.
     if (this.pipeline?.enabled) {
       try {
         this.pipeline.prepareSize(width, height);
@@ -82,12 +73,10 @@ export class GlRenderer {
     if (!this.pipeline?.enabled) return;
 
     try {
-      this.pipeline.render(snapshot, project);
+      this.pipeline.render(snapshot, project, viewport, colorOverrides);
       this.pipelineErrorLogged = false;
     } catch (error) {
-      // The source framebuffer may have been disturbed by a failed composer
-      // pass. Redraw once with the proven rc.49 renderer so the user never gets
-      // a blank frame because post-processing failed.
+      // A failed composer pass must never leave the user with a blank frame.
       if (!this.pipelineErrorLogged) {
         console.error("CINEMATIC_PIPELINE_FALLBACK_FRAME", error);
         this.pipelineErrorLogged = true;
@@ -101,11 +90,8 @@ export class GlRenderer {
 
   readCleanRgba(): { width: number; height: number; pixels: Uint8Array } | null {
     if (this.pipeline?.enabled) {
-      try {
-        return this.pipeline.readRgba();
-      } catch (error) {
-        console.error("CINEMATIC_PIPELINE_READBACK_FAILED fallback=legacy", error);
-      }
+      try { return this.pipeline.readRgba(); }
+      catch (error) { console.error("CINEMATIC_PIPELINE_READBACK_FAILED fallback=legacy", error); }
     }
     return this.legacy.readCleanRgba();
   }
