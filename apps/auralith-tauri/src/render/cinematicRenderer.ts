@@ -13,8 +13,12 @@ const THREE_VOLUMETRIC_KINDS = new Set<EffectKind>([
   "AtmosphericHaze", "Aurora", "CosmicNebula", "FrozenBreath", "SpectralAura"
 ]);
 
+const THREE_ELECTRICAL_KINDS = new Set<EffectKind>([
+  "EnergyBeam", "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser"
+]);
+
 function isThreeKind(kind: EffectKind) {
-  return THREE_PARTICLE_KINDS.has(kind) || THREE_VOLUMETRIC_KINDS.has(kind);
+  return THREE_PARTICLE_KINDS.has(kind) || THREE_VOLUMETRIC_KINDS.has(kind) || THREE_ELECTRICAL_KINDS.has(kind);
 }
 
 function isThreeNativePlacement(region: Region, effect: EffectInstance) {
@@ -43,8 +47,8 @@ function nativeProject(project: Project): { project: Project; count: number } {
  *
  * The proven rc.49 WebGL renderer always owns the visible base canvas and draws
  * the backdrop, props and every effect. Three.js owns a completely separate
- * transparent WebGL2 canvas layered above it. Migrated particle/volumetric
- * effects therefore enhance the rc.49 rendering instead of replacing it.
+ * transparent WebGL2 canvas layered above it. Migrated particle/volumetric/
+ * electrical effects therefore enhance the rc.49 rendering instead of replacing it.
  *
  * This isolation is intentional: sharing a WebGL context between raw WebGL and
  * THREE.WebGLRenderer lets either renderer invalidate the other's programs,
