@@ -6,6 +6,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectKind, Project } from "../scene/types";
+import { ThreeParticleLayer } from "./threeParticleLayer";
 
 const FULLSCREEN_VERTEX = /* glsl */`
   varying vec2 vUv;
@@ -27,7 +28,6 @@ const CHROMATIC_SHADER = {
     uniform float amount;
     uniform float radial;
     varying vec2 vUv;
-
     void main() {
       vec2 fromCenter = vUv - vec2(0.5);
       float edge = smoothstep(0.16, 0.72, length(fromCenter));
@@ -69,15 +69,10 @@ const FINISH_SHADER = {
       float d = distance(vUv, vec2(0.5));
       float v = smoothstep(0.34, 0.34 + max(vignetteSoftness, 0.08), d);
       c.rgb *= 1.0 - v * vignette;
-
       float n = filmNoise(vUv * vec2(1733.0, 941.0)) - 0.5;
       float luma = dot(c.rgb, vec3(0.2126, 0.7152, 0.0722));
       c.rgb += n * grain * mix(0.55, 0.16, clamp(luma, 0.0, 1.0));
       c.rgb = max(c.rgb, vec3(0.0));
-
-      // Post-processing can create luminous pixels outside the original effect
-      // alpha. In transparent capture mode, promote that luminance into alpha so
-      // OBS/stream compositors retain bloom halos instead of clipping them.
       float glowAlpha = clamp(max(max(c.r, c.g), c.b) * 0.72, 0.0, 1.0);
       float outAlpha = mix(c.a, max(c.a, glowAlpha), overlayMode);
       gl_FragColor = vec4(c.rgb, outAlpha);
@@ -92,51 +87,41 @@ const BLOOM_FRIENDLY = new Set<EffectKind>([
   "NeonGlow", "NeonChase", "Shimmer", "GlitterSparkle", "Aurora", "IceShimmer", "Fireflies",
   "BioluminescentSpores", "RuneGlow", "SigilActivation", "Eclipse", "CelestialStars", "CosmicNebula", "SmartNeon"
 ]);
-
 const CHROMATIC_FRIENDLY = new Set<EffectKind>([
   "ChromaticPulse", "PrismaticLight", "HolographicDistortion", "GlitchLight", "RgbSplit", "Refraction", "SpatialWarp"
 ]);
-
 const ATMOSPHERIC = new Set<EffectKind>([
   "SmokeFog", "Mist", "AtmosphericHaze", "Aurora", "CosmicNebula", "FilmBurn", "VoidEnergy", "Eclipse"
 ]);
-
 const DARK_FOCUS = new Set<EffectKind>([
   "VoidEnergy", "Portal", "ShadowPulse", "RoomDim", "LocalDim", "Eclipse", "GravityWell", "CosmicNebula", "FilmBurn"
 ]);
 
 type SmoothedAudio = Pick<AudioSnapshot, "bass" | "low" | "mid" | "high" | "beat" | "transient">;
+export type CinematicViewport = { x: number; y: number; w: number; h: number };
 
-function clamp(v: number, lo: number, hi: number) {
-  return Math.max(lo, Math.min(hi, v));
-}
-
+function clamp(v: number, lo: number, hi: number) { return Math.max(lo, Math.min(hi, v)); }
 function activeKinds(project: Project): Set<EffectKind> {
   const out = new Set<EffectKind>();
-  for (const region of project.regions) {
-    for (const effect of region.effects) if (effect.enabled) out.add(effect.kind);
-  }
+  for (const region of project.regions) for (const effect of region.effects) if (effect.enabled) out.add(effect.kind);
   return out;
 }
-
 function containsAny(source: Set<EffectKind>, candidates: Set<EffectKind>) {
   for (const value of source) if (candidates.has(value)) return true;
   return false;
 }
 
 /**
- * Three.js-managed cinematic finishing stage for the rc.49 renderer.
- *
- * The legacy effect renderer remains the source pass so every existing region,
- * trace/SDF mode, project file and effect ID stays compatible. This class takes
- * the completed framebuffer and performs professional multi-pass finishing on
- * the same WebGL2 context: bloom -> chromatic aberration -> grain/vignette ->
- * output color conversion. If this layer cannot initialize, Auralith can keep
- * running through the legacy renderer instead of failing the application.
+ * Three.js-managed cinematic stage for the rc.49 renderer.
+ * The rc.49 renderer remains the compatibility/source pass. Three.js then adds
+ * dedicated GPU effect layers and runs the completed image through a reusable
+ * HDR post-processing chain before final capture/output.
  */
 export class CinematicPipeline {
   private renderer: THREE.WebGLRenderer;
   private composer: EffectComposer;
+  private scene: THREE.Scene;
+  private particleLayer: ThreeParticleLayer;
   private frameTexture: THREE.FramebufferTexture;
   private sourceMaterial: THREE.MeshBasicMaterial;
   private bloomPass: UnrealBloomPass;
@@ -153,13 +138,8 @@ export class CinematicPipeline {
 
   constructor(private canvas: HTMLCanvasElement, private gl: WebGL2RenderingContext) {
     this.renderer = new THREE.WebGLRenderer({
-      canvas,
-      context: gl,
-      alpha: true,
-      antialias: true,
-      premultipliedAlpha: false,
-      preserveDrawingBuffer: true,
-      powerPreference: "high-performance",
+      canvas, context: gl, alpha: true, antialias: true, premultipliedAlpha: false,
+      preserveDrawingBuffer: true, powerPreference: "high-performance",
     });
     this.renderer.setPixelRatio(1);
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
@@ -170,48 +150,39 @@ export class CinematicPipeline {
 
     this.frameTexture = this.makeFrameTexture(2, 2);
     this.sourceMaterial = new THREE.MeshBasicMaterial({
-      map: this.frameTexture,
-      transparent: true,
-      depthTest: false,
-      depthWrite: false,
-      toneMapped: false,
+      map: this.frameTexture, transparent: true, depthTest: false, depthWrite: false, toneMapped: false,
     });
 
-    const scene = new THREE.Scene();
-    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    this.scene = new THREE.Scene();
+    const camera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 2);
     camera.position.z = 1;
     const quad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2), this.sourceMaterial);
     quad.frustumCulled = false;
-    scene.add(quad);
+    quad.renderOrder = -100;
+    this.scene.add(quad);
+    this.particleLayer = new ThreeParticleLayer(this.scene);
 
     const supportsHalfFloat = Boolean(gl.getExtension("EXT_color_buffer_float"));
     const target = new THREE.WebGLRenderTarget(2, 2, {
       type: supportsHalfFloat ? THREE.HalfFloatType : THREE.UnsignedByteType,
-      format: THREE.RGBAFormat,
-      minFilter: THREE.LinearFilter,
-      magFilter: THREE.LinearFilter,
-      depthBuffer: false,
-      stencilBuffer: false,
+      format: THREE.RGBAFormat, minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter,
+      depthBuffer: false, stencilBuffer: false,
     });
     target.texture.colorSpace = THREE.LinearSRGBColorSpace;
 
     this.composer = new EffectComposer(this.renderer, target);
     this.composer.setPixelRatio(1);
-    this.composer.addPass(new RenderPass(scene, camera));
-
+    this.composer.addPass(new RenderPass(this.scene, camera));
     this.bloomPass = new UnrealBloomPass(new THREE.Vector2(2, 2), 0.34, 0.62, 0.68);
     this.composer.addPass(this.bloomPass);
-
     this.chromaticPass = new ShaderPass(CHROMATIC_SHADER);
     this.composer.addPass(this.chromaticPass);
-
     this.finishPass = new ShaderPass(FINISH_SHADER);
     this.composer.addPass(this.finishPass);
-
     this.outputPass = new OutputPass();
     this.composer.addPass(this.outputPass);
 
-    console.log("CINEMATIC_PIPELINE_OK engine=three.js passes=bloom,chromatic,vignette,grain,color-output");
+    console.log("CINEMATIC_PIPELINE_OK engine=three.js layers=particle passes=bloom,chromatic,vignette,grain,color-output");
   }
 
   private makeFrameTexture(w: number, h: number) {
@@ -224,16 +195,12 @@ export class CinematicPipeline {
   }
 
   prepareSize(width: number, height: number) {
-    width = Math.max(2, Math.floor(width));
-    height = Math.max(2, Math.floor(height));
+    width = Math.max(2, Math.floor(width)); height = Math.max(2, Math.floor(height));
     if (width === this.width && height === this.height) return;
-
-    this.width = width;
-    this.height = height;
+    this.width = width; this.height = height;
     this.renderer.setSize(width, height, false);
     this.composer.setSize(width, height);
     this.bloomPass.setSize(width, height);
-
     this.frameTexture.dispose();
     this.frameTexture = this.makeFrameTexture(width, height);
     this.sourceMaterial.map = this.frameTexture;
@@ -244,13 +211,10 @@ export class CinematicPipeline {
     const now = performance.now();
     const dt = clamp((now - this.lastAudioT) / 1000, 0.001, 0.05);
     this.lastAudioT = now;
-
     const update = (current: number, target: number, attack: number, release: number) => {
       const tau = target > current ? attack : release;
-      const k = 1 - Math.exp(-dt / Math.max(0.004, tau));
-      return current + (target - current) * k;
+      return current + (target - current) * (1 - Math.exp(-dt / Math.max(0.004, tau)));
     };
-
     this.audio.bass = update(this.audio.bass, snapshot.bass, 0.028, 0.15);
     this.audio.low = update(this.audio.low, snapshot.low, 0.032, 0.14);
     this.audio.mid = update(this.audio.mid, snapshot.mid, 0.025, 0.11);
@@ -265,22 +229,15 @@ export class CinematicPipeline {
     const chromaticRelevant = containsAny(kinds, CHROMATIC_FRIENDLY);
     const atmospheric = containsAny(kinds, ATMOSPHERIC);
     const darkFocus = containsAny(kinds, DARK_FOCUS);
-
     const quality = project.quality === "Ultra" ? 1.0 : project.quality === "High" ? 0.82 : project.quality === "Medium" ? 0.62 : 0.42;
     const energy = clamp(this.audio.bass * 0.42 + this.audio.low * 0.22 + this.audio.mid * 0.16 + this.audio.high * 0.10 + this.audio.beat * 0.10, 0, 1.4);
-
-    // Bloom remains restrained unless an emissive effect is actually present.
     this.bloomPass.strength = (bloomRelevant ? 0.34 : 0.16) * quality + energy * (bloomRelevant ? 0.28 : 0.08);
     this.bloomPass.radius = clamp(0.46 + quality * 0.26 + this.audio.bass * 0.08, 0.35, 0.82);
     this.bloomPass.threshold = clamp(0.72 - this.audio.beat * 0.08 - (bloomRelevant ? 0.08 : 0), 0.48, 0.78);
-
-    // Edge-weighted RGB separation is almost invisible globally and becomes
-    // expressive only when an effect designed for chromatic motion is active.
     const chromaBase = chromaticRelevant ? 0.0012 : 0.00016;
     const chromaAudio = this.audio.high * (chromaticRelevant ? 0.0032 : 0.00075) + this.audio.transient * 0.0010;
     this.chromaticPass.uniforms.amount.value = clamp(chromaBase + chromaAudio, 0, 0.0065);
     this.chromaticPass.uniforms.radial.value = 1.0;
-
     this.finishPass.uniforms.time.value = performance.now() / 1000;
     this.finishPass.uniforms.grain.value = clamp((atmospheric ? 0.008 : 0.0025) * quality + this.audio.high * 0.0025, 0, 0.014);
     this.finishPass.uniforms.vignette.value = clamp((darkFocus ? 0.11 : 0.025) + this.audio.bass * (darkFocus ? 0.025 : 0.008), 0, 0.16);
@@ -288,14 +245,12 @@ export class CinematicPipeline {
     this.finishPass.uniforms.overlayMode.value = project.backdropDataUrl ? 0.0 : 1.0;
   }
 
-  render(snapshot: AudioSnapshot, project: Project) {
+  render(snapshot: AudioSnapshot, project: Project, viewport: CinematicViewport, colorOverrides?: Record<string, string>) {
     if (!this.enabled) return;
     this.smoothAudio(snapshot);
     this.tune(project);
-
+    this.particleLayer.update(project, snapshot, this.width, this.height, viewport, colorOverrides);
     try {
-      // Legacy Auralith and Three.js intentionally share one WebGL2 context.
-      // resetState() is specifically intended for this multi-library case.
       this.renderer.resetState();
       this.renderer.copyFramebufferToTexture(this.frameTexture, this.copyOrigin);
       this.renderer.resetState();
@@ -322,6 +277,7 @@ export class CinematicPipeline {
   }
 
   dispose() {
+    this.particleLayer.dispose();
     this.frameTexture.dispose();
     this.sourceMaterial.map = null;
     this.sourceMaterial.dispose();
