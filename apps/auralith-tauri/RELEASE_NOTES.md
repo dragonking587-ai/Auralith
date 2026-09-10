@@ -1,63 +1,71 @@
-# Auralith 1.0.0-rc.46
+# Auralith 1.0.0-rc.49.3 — Cinematic Render Pipeline
 
-## ✨ What’s New
+## What’s New
 
-### 🔮 Experimental Cinematic Magic Energy
-- Upgraded **Magic Energy** into Auralith’s first experimental cinematic-realism effect.
-- Added a layered procedural energy core, outer shell, plasma volume, tendrils/filaments, orbiting energy ribbons, electrical arcs, sparks, atmospheric haze, and expanding transient shockwaves.
-- Added three clearly labeled experimental quality modes: **Performance (Experimental)**, **High (Experimental)**, and **Cinematic (Experimental)**.
-- Cleaned up the Magic Energy controls so the experimental notice, quality selector, and audio-response sliders remain readable and properly aligned in the side panel.
+Auralith Reborn keeps the established rc.49 interface and workflow while upgrading the rendering engine underneath it.
 
-### 🎵 Deeper Audio Interaction
-Magic Energy now responds to different parts of the music independently instead of making the whole effect pulse the same way:
-- **Bass** drives core pressure, expansion, and brightness.
-- **Low / low-mid energy** drives plasma density and haze.
-- **Mids** drive tendril and orbital motion.
-- **Highs** drive sparks and fine electrical detail.
-- **Transients** trigger stronger electrical discharges and expanding shockwaves.
-- **Beat** adds controlled whole-core expansion.
-- Added adjustable **Response Speed** and **Decay / Persistence** so the energy has inertia instead of stopping instantly.
+### Cinematic Rendering Pipeline
+- Added a Three.js-managed cinematic compositor on the existing Reborn/Tauri application.
+- Added HDR-capable intermediate rendering with bloom for brighter, more natural light bleed.
+- Added subtle audio-reactive chromatic aberration, film grain, vignette, and final output/color processing.
+- Preserved transparent output behavior for OBS-style overlay capture.
+- Preserved automatic fallback to the proven rc.49 renderer if the cinematic pipeline cannot initialize or render safely.
 
-### 🎨 Full Color Customization
-Magic Energy now supports independently customizable:
-- **Core Color**
-- **Plasma Color**
-- **Arc / Spark Highlight Color**
+### Dedicated GPU Particle Effects
+The following point/emitter effects now use a dedicated Three.js GPU particle layer rather than the monolithic legacy effect shader:
+- Sparks
+- Energy Sparks
+- Embers
+- Fireflies
+- Snow
+- Ash
+- Dust Motes
+- Bioluminescent Spores
 
-### 🎛️ New Magic Energy Controls
-- Bass Influence
-- Low-Mid Plasma
-- Mid Motion
-- High Spark Density
-- Transient Strength
-- Beat Pulse
-- Response Speed
-- Decay / Persistence
+These effects now have effect-specific motion such as ballistic spark trajectories, buoyant embers, organic firefly wandering/blinking, depth-varied snow, and atmospheric drifting particles.
 
-### 🧪 Experimental Quality Notice
-The new realism modes are intentionally marked **Experimental** while they are tested across different Windows GPUs and live-streaming workloads. Cinematic mode uses the richest procedural detail and may require more GPU resources than Performance or High.
+### Dedicated GPU Volumetric / Atmospheric Effects
+The following point/emitter effects now use a dedicated GPU volumetric layer with distinct shader behavior:
+- Magic Energy
+- Plasma
+- Void Energy
+- Portal
+- Vortex
+- Smoke / Fog
+- Mist
+- Atmospheric Haze
+- Frozen Breath
+- Aurora
+- Cosmic Nebula
+- Spectral Aura
 
-## Main Auralith Update Only
-This RC.46 release updates **Auralith Reborn for Windows**. Host Console and the Android companion remain on their existing RC.45 builds unless a later release specifically updates them.
+Magic Energy retains its existing realism quality, response/decay, color, and individual audio-band influence controls.
 
-## 🔄 Update Compatibility
-The existing production updater identity, public key, endpoints, and signing chain are preserved. Compatible older production installations can update normally through **Check for Updates** once RC.46 is published.
+### Audio-Reactive Cinematic Response
+The new rendering layers continue using Auralith’s existing audio system, including Bass, Low, Mid, High, Beat, and Transient data. The cinematic compositor smooths those values for organic movement while individual effects use the appropriate bands for their own physical or visual behavior.
+
+### Compatibility
+- The rc.49 UI, controls, layout, project schema, and workflow remain intact.
+- Trace, Shape, and Prop/SDF placements continue using the existing rc.49 path renderer until those placement modes are migrated to the new engine.
+- Existing project files remain compatible.
+- Existing capture and virtual-camera plumbing remains in place.
+
+## Update Compatibility
+The existing Auralith Reborn updater identifier, public key, endpoints, and signing chain are preserved. Compatible rc.49 installations can update to **1.0.0-rc.49.3** through **Check for Updates → Download & Install** once the signed updater manifest is published.
 
 ## WINDOWS SMARTSCREEN NOTICE
 Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
 
-If the installer was downloaded from the official Auralith GitHub release:
+If the installer was downloaded from the official Auralith GitHub release, use:
 
 **More info → Run anyway**
 
 Do not disable Windows SmartScreen or Windows Defender.
 
 ## Installing on Windows
-1. Download **Auralith-Reborn-1.0.0-rc.46-x64-Setup.exe** from this official release.
+1. Download **Auralith-Reborn-1.0.0-rc.49.3-x64-Setup.exe** from the official release.
 2. Double-click the installer.
 3. If Windows shows “Windows protected your PC,” click **More info**.
-4. Confirm the file is the official Auralith installer, then click **Run anyway**.
+4. Confirm the file came from the official `dragonking587-ai/Auralith` repository and click **Run anyway**.
 5. Continue installation normally.
 6. Launch Auralith Reborn.
-
-Only install Auralith from the official `dragonking587-ai/Auralith` GitHub repository and release page.
