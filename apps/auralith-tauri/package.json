@@ -1,7 +1,7 @@
 {
   "name": "auralith-tauri-preview",
   "private": true,
-  "version": "1.0.0-rc.49.3.3",
+  "version": "1.0.0-rc.49.3.4",
   "type": "module",
   "scripts": {
     "dev": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && node scripts/verify-rc49.3.1-runtime.mjs && vite",
