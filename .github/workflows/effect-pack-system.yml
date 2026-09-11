@@ -21,6 +21,8 @@ jobs:
           node-version: "20"
       - name: Apply effect pack UI and build guard
         run: node apps/auralith-tauri/scripts/apply-effect-pack-system.mjs
+      - name: Refresh approved UI lock baseline
+        run: node apps/auralith-tauri/scripts/update-effect-pack-ui-lock.mjs
       - name: Check patch cleanliness
         run: git diff --check
       - name: Install frontend
@@ -33,7 +35,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/package.json
+          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/package.json apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs
           git commit -m "feat(reborn): add downloadable stacked effect packs"
       - name: Build frontend
         working-directory: apps/auralith-tauri
