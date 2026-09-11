@@ -1,0 +1,21 @@
+{
+  "manifest": {
+    "format": 1,
+    "id": "obsidianwolf.blood-moon-ritual",
+    "name": "Blood Moon Ritual",
+    "author": "Obsidian Wolf",
+    "version": "1.0.0",
+    "description": "A dark eclipse and rune stack with red atmospheric haze and living shadow tendrils.",
+    "category": "Ritual",
+    "tags": ["blood moon", "eclipse", "runes", "dark"],
+    "collection": "Obsidian Wolf Effects Collection",
+    "minAuralithVersion": "1.0.0-rc.49.3.7",
+    "recommendedQuality": "High"
+  },
+  "effects": [
+    {"id":"ow-blood-eclipse","kind":"Eclipse","intensity":0.82,"opacity":0.9,"audio":"Bass","audioInfluence":0.52,"color":"#170003","color2":"#7a0505","color3":"#ff3a24"},
+    {"id":"ow-blood-rune","kind":"RuneGlow","intensity":0.62,"opacity":0.82,"audio":"Mid","audioInfluence":0.62,"color":"#ff2b20","color2":"#7d0000","color3":"#ffb08a"},
+    {"id":"ow-blood-haze","kind":"AtmosphericHaze","intensity":0.3,"opacity":0.42,"audio":"Low","audioInfluence":0.28,"speed":0.48,"color":"#360005","color2":"#6b0b10"},
+    {"id":"ow-blood-tendrils","kind":"ShadowTendrils","intensity":0.42,"opacity":0.58,"audio":"Bass","audioInfluence":0.44,"speed":0.7,"color":"#160006","color2":"#4d0508"}
+  ]
+}
