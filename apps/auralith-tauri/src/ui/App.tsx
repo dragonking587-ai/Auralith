@@ -32,6 +32,10 @@ import {
   loadInstalledEffectPacks, parseEffectPack, serializeEffectPack, uninstallEffectPack,
   type EffectPack
 } from "../scene/effectPacks";
+import {
+  downloadAndInstallOfficialEffectPack, fetchOfficialEffectPackCatalog,
+  type OnlineEffectPackEntry
+} from "../scene/effectPackLibrary";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
@@ -248,6 +252,11 @@ export function App() {
   const [installedEffectPacks, setInstalledEffectPacks] = useState<EffectPack[]>(() => loadInstalledEffectPacks());
   const [effectPackMsg, setEffectPackMsg] = useState("");
   const effectPackInputRef = useRef<HTMLInputElement>(null);
+  // AURALITH_ONLINE_EFFECT_LIBRARY_V1: trusted online catalog with one-click download + install.
+  const [onlineEffectPacks, setOnlineEffectPacks] = useState<OnlineEffectPackEntry[]>([]);
+  const [onlineEffectPackLoading, setOnlineEffectPackLoading] = useState(false);
+  const [onlineEffectPackInstallingId, setOnlineEffectPackInstallingId] = useState("");
+  const [onlineEffectPackUpdated, setOnlineEffectPackUpdated] = useState("");
   const [showErrDetails, setShowErrDetails] = useState(false);
   const [neonWarn, setNeonWarn] = useState(() => localStorage.getItem("auralith.neonWarn") !== "hide");
   const [neonOpen, setNeonOpen] = useState(false);
@@ -999,6 +1008,39 @@ export function App() {
   };
 
 
+  const refreshOnlineEffectPackLibrary = async () => {
+    setOnlineEffectPackLoading(true);
+    try {
+      const catalog = await fetchOfficialEffectPackCatalog();
+      setOnlineEffectPacks(catalog.packs);
+      setOnlineEffectPackUpdated(catalog.updated);
+      setEffectPackMsg(`Online library loaded · ${catalog.packs.length} packs available.`);
+    } catch (e) {
+      setEffectPackMsg("Could not load online Effect Pack Library: " + String(e));
+    } finally {
+      setOnlineEffectPackLoading(false);
+    }
+  };
+
+  const downloadInstallOnlineEffectPack = async (entry: OnlineEffectPackEntry) => {
+    if (entry.minAuralithVersion && semverNewer(entry.minAuralithVersion, APP_VERSION)) {
+      setEffectPackMsg(`${entry.name} requires Auralith ${entry.minAuralithVersion} or newer.`);
+      return;
+    }
+    setOnlineEffectPackInstallingId(entry.id);
+    try {
+      const result = await downloadAndInstallOfficialEffectPack(entry);
+      setInstalledEffectPacks(result.installed);
+      setEffectPackMsg(`Downloaded and installed ${result.pack.manifest.name} by ${result.pack.manifest.author}.`);
+    } catch (e) {
+      setEffectPackMsg("Could not download/install effect pack: " + String(e));
+    } finally {
+      setOnlineEffectPackInstallingId("");
+    }
+  };
+
+  useEffect(() => { void refreshOnlineEffectPackLibrary(); }, []);
+
   const downloadEffectPack = (pack: EffectPack) => {
     const blob = new Blob([serializeEffectPack(pack)], { type: "application/json" });
     const a = document.createElement("a");
@@ -1554,7 +1596,33 @@ export function App() {
                   <input ref={effectPackInputRef} type="file" accept=".aurapack,application/json" hidden onChange={(e)=>{ const f=e.target.files?.[0]; e.target.value=""; void importEffectPackFile(f); }} />
                 </div>
                 {effectPackMsg && <p className="coach">{effectPackMsg}</p>}
-                <h4>OBSIDIAN WOLF EFFECTS COLLECTION</h4>
+                <h4>ONLINE EFFECT PACK LIBRARY</h4>
+                <div className="row">
+                  <button onClick={()=>void refreshOnlineEffectPackLibrary()} disabled={onlineEffectPackLoading}>{onlineEffectPackLoading ? "Refreshing…" : "Refresh Library"}</button>
+                  {onlineEffectPackUpdated && <span className="muted">Catalog updated {onlineEffectPackUpdated}</span>}
+                </div>
+                {onlineEffectPacks.length ? (
+                  <div className="effect-pack-list">
+                    {onlineEffectPacks.map((pack)=>{
+                      const installed = installedEffectPacks.some((p)=>p.manifest.id===pack.id && p.manifest.version===pack.version);
+                      const incompatible = !!pack.minAuralithVersion && semverNewer(pack.minAuralithVersion, APP_VERSION);
+                      return (
+                        <div className="card effect-pack-card" key={pack.id}>
+                          <div className="effect-pack-title"><strong>{pack.name}</strong><span>{pack.author} · v{pack.version}</span></div>
+                          <p>{pack.description}</p>
+                          <p className="muted">{pack.collection || pack.category} · Recommended {pack.recommendedQuality || "High"}</p>
+                          <div className="row">
+                            <button className="gold" disabled={installed || incompatible || onlineEffectPackInstallingId===pack.id} onClick={()=>void downloadInstallOnlineEffectPack(pack)}>
+                              {onlineEffectPackInstallingId===pack.id ? "Installing…" : installed ? "Installed" : incompatible ? "Update Auralith First" : "Download & Install"}
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : <p className="muted">{onlineEffectPackLoading ? "Loading official packs…" : "No online packs loaded. Use Refresh Library to try again."}</p>}
+
+                <h4>BUILT-IN OBSIDIAN WOLF EFFECTS COLLECTION</h4>
                 <div className="effect-pack-list">
                   {BUILTIN_EFFECT_PACKS.map((pack)=>(
                     <div className="card effect-pack-card" key={pack.manifest.id}>

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && node scripts/verify-rc49.3.1-runtime.mjs && vite",
-    "build": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && node scripts/verify-rc49.3.1-runtime.mjs && node scripts/verify-effect-pack-system.mjs && vite build",
+    "build": "node scripts/verify-rc49-ui-lock.mjs && node scripts/apply-rc49-hotfix.mjs && node scripts/apply-rc49.2-engine.mjs && node scripts/apply-cinematic-pipeline.mjs && node scripts/verify-rc49.3.1-runtime.mjs && node scripts/verify-effect-pack-system.mjs && node scripts/verify-online-effect-pack-library.mjs && vite build",
     "preview": "vite preview",
     "icon:generate": "tauri icon src/assets/auralith-app-icon.svg",
     "tauri": "tauri"
