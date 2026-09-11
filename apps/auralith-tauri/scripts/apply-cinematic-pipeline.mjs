@@ -124,14 +124,14 @@ fs.writeFileSync(pipelinePath, pipeline);
 let cinematic = fs.readFileSync(cinematicPath, "utf8");
 cinematic = replaceOnce(
   cinematic,
-  `const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([\n  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",\n  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"\n]);`,
-  `const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([\n  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",\n  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"\n]);\n\nconst THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);`,
+  'const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
+  'const THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);\n\nconst THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
   "pulse/energy native kind set"
 );
 cinematic = replaceOnce(
   cinematic,
-  '    THREE_DISTORTION_KINDS.has(kind) ||\n    THREE_LIGHT_OPTICAL_KINDS.has(kind);',
-  '    THREE_DISTORTION_KINDS.has(kind) ||\n    THREE_LIGHT_OPTICAL_KINDS.has(kind) ||\n    THREE_PULSE_ENERGY_KINDS.has(kind);',
+  '    THREE_LIGHT_OPTICAL_KINDS.has(kind);',
+  '    THREE_LIGHT_OPTICAL_KINDS.has(kind) ||\n    THREE_PULSE_ENERGY_KINDS.has(kind);',
   "pulse/energy native routing"
 );
 fs.writeFileSync(cinematicPath, cinematic);
