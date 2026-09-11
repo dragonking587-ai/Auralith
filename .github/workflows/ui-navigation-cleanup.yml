@@ -1,7 +1,9 @@
 name: Auralith UI Navigation Cleanup
+
 on:
   push:
-    branches: [tauri/auralith-reborn]
+    branches:
+      - tauri/auralith-reborn
     paths:
       - ".github/workflows/ui-navigation-cleanup.yml"
 
@@ -17,304 +19,29 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Reorganize pages and harden quality controls
-        shell: bash
-        run: |
-          python - <<'PY'
-          from pathlib import Path
-          import re, subprocess
-
-          root = Path("apps/auralith-tauri")
-          app_path = root / "src/ui/App.tsx"
-          styles_path = root / "src/ui/styles.css"
-          vite_path = root / "vite.config.ts"
-          preview_path = Path(".github/workflows/tauri-preview.yml")
-          lock_path = root / "scripts/verify-rc49-ui-lock.mjs"
-
-          app = app_path.read_text(encoding="utf-8")
-
-          def replace_once(text, old, new, label):
-              if new in text:
-                  return text
-              if old not in text:
-                  raise RuntimeError(f"missing {label}")
-              return text.replace(old, new, 1)
-
-          # Build version is sourced from package.json through Vite instead of stale UI constants.
-          app = replace_once(
-              app,
-              'const APP_VERSION = "1.0.0-rc.44";',
-              'declare const __AURALITH_VERSION__: string;\nconst APP_VERSION = __AURALITH_VERSION__;',
-              "APP_VERSION constant",
-          )
-          app = replace_once(
-              app,
-              'export function App() {',
-              'type AppPage = "home" | "editor" | "audio" | "output" | "server" | "devices" | "settings";\n\nexport function App() {',
-              "AppPage type",
-          )
-          app = replace_once(
-              app,
-              '  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("output");',
-              '  const [tab, setTab] = useState<AppPage>("home");',
-              "page state",
-          )
-          app = app.replace('setTab("effects")', 'setTab("editor")')
-
-          app = replace_once(
-              app,
-              '  const clean = view === "CleanCapture";',
-              '  const clean = view === "CleanCapture";\n  const managementPage = tab === "home" || tab === "server" || tab === "devices" || tab === "settings";',
-              "management page state",
-          )
-          app = replace_once(
-              app,
-              '<div className="canvas-wrap" ref={wrapRef}',
-              '<div className={`canvas-wrap ${managementPage ? "management-hidden" : ""}`} ref={wrapRef}',
-              "management canvas class",
-          )
-          app = replace_once(
-              app,
-              '<aside className={`side ${clean ? "hidden" : ""}`}>',
-              '<aside className={`side ${clean ? "hidden" : ""} ${managementPage ? "management-page" : ""}`}>',
-              "management side class",
-          )
-
-          # Replace fake aliases with real, distinct navigation pages.
-          nav_start = app.index('      <div className={`nav ${clean ? "hidden" : ""}`}>')
-          stage_marker = '      <div className={`stage ${clean ? "clean" : ""}`}>'
-          nav_end = app.index(stage_marker, nav_start)
-          new_nav = '''      <div className={`nav ${clean ? "hidden" : ""}`}>
-        {([
-          ["home","Home"],["editor","Editor"],["audio","Audio"],["output","Output"],
-          ["server","Server"],["devices","Devices"],["settings","Settings"]
-        ] as const).map(([id,label]) => (
-          <button key={id} className={tab===id ? "on" : ""} onClick={()=>setTab(id)}>{label}</button>
-        ))}
-      </div>
-'''
-          app = app[:nav_start] + new_nav + app[nav_end:]
-
-          # Remove the redundant second row of fake tabs; retain an explicit page heading.
-          aside_at = app.index('<aside className={`side')
-          tabs_start = app.index('          <div className="tabs">', aside_at)
-          first_pane = app.index('\n\n          {tab===', tabs_start)
-          page_title = '''          <div className="tabs page-title">
-            <strong>{tab === "home" ? "HOME" : tab === "editor" ? "EDITOR" : tab === "audio" ? "AUDIO" : tab === "output" ? "OUTPUT" : tab === "server" ? "SERVER" : tab === "devices" ? "DEVICES" : "SETTINGS"}</strong>
-          </div>'''
-          app = app[:tabs_start] + page_title + app[first_pane:]
-
-          # Move Updates out of Settings: Home owns update discovery/install/release notes.
-          updates_start = app.index('              <h3>UPDATES</h3>')
-          help_start = app.index('              <h3>HELP & TUTORIALS</h3>', updates_start)
-          app = app[:updates_start] + app[help_start:]
-
-          # Move Host Identity out of Settings and into Devices.
-          host_identity_start = app.index('              <h3>HOST IDENTITY</h3>')
-          about_start = app.index('              <h3>ABOUT</h3>', host_identity_start)
-          host_identity = app[host_identity_start:about_start]
-          app = app[:host_identity_start] + app[about_start:]
-
-          # Split the old combined Output/Server/Devices mega-pane by its stable section headings.
-          out_start_token = '          {tab==="output" && (\n            <div className="pane dash">\n'
-          out_start = app.index(out_start_token)
-          ai_marker = '\n          {false && tab==="ai"'
-          ai_start = app.index(ai_marker, out_start)
-          old_output_block = app[out_start:ai_start]
-          inner = old_output_block[len(out_start_token):]
-          closing = '\n            </div>\n          )}\n\n'
-          if not inner.endswith(closing):
-              raise RuntimeError("combined output pane closing changed")
-          inner = inner[:-len(closing)]
-
-          markers = {
-              "clean": '<h3>CLEAN OUTPUT</h3>',
-              "host": '<h3>HOST INSTANCE</h3>',
-              "live": '<h3>LIVE CONTROL</h3>',
-              "remote": '<h4>HOST REMOTE</h4>',
-              "audience": '<h4>AUDIENCE REACTIONS</h4>',
-              "vcam": '<h3>VIRTUAL CAMERA</h3>',
-          }
-          pos = {k: inner.index(v) for k,v in markers.items()}
-          if not (pos["clean"] < pos["host"] < pos["live"] < pos["remote"] < pos["audience"] < pos["vcam"]):
-              raise RuntimeError("combined output pane section order changed")
-
-          output_clean = inner[pos["clean"]:pos["host"]]
-          devices_host = inner[pos["host"]:pos["live"]]
-          server_main = inner[pos["live"]:pos["remote"]]
-          devices_remote = inner[pos["remote"]:pos["audience"]]
-          server_tail = inner[pos["audience"]:pos["vcam"]]
-          output_vcam = inner[pos["vcam"]:]
-
-          split_panes = f'''          {{tab==="output" && (
-            <div className="pane dash">
-{output_clean}{output_vcam}
-            </div>
-          )}}
-
-          {{tab==="server" && (
-            <div className="pane dash">
-{server_main}{server_tail}
-            </div>
-          )}}
-
-          {{tab==="devices" && (
-            <div className="pane dash">
-{devices_host}{devices_remote}{host_identity}
-            </div>
-          )}}
-
-'''
-          app = app[:out_start] + split_panes + app[ai_start:]
-
-          # Home is now a real product/update landing page with no server administration controls.
-          editor_token = '          {tab==="effects" && ('
-          editor_at = app.index(editor_token)
-          home_pane = '''          {tab==="home" && (
-            <div className="pane home-pane">
-              <div className="home-hero">
-                <h2>AURALITH REBORN</h2>
-                <p>Installed {APP_VERSION} · 80 reactive effects</p>
-                <div className="row">
-                  <button className="gold" onClick={()=>setTab("editor")}>Open Editor</button>
-                  <button onClick={()=>setHelpMode("tour")}>Start Tutorial</button>
-                  <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
-                </div>
-              </div>
-              <div className="home-grid">
-                <div className="card">
-                  <h3>WHAT'S NEW</h3>
-                  <p><strong>Complete 80-effect renderer coverage.</strong> All selectable effects are now covered by the current Reborn rendering stack with the rc.49 compatibility path retained.</p>
-                  <p>Particle, volumetric, electrical, optical, pulse/energy, digital, shadow, ice/symbol and environmental effect families are integrated.</p>
-                  <p className="muted">Effect visual tuning found during real-world testing can be corrected independently without redesigning the app.</p>
-                </div>
-                <div className="card">
-                  <h3>UPCOMING</h3>
-                  <p><strong>Next:</strong> Audio source and routing reliability.</p>
-                  <p>Planned: Loudman.live DJ-board bridge · transformable browser/web surfaces · Overlay Creator · custom wave visualizers · reactive image regions · optional Unreal Engine bridge.</p>
-                  <p className="muted">Upcoming items are roadmap targets, not promises that a feature is already installed.</p>
-                </div>
-                <div className="card">
-                  <h3>UPDATES</h3>
-                  <p>Installed: {APP_VERSION}</p>
-                  {updateAvail && <p>Available: {updateAvail}</p>}
-                  {updateNotes && <pre className="notes">{updateNotes}</pre>}
-                  {updatePct && <p>{updatePct}</p>}
-                  {updateMsg && <p>{updateMsg}</p>}
-                  <div className="row">
-                    <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Check for Updates</button>
-                    {updateAvail && semverNewer(updateAvail, APP_VERSION) && (
-                      <button className="gold" disabled={updateBusy} onClick={()=>void installUpdate()}>Download &amp; Install</button>
-                    )}
-                    {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
-                    <button onClick={()=>window.open("https://github.com/dragonking587-ai/Auralith/releases","_blank")}>View Releases</button>
-                  </div>
-                  {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
-                  {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
-                </div>
-              </div>
-            </div>
-          )}
-
-'''
-          app = app[:editor_at] + home_pane + app[editor_at:]
-          app = app.replace(editor_token, '          {tab==="editor" && (', 1)
-
-          # Explain the four real project quality tiers beside the selector.
-          quality_old = '''              <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
-                {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
-              </select></label>'''
-          quality_new = quality_old + '''
-              <p className="muted">Low = lightest workload · Medium = balanced · High = full detail · Ultra = maximum detail. Quality is saved with the project.</p>'''
-          app = replace_once(app, quality_old, quality_new, "quality selector help")
-
-          # Old projects without a valid quality field should not silently fall into Low.
-          load_old = '''  const applyLoadedProject = (p: Project) => {
-    if (p.version !== 1) throw new Error("unsupported project");
-    setProject(p);'''
-          load_new = '''  const applyLoadedProject = (p: Project) => {
-    if (p.version !== 1) throw new Error("unsupported project");
-    const validQuality: Project["quality"] = (["Low","Medium","High","Ultra"] as const).includes(p.quality as any) ? p.quality : "High";
-    setProject({ ...p, quality: validQuality });'''
-          app = replace_once(app, load_old, load_new, "loaded project quality normalization")
-
-          app_path.write_text(app, encoding="utf-8")
-
-          # Let Vite expose package.json's version to the UI so Home/Updater never drifts again.
-          vite = vite_path.read_text(encoding="utf-8")
-          vite = replace_once(vite, 'import { resolve } from "node:path";', 'import { dirname, resolve } from "node:path";\nimport { readFileSync } from "node:fs";\nimport { fileURLToPath } from "node:url";', "vite imports")
-          vite = replace_once(vite, 'export default defineConfig({', 'const configDir = dirname(fileURLToPath(import.meta.url));\nconst packageJson = JSON.parse(readFileSync(resolve(configDir, "package.json"), "utf8"));\n\nexport default defineConfig({', "vite package version")
-          vite = replace_once(vite, '  clearScreen: false,', '  clearScreen: false,\n  define: { __AURALITH_VERSION__: JSON.stringify(packageJson.version) },', "vite version define")
-          vite_path.write_text(vite, encoding="utf-8")
-
-          # Full-width management pages; editor/audio/output keep the live canvas beside their controls.
-          styles = styles_path.read_text(encoding="utf-8")
-          marker = '/* UI_NAV_CLEANUP_V1 */'
-          if marker not in styles:
-              styles += '''
-
-/* UI_NAV_CLEANUP_V1 */
-.canvas-wrap.management-hidden { display: none !important; }
-.side.management-page { flex: 1 1 auto; width: 100%; max-width: none; border-left: 0; }
-.page-title { justify-content: flex-start; padding: 10px 14px; letter-spacing: .08em; }
-.home-pane { padding: 18px; }
-.home-hero { margin-bottom: 16px; }
-.home-hero h2 { margin: 0 0 6px; }
-.home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start; }
-.home-grid .card { min-width: 0; }
-@media (max-width: 760px) { .home-grid { grid-template-columns: 1fr; } }
-'''
-          styles_path.write_text(styles, encoding="utf-8")
-
-          # Run navigation + quality audits on every normal Windows preview build.
-          preview = preview_path.read_text(encoding="utf-8")
-          install_block = '      - name: Install frontend\n        run: npm install\n      - name: Build frontend\n'
-          audit_block = '      - name: Install frontend\n        run: npm install\n      - name: Audit UI navigation and quality tiers\n        run: |\n          node scripts/verify-ui-navigation.mjs\n          node scripts/verify-quality-system.mjs\n      - name: Build frontend\n'
-          preview = replace_once(preview, install_block, audit_block, "preview audit step")
-          preview_path.write_text(preview, encoding="utf-8")
-
-          # Update the intentional rc.49 UI lock baseline only for the two authorized UI files.
-          lock = lock_path.read_text(encoding="utf-8")
-          for rel in ["src/ui/App.tsx", "src/ui/styles.css"]:
-              digest = subprocess.check_output(["git", "hash-object", rel], cwd=root, text=True).strip()
-              pattern = rf'("{re.escape(rel)}": ")[0-9a-f]{{40}}(")'
-              lock, count = re.subn(pattern, rf'\g<1>{digest}\g<2>', lock, count=1)
-              if count != 1:
-                  raise RuntimeError(f"could not update UI lock for {rel}")
-          lock_path.write_text(lock, encoding="utf-8")
-
-          print("UI navigation cleanup applied")
-          PY
-
+      - name: Apply navigation cleanup
+        run: node apps/auralith-tauri/scripts/apply-ui-navigation-cleanup.mjs
       - name: Commit candidate cleanup
-        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/auralith-tauri/src/ui/App.tsx \
-                  apps/auralith-tauri/src/ui/styles.css \
-                  apps/auralith-tauri/vite.config.ts \
-                  apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs \
-                  .github/workflows/tauri-preview.yml
+          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/vite.config.ts apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs .github/workflows/tauri-preview.yml
           git commit -m "feat(reborn): clean navigation home and quality controls"
-
-      - name: Install and audit
+      - name: Install frontend
+        working-directory: apps/auralith-tauri
+        run: npm install
+      - name: Audit UI and quality
         working-directory: apps/auralith-tauri
         run: |
-          npm install
           node scripts/verify-ui-navigation.mjs
           node scripts/verify-quality-system.mjs
-
-      - name: Build frontend before push
+      - name: Build frontend
         working-directory: apps/auralith-tauri
         run: npm run build
-
       - name: Re-run audits after build transforms
         working-directory: apps/auralith-tauri
         run: |
           node scripts/verify-ui-navigation.mjs
           node scripts/verify-quality-system.mjs
-
       - name: Push validated cleanup
-        shell: bash
         run: git push origin HEAD:tauri/auralith-reborn
