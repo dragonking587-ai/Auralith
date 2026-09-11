@@ -95,7 +95,6 @@ const FRAG = /* glsl */`
     vec3 col = uColorA;
 
     if (uMode < 1.5) {
-      // Glow Bloom: soft emissive core with broad photographic falloff.
       float pulse = 0.88 + uBass * 0.20 + uBeat * 0.20;
       float core = exp(-r * r * (10.0 + p1 * 9.0));
       float inner = exp(-r * (4.0 + p1 * 2.4));
@@ -105,7 +104,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(inner + core, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 2.5) {
-      // Halo: clean annulus with inner/outer corona and beat breathing.
       float radius = 0.43 + 0.09 * sin(t * (0.7 + p0 * 1.4)) + uBeat * 0.035;
       float d = abs(r - radius);
       float ring = exp(-d * (54.0 + p1 * 64.0));
@@ -115,7 +113,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(corona + ring, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 3.5) {
-      // Light Rays: fan of soft radial rays with subtle independent motion.
       float rays = 0.0;
       for (int i = 0; i < 7; i++) {
         float fi = float(i);
@@ -132,19 +129,17 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(rays * 0.45 + source, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 4.5) {
-      // God Rays: crepuscular shafts with density variation and broad falloff.
       float angular = ang / 6.2831853 + 0.5;
       float bands = noise21(vec2(angular * (16.0 + p1 * 18.0), floor(t * 0.18))) * 0.7 +
                     noise21(vec2(angular * (39.0 + p1 * 24.0), t * 0.08)) * 0.3;
       float shafts = smoothstep(0.54 - p2 * 0.08, 0.82, bands);
-      float radial = exp(-r * (1.25 + p0 * 0.35)) * smoothstep(1.35, 0.10, r);
+      float radial = exp(-r * (1.25 + p0 * 0.35)) * (1.0 - smoothstep(0.10, 1.35, r));
       float source = exp(-r * 8.0);
       intensity = (shafts * radial * 0.75 + source) * (0.22 + drive * 0.60 + uLow * 0.12 + uMid * 0.12);
       hot = clamp(source + shafts * 0.12, 0.0, 1.0);
       col = mix(uColorB, uColorA, shafts);
       col = mix(col, uColorC, hot);
     } else if (uMode < 5.5) {
-      // Lens Flare: source bloom, anamorphic streak and lens-element ghosts.
       float source = exp(-r * r * (18.0 + p1 * 10.0));
       float streak = exp(-abs(q.y) * (72.0 + p1 * 60.0)) * exp(-abs(q.x) * (1.4 + p2));
       float ghosts = 0.0;
@@ -161,7 +156,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(source + streak * 0.3, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 6.5) {
-      // Starburst: diffraction spikes with hot central point.
       float spokes = starSpark(q, 28.0 + p1 * 38.0);
       float radial = exp(-r * (5.0 + p2 * 4.0));
       float core = exp(-r * r * 42.0);
@@ -170,7 +164,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(spokes * 0.5 + core, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 7.5) {
-      // Spotlight: soft cone with inverse-distance style attenuation.
       float yy = (q.y + 1.0) * 0.5;
       float coneHalf = mix(0.10, 0.62, clamp(0.28 + p1 * 0.28, 0.0, 1.0)) * max(yy, 0.03);
       float edge = 1.0 - smoothstep(coneHalf * 0.64, coneHalf, abs(q.x));
@@ -183,7 +176,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(cone + source, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 8.5) {
-      // Shimmer: fine specular bands that travel without becoming noisy glitter.
       float n = noise21(q * vec2(13.0 + p1 * 11.0, 19.0 + p1 * 9.0) + vec2(t * (0.7 + p0), -t * 0.43));
       float bands = pow(max(0.0, sin((q.x + q.y * 0.54) * (24.0 + p1 * 18.0) - t * (4.0 + p0 * 5.0))), 12.0);
       float spec = smoothstep(0.74 - p2 * 0.08, 0.95, n) * 0.65 + bands;
@@ -193,7 +185,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(spec, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 9.5) {
-      // Glitter Sparkle: discrete seeded glints, independently twinkling.
       float glitter = 0.0;
       float glow = 0.0;
       for (int i = 0; i < 12; i++) {
@@ -212,7 +203,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(glow + glitter * 0.15, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 10.5) {
-      // Neon Glow: crisp rounded sign-like edge with broad gas glow.
       float d = abs(sdBox(q, vec2(0.52, 0.30))) - 0.018;
       float tube = exp(-abs(d) * (78.0 + p1 * 52.0));
       float gas = exp(-abs(d) * (12.0 + p2 * 8.0));
@@ -222,7 +212,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(gas + tube, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 11.5) {
-      // Neon Chase: energized segments travel around a neon perimeter.
       float boxD = abs(sdBox(q, vec2(0.53, 0.31))) - 0.018;
       float tube = exp(-abs(boxD) * (72.0 + p1 * 45.0));
       float gas = exp(-abs(boxD) * (11.0 + p2 * 8.0));
@@ -233,7 +222,6 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(chase * 0.85 + tube * 0.25, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else {
-      // Prismatic Light: spectral fan with controlled color splitting and bloom.
       float fan = 1.0 - smoothstep(0.18 + p1 * 0.08, 0.52 + p1 * 0.18, abs(q.y) / max(q.x + 1.0, 0.12));
       fan *= smoothstep(-0.86, -0.10, q.x) * (1.0 - smoothstep(0.62, 1.02, q.x));
       float spectral = clamp((q.y / max(q.x + 1.15, 0.25)) * 1.6 + 0.5, 0.0, 1.0);
