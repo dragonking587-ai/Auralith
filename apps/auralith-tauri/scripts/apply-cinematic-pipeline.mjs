@@ -64,49 +64,54 @@ pipeline = replaceOnce(
   "effects-only overlay mode"
 );
 
-// Pulse / Energy Motion family.
-pipeline = replaceOnce(
-  pipeline,
-  'import { ThreeParticleLayer } from "./threeParticleLayer";',
-  'import { ThreeParticleLayer } from "./threeParticleLayer";\nimport { ThreePulseEnergyLayer } from "./threePulseEnergyLayer";',
-  "pulse/energy import"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '  private lightOpticalLayer: ThreeLightOpticalLayer;',
-  '  private lightOpticalLayer: ThreeLightOpticalLayer;\n  private pulseEnergyLayer: ThreePulseEnergyLayer;',
-  "pulse/energy property"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);',
-  '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);\n    this.pulseEnergyLayer = new ThreePulseEnergyLayer(this.scene);',
-  "pulse/energy initialization"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical passes=bloom,chromatic,vignette,grain,color-output");',
-  '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical,pulse-energy passes=bloom,chromatic,vignette,grain,color-output");',
-  "pulse/energy status"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '  "LightSurge", "GlowBloom", "Afterglow", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
-  '  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow", "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple", "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
-  "pulse/energy bloom routing"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
-  '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);\n    this.pulseEnergyLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
-  "pulse/energy frame update"
-);
-pipeline = replaceOnce(
-  pipeline,
-  '    this.lightOpticalLayer.dispose();',
-  '    this.lightOpticalLayer.dispose();\n    this.pulseEnergyLayer.dispose();',
-  "pulse/energy dispose"
-);
+// Pulse / Energy Motion family. Skip these intermediate transforms if the final
+// all-family wiring is already present. Tauri invokes the frontend build twice
+// during packaging, so this script must be safely repeatable.
+const finalPipelineAlreadyWired = pipeline.includes('private colorDigitalLayer: ThreeColorDigitalLayer;');
+if (!finalPipelineAlreadyWired) {
+  pipeline = replaceOnce(
+    pipeline,
+    'import { ThreeParticleLayer } from "./threeParticleLayer";',
+    'import { ThreeParticleLayer } from "./threeParticleLayer";\nimport { ThreePulseEnergyLayer } from "./threePulseEnergyLayer";',
+    "pulse/energy import"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '  private lightOpticalLayer: ThreeLightOpticalLayer;',
+    '  private lightOpticalLayer: ThreeLightOpticalLayer;\n  private pulseEnergyLayer: ThreePulseEnergyLayer;',
+    "pulse/energy property"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);',
+    '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);\n    this.pulseEnergyLayer = new ThreePulseEnergyLayer(this.scene);',
+    "pulse/energy initialization"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical passes=bloom,chromatic,vignette,grain,color-output");',
+    '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical,pulse-energy passes=bloom,chromatic,vignette,grain,color-output");',
+    "pulse/energy status"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '  "LightSurge", "GlowBloom", "Afterglow", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
+    '  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow", "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple", "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
+    "pulse/energy bloom routing"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
+    '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);\n    this.pulseEnergyLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
+    "pulse/energy frame update"
+  );
+  pipeline = replaceOnce(
+    pipeline,
+    '    this.lightOpticalLayer.dispose();',
+    '    this.lightOpticalLayer.dispose();\n    this.pulseEnergyLayer.dispose();',
+    "pulse/energy dispose"
+  );
+}
 
 // Final 24 selectable effects, split into four dedicated families.
 pipeline = replaceOnce(
@@ -148,23 +153,26 @@ pipeline = replaceOnce(
 fs.writeFileSync(pipelinePath, pipeline);
 
 let cinematic = fs.readFileSync(cinematicPath, "utf8");
-cinematic = replaceOnce(
-  cinematic,
-  'const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
-  'const THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);\n\nconst THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
-  "pulse/energy native kind set"
-);
+const finalCinematicAlreadyWired = cinematic.includes('const THREE_COLOR_DIGITAL_KINDS = new Set<EffectKind>([');
+if (!finalCinematicAlreadyWired) {
+  cinematic = replaceOnce(
+    cinematic,
+    'const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
+    'const THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);\n\nconst THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
+    "pulse/energy native kind set"
+  );
+  cinematic = replaceOnce(
+    cinematic,
+    '    THREE_LIGHT_OPTICAL_KINDS.has(kind);',
+    '    THREE_LIGHT_OPTICAL_KINDS.has(kind) ||\n    THREE_PULSE_ENERGY_KINDS.has(kind);',
+    "pulse/energy native routing"
+  );
+}
 cinematic = replaceOnce(
   cinematic,
   'const THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);\n\nconst THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
   'const THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);\n\nconst THREE_COLOR_DIGITAL_KINDS = new Set<EffectKind>([\n  "HueShift", "ChromaticPulse", "GlitchLight", "Kaleidoscope", "MirrorFracture",\n  "PixelDissolve", "ScanlinePulse", "RgbSplit", "FilmBurn"\n]);\n\nconst THREE_SHADOW_DARK_KINDS = new Set<EffectKind>([\n  "ShadowPulse", "RoomDim", "LocalDim", "ContrastSurge", "ShadowTendrils", "Eclipse", "GravityWell"\n]);\n\nconst THREE_ICE_SYMBOL_KINDS = new Set<EffectKind>([\n  "FrostIce", "CrystalGrowth", "IceShimmer", "RuneGlow", "SigilActivation"\n]);\n\nconst THREE_ENVIRONMENT_FINAL_KINDS = new Set<EffectKind>([\n  "RealisticFlame", "Rain", "CelestialStars"\n]);\n\nconst THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([',
   "final native kind sets"
-);
-cinematic = replaceOnce(
-  cinematic,
-  '    THREE_LIGHT_OPTICAL_KINDS.has(kind);',
-  '    THREE_LIGHT_OPTICAL_KINDS.has(kind) ||\n    THREE_PULSE_ENERGY_KINDS.has(kind);',
-  "pulse/energy native routing"
 );
 cinematic = replaceOnce(
   cinematic,
