@@ -1,0 +1,21 @@
+{
+  "manifest": {
+    "format": 1,
+    "id": "obsidianwolf.storm-fang",
+    "name": "Storm Fang",
+    "author": "Obsidian Wolf",
+    "version": "1.0.0",
+    "description": "Layered lightning, electric crawl, thunder flashes and cold bloom for a violent storm-charged effect.",
+    "category": "Electric",
+    "tags": ["lightning", "storm", "electric", "impact"],
+    "collection": "Obsidian Wolf Effects Collection",
+    "minAuralithVersion": "1.0.0-rc.49.3.7",
+    "recommendedQuality": "High"
+  },
+  "effects": [
+    {"id":"ow-storm-arc","kind":"LightningArc","intensity":0.9,"opacity":0.96,"audio":"Transient","audioInfluence":0.9,"color":"#bde8ff","color2":"#5a7dff","color3":"#ffffff","p0":0.7,"p1":0.48,"p2":0.78},
+    {"id":"ow-storm-crawl","kind":"ElectricCrawl","intensity":0.66,"opacity":0.86,"audio":"High","audioInfluence":0.72,"speed":1.18,"color":"#77cfff","color2":"#2c5cff"},
+    {"id":"ow-storm-flash","kind":"ThunderFlash","intensity":0.5,"opacity":0.72,"audio":"Beat","audioInfluence":0.82,"color":"#e8f8ff","color2":"#9ddcff"},
+    {"id":"ow-storm-bloom","kind":"GlowBloom","intensity":0.34,"opacity":0.62,"audio":"High","audioInfluence":0.4,"color":"#69bfff","color2":"#bfeaff"}
+  ]
+}
