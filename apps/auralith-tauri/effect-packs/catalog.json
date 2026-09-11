@@ -1,0 +1,72 @@
+{
+  "format": 1,
+  "title": "Auralith Effect Pack Library",
+  "updated": "2026-09-11",
+  "packs": [
+    {
+      "id": "obsidianwolf.inferno-aura",
+      "name": "Inferno Aura",
+      "author": "Obsidian Wolf",
+      "version": "1.0.0",
+      "description": "Natural fire, heat shimmer, embers, bloom and transient sparks layered into one aggressive fire aura.",
+      "category": "Fire",
+      "tags": ["fire", "embers", "heat", "aura"],
+      "collection": "Obsidian Wolf Effects Collection",
+      "minAuralithVersion": "1.0.0-rc.49.3.7",
+      "recommendedQuality": "High",
+      "downloadUrl": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/tauri/auralith-reborn/apps/auralith-tauri/effect-packs/obsidian-wolf-inferno-aura.aurapack"
+    },
+    {
+      "id": "obsidianwolf.void-howl",
+      "name": "Void Howl",
+      "author": "Obsidian Wolf",
+      "version": "1.0.0",
+      "description": "Deep violet void energy surrounded by spectral aura, shadow breathing and reactive energy sparks.",
+      "category": "Dark Magic",
+      "tags": ["void", "dark", "magic", "wolf"],
+      "collection": "Obsidian Wolf Effects Collection",
+      "minAuralithVersion": "1.0.0-rc.49.3.7",
+      "recommendedQuality": "High",
+      "downloadUrl": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/tauri/auralith-reborn/apps/auralith-tauri/effect-packs/obsidian-wolf-void-howl.aurapack"
+    },
+    {
+      "id": "obsidianwolf.storm-fang",
+      "name": "Storm Fang",
+      "author": "Obsidian Wolf",
+      "version": "1.0.0",
+      "description": "Layered lightning, electric crawl, thunder flashes and cold bloom for a violent storm-charged effect.",
+      "category": "Electric",
+      "tags": ["lightning", "storm", "electric", "impact"],
+      "collection": "Obsidian Wolf Effects Collection",
+      "minAuralithVersion": "1.0.0-rc.49.3.7",
+      "recommendedQuality": "High",
+      "downloadUrl": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/tauri/auralith-reborn/apps/auralith-tauri/effect-packs/obsidian-wolf-storm-fang.aurapack"
+    },
+    {
+      "id": "obsidianwolf.blood-moon-ritual",
+      "name": "Blood Moon Ritual",
+      "author": "Obsidian Wolf",
+      "version": "1.0.0",
+      "description": "A dark eclipse and rune stack with red atmospheric haze and living shadow tendrils.",
+      "category": "Ritual",
+      "tags": ["blood moon", "eclipse", "runes", "dark"],
+      "collection": "Obsidian Wolf Effects Collection",
+      "minAuralithVersion": "1.0.0-rc.49.3.7",
+      "recommendedQuality": "High",
+      "downloadUrl": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/tauri/auralith-reborn/apps/auralith-tauri/effect-packs/obsidian-wolf-blood-moon-ritual.aurapack"
+    },
+    {
+      "id": "obsidianwolf.frostbite-wolf",
+      "name": "Frostbite Wolf",
+      "author": "Obsidian Wolf",
+      "version": "1.0.0",
+      "description": "Layered frost growth, crystalline shimmer and frozen breath with sharp high-frequency sparkle.",
+      "category": "Ice",
+      "tags": ["ice", "frost", "crystal", "cold"],
+      "collection": "Obsidian Wolf Effects Collection",
+      "minAuralithVersion": "1.0.0-rc.49.3.7",
+      "recommendedQuality": "High",
+      "downloadUrl": "https://raw.githubusercontent.com/dragonking587-ai/Auralith/tauri/auralith-reborn/apps/auralith-tauri/effect-packs/obsidian-wolf-frostbite-wolf.aurapack"
+    }
+  ]
+}
