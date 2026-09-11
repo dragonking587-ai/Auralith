@@ -1,0 +1,37 @@
+name: Sync Auralith Reborn Lockfile
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - ".github/workflows/sync-reborn-lock.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  sync-lock:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Regenerate package-lock.json
+        working-directory: apps/auralith-tauri
+        run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Commit lockfile if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- apps/auralith-tauri/package-lock.json; then
+            echo "package-lock.json already current"
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/auralith-tauri/package-lock.json
+          git commit -m "chore(reborn): sync frontend package lock"
+          git push origin HEAD:tauri/auralith-reborn
