@@ -17,8 +17,16 @@ const THREE_ELECTRICAL_KINDS = new Set<EffectKind>([
   "EnergyBeam", "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser"
 ]);
 
+const THREE_DISTORTION_KINDS = new Set<EffectKind>([
+  "HeatDistortion", "Refraction", "WaterRipple", "Caustics", "WetReflection",
+  "WaterReflection", "SpatialWarp", "HolographicDistortion"
+]);
+
 function isThreeKind(kind: EffectKind) {
-  return THREE_PARTICLE_KINDS.has(kind) || THREE_VOLUMETRIC_KINDS.has(kind) || THREE_ELECTRICAL_KINDS.has(kind);
+  return THREE_PARTICLE_KINDS.has(kind) ||
+    THREE_VOLUMETRIC_KINDS.has(kind) ||
+    THREE_ELECTRICAL_KINDS.has(kind) ||
+    THREE_DISTORTION_KINDS.has(kind);
 }
 
 function isThreeNativePlacement(region: Region, effect: EffectInstance) {
@@ -43,18 +51,15 @@ function nativeProject(project: Project): { project: Project; count: number } {
 }
 
 /**
- * Compatibility-first cinematic renderer for rc.49.3.1.
+ * Compatibility-first cinematic renderer for the rc.49 line.
  *
  * The proven rc.49 WebGL renderer always owns the visible base canvas and draws
  * the backdrop, props and every effect. Three.js owns a completely separate
- * transparent WebGL2 canvas layered above it. Migrated particle/volumetric/
- * electrical effects therefore enhance the rc.49 rendering instead of replacing it.
+ * transparent WebGL2 canvas layered above it. Migrated particle, volumetric,
+ * electrical and distortion effects therefore enhance rc.49 rather than replace it.
  *
- * This isolation is intentional: sharing a WebGL context between raw WebGL and
- * THREE.WebGLRenderer lets either renderer invalidate the other's programs,
- * buffers, textures, framebuffer bindings and pixel-store state. Keeping the
- * contexts separate guarantees that a cinematic failure cannot blank the image
- * or remove an effect.
+ * The distortion family samples the completed base canvas as a read-only texture.
+ * No WebGL programs, buffers, textures or state are shared between contexts.
  */
 export class GlRenderer {
   private legacy: LegacyGlRenderer;
@@ -101,8 +106,8 @@ export class GlRenderer {
     }
 
     try {
-      this.pipeline = new CinematicPipelineV2(this.overlayCanvas, gl);
-      console.log("CINEMATIC_PIPELINE_ISOLATED_OK base=rc49 overlay=three.js");
+      this.pipeline = new CinematicPipelineV2(this.overlayCanvas, gl, canvas);
+      console.log("CINEMATIC_PIPELINE_ISOLATED_OK base=rc49 overlay=three.js source=read-only-canvas-texture");
     } catch (error) {
       this.pipeline = null;
       this.overlayCanvas.style.display = "none";
@@ -138,7 +143,7 @@ export class GlRenderer {
   ) {
     // Always draw the complete project through rc.49 first. This is the safety
     // underlay and guarantees backdrop/prop/effect visibility even if Three.js
-    // cannot initialize, compile or render on a particular GPU.
+    // cannot initialize, compile, sample the base canvas or render on a GPU.
     this.legacy.draw(project, snapshot, cssW, cssH, viewCss, colorOverrides, reactions);
     this.fps = this.legacy.fps;
     this.lastW = this.legacy.lastW;
@@ -164,8 +169,6 @@ export class GlRenderer {
 
     try {
       this.pipeline.prepareSize(width, height);
-      // The cinematic context contains effects only. Clearing before the
-      // pipeline's framebuffer copy prevents feedback/old-frame contamination.
       this.clearOverlay();
       this.pipeline.render(snapshot, project, viewport, colorOverrides, native.project);
       this.overlayCanvas.style.display = "block";
