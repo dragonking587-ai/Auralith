@@ -22,11 +22,17 @@ const THREE_DISTORTION_KINDS = new Set<EffectKind>([
   "WaterReflection", "SpatialWarp", "HolographicDistortion"
 ]);
 
+const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([
+  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",
+  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"
+]);
+
 function isThreeKind(kind: EffectKind) {
   return THREE_PARTICLE_KINDS.has(kind) ||
     THREE_VOLUMETRIC_KINDS.has(kind) ||
     THREE_ELECTRICAL_KINDS.has(kind) ||
-    THREE_DISTORTION_KINDS.has(kind);
+    THREE_DISTORTION_KINDS.has(kind) ||
+    THREE_LIGHT_OPTICAL_KINDS.has(kind);
 }
 
 function isThreeNativePlacement(region: Region, effect: EffectInstance) {
@@ -56,7 +62,8 @@ function nativeProject(project: Project): { project: Project; count: number } {
  * The proven rc.49 WebGL renderer always owns the visible base canvas and draws
  * the backdrop, props and every effect. Three.js owns a completely separate
  * transparent WebGL2 canvas layered above it. Migrated particle, volumetric,
- * electrical and distortion effects therefore enhance rc.49 rather than replace it.
+ * electrical, distortion and optical effects therefore enhance rc.49 rather
+ * than replace it.
  *
  * The distortion family samples the completed base canvas as a read-only texture.
  * No WebGL programs, buffers, textures or state are shared between contexts.
