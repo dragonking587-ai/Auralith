@@ -6,6 +6,7 @@ import { UnrealBloomPass } from "three/addons/postprocessing/UnrealBloomPass.js"
 import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectKind, Project } from "../scene/types";
+import { ThreeDistortionLayer } from "./threeDistortionLayer";
 import { ThreeElectricalLayer } from "./threeElectricalLayer";
 import { ThreeParticleLayer } from "./threeParticleLayer";
 import { ThreeVolumetricLayer } from "./threeVolumetricLayer";
@@ -87,16 +88,17 @@ const BLOOM_FRIENDLY = new Set<EffectKind>([
   "MagicEnergy", "Plasma", "VoidEnergy", "Portal", "EnergyBeam", "EnergySparks", "SpectralAura",
   "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser", "RealisticFlame", "Embers", "Sparks",
   "NeonGlow", "NeonChase", "Shimmer", "GlitterSparkle", "Aurora", "IceShimmer", "Fireflies",
-  "BioluminescentSpores", "RuneGlow", "SigilActivation", "Eclipse", "CelestialStars", "CosmicNebula", "SmartNeon"
+  "BioluminescentSpores", "RuneGlow", "SigilActivation", "Eclipse", "CelestialStars", "CosmicNebula", "SmartNeon",
+  "Caustics", "WaterRipple", "WetReflection", "WaterReflection"
 ]);
 const CHROMATIC_FRIENDLY = new Set<EffectKind>([
   "ChromaticPulse", "PrismaticLight", "HolographicDistortion", "GlitchLight", "RgbSplit", "Refraction", "SpatialWarp"
 ]);
 const ATMOSPHERIC = new Set<EffectKind>([
-  "SmokeFog", "Mist", "AtmosphericHaze", "Aurora", "CosmicNebula", "FilmBurn", "VoidEnergy", "Eclipse", "FrozenBreath"
+  "SmokeFog", "Mist", "AtmosphericHaze", "Aurora", "CosmicNebula", "FilmBurn", "VoidEnergy", "Eclipse", "FrozenBreath", "HeatDistortion"
 ]);
 const DARK_FOCUS = new Set<EffectKind>([
-  "VoidEnergy", "Portal", "ShadowPulse", "RoomDim", "LocalDim", "Eclipse", "GravityWell", "CosmicNebula", "FilmBurn"
+  "VoidEnergy", "Portal", "ShadowPulse", "RoomDim", "LocalDim", "Eclipse", "GravityWell", "CosmicNebula", "FilmBurn", "SpatialWarp"
 ]);
 
 type SmoothedAudio = Pick<AudioSnapshot, "bass" | "low" | "mid" | "high" | "beat" | "transient">;
@@ -117,6 +119,8 @@ function containsAny(source: Set<EffectKind>, candidates: Set<EffectKind>) {
  * Auralith cinematic renderer generation 2.
  * rc.49 remains the compatibility/source pass, while migrated effect families
  * render as dedicated Three.js GPU layers before HDR bloom/post processing.
+ * Distortion effects receive the legacy canvas only as a CanvasTexture source;
+ * no WebGL state or GPU objects are shared with the base renderer.
  */
 export class CinematicPipelineV2 {
   private renderer: THREE.WebGLRenderer;
@@ -125,6 +129,7 @@ export class CinematicPipelineV2 {
   private particleLayer: ThreeParticleLayer;
   private volumetricLayer: ThreeVolumetricLayer;
   private electricalLayer: ThreeElectricalLayer;
+  private distortionLayer: ThreeDistortionLayer;
   private frameTexture: THREE.FramebufferTexture;
   private sourceMaterial: THREE.MeshBasicMaterial;
   private bloomPass: UnrealBloomPass;
@@ -138,7 +143,11 @@ export class CinematicPipelineV2 {
   private failures = 0;
   enabled = true;
 
-  constructor(private canvas: HTMLCanvasElement, private gl: WebGL2RenderingContext) {
+  constructor(
+    private canvas: HTMLCanvasElement,
+    private gl: WebGL2RenderingContext,
+    sourceCanvas: HTMLCanvasElement,
+  ) {
     this.renderer = new THREE.WebGLRenderer({
       canvas,
       context: gl,
@@ -172,6 +181,7 @@ export class CinematicPipelineV2 {
     quad.renderOrder = -100;
     this.scene.add(quad);
 
+    this.distortionLayer = new ThreeDistortionLayer(this.scene, sourceCanvas);
     this.volumetricLayer = new ThreeVolumetricLayer(this.scene);
     this.particleLayer = new ThreeParticleLayer(this.scene);
     this.electricalLayer = new ThreeElectricalLayer(this.scene);
@@ -199,7 +209,7 @@ export class CinematicPipelineV2 {
     this.composer.addPass(this.finishPass);
     this.composer.addPass(new OutputPass());
 
-    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=volumetric,particle,electrical passes=bloom,chromatic,vignette,grain,color-output");
+    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical passes=bloom,chromatic,vignette,grain,color-output");
   }
 
   private makeFrameTexture(w: number, h: number) {
@@ -278,6 +288,7 @@ export class CinematicPipelineV2 {
     this.smoothAudio(snapshot);
     this.tune(fullProject);
 
+    this.distortionLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
     this.volumetricLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
     this.particleLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
     this.electricalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
@@ -309,6 +320,7 @@ export class CinematicPipelineV2 {
   }
 
   dispose() {
+    this.distortionLayer.dispose();
     this.electricalLayer.dispose();
     this.volumetricLayer.dispose();
     this.particleLayer.dispose();
