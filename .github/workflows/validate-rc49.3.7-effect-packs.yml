@@ -1,0 +1,50 @@
+name: Validate RC49.3.7 Effect Pack Library
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - ".github/workflows/validate-rc49.3.7-effect-packs.yml"
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: apps/auralith-tauri
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Install frontend
+        run: npm install
+      - name: Audit UI, quality, and effect pack libraries
+        run: |
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+      - name: Build frontend
+        run: npm run build
+      - name: Build virtual camera DLL
+        working-directory: apps/auralith-tauri/vcam
+        shell: pwsh
+        run: |
+          $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+          $vs = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          $vcvars = Join-Path $vs "VC\Auxiliary\Build\vcvars64.bat"
+          cmd /c "`"$vcvars`" && cl /nologo /LD /EHsc /O2 /DUNICODE /D_UNICODE auralith_reborn_vcam.cpp /link /DEF:auralith_reborn_vcam.def strmiids.lib ole32.lib oleaut32.lib uuid.lib kernel32.lib user32.lib advapi32.lib"
+      - name: Stage virtual camera DLL
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force src-tauri/resources | Out-Null
+          Copy-Item vcam/auralith_reborn_vcam.dll src-tauri/resources/ -Force
+      - name: Build Tauri NSIS installer
+        env:
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
+        run: npx tauri build --bundles nsis
