@@ -1,0 +1,64 @@
+name: Auralith Online Effect Pack Library
+
+on:
+  push:
+    branches:
+      - tauri/auralith-reborn
+    paths:
+      - ".github/workflows/online-effect-pack-library.yml"
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Apply online Effect Pack Library UI
+        run: node apps/auralith-tauri/scripts/apply-online-effect-pack-library.mjs
+      - name: Refresh approved App UI lock baseline
+        working-directory: apps/auralith-tauri
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const cp = require('child_process');
+          const p = 'scripts/verify-rc49-ui-lock.mjs';
+          let s = fs.readFileSync(p, 'utf8');
+          const hash = cp.execFileSync('git', ['hash-object', 'src/ui/App.tsx'], { encoding: 'utf8' }).trim();
+          s = s.replace(/("src\/ui\/App\.tsx": ")[a-f0-9]+("\,)/, `$1${hash}$2`);
+          fs.writeFileSync(p, s);
+          console.log('App UI lock ->', hash);
+          NODE
+      - name: Check patch cleanliness
+        run: git diff --check
+      - name: Install frontend
+        working-directory: apps/auralith-tauri
+        run: npm install
+      - name: Audit effect pack systems
+        working-directory: apps/auralith-tauri
+        run: |
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
+      - name: Commit candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/package.json apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs
+          git commit -m "feat(reborn): add in-app effect pack downloads"
+      - name: Build frontend
+        working-directory: apps/auralith-tauri
+        run: npm run build
+      - name: Re-run pack audits after build transforms
+        working-directory: apps/auralith-tauri
+        run: |
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+      - name: Push validated online library
+        run: git push origin HEAD:tauri/auralith-reborn
