@@ -30,12 +30,19 @@ if (!app.includes("RC49_HOTFIX_SHAPES")) {
     "ShapeKind import"
   );
 
-  app = replaceOnce(
-    app,
-    'const APP_VERSION = "1.0.0-rc.44";',
-    'const APP_VERSION = "1.0.0-rc.49.1";',
-    "runtime version"
-  );
+  // Older rc.49 sources hard-coded rc.44 here. Newer Reborn builds source the
+  // version from package.json through Vite so the UI/updater cannot drift.
+  if (app.includes('const APP_VERSION = "1.0.0-rc.44";')) {
+    app = app.replace(
+      'const APP_VERSION = "1.0.0-rc.44";',
+      'const APP_VERSION = "1.0.0-rc.49.1";'
+    );
+  } else if (
+    !app.includes('const APP_VERSION = __AURALITH_VERSION__;') &&
+    !app.includes('const APP_VERSION = "1.0.0-rc.49.1";')
+  ) {
+    throw new Error("[rc.49.1 hotfix] could not find supported runtime version source");
+  }
 
   app = replaceOnce(
     app,

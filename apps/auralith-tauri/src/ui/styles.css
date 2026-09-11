@@ -395,3 +395,15 @@ canvas#gl {
   .stage { grid-template-columns:1fr; }
   .side { position:absolute; right:0; top:0; bottom:0; width:min(360px,88vw); z-index:20; box-shadow:-14px 0 40px rgba(0,0,0,.5); }
 }
+
+
+/* UI_NAV_CLEANUP_V1 */
+.canvas-wrap.management-hidden { display: none !important; }
+.side.management-page { flex: 1 1 auto; width: 100%; max-width: none; border-left: 0; }
+.page-title { justify-content: flex-start; padding: 10px 14px; letter-spacing: .08em; }
+.home-pane { padding: 18px; }
+.home-hero { margin-bottom: 16px; }
+.home-hero h2 { margin: 0 0 6px; }
+.home-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 14px; align-items: start; }
+.home-grid .card { min-width: 0; }
+@media (max-width: 760px) { .home-grid { grid-template-columns: 1fr; } }

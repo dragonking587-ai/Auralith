@@ -16,7 +16,7 @@ if (app.includes("RC49_HOTFIX_SHAPES")) {
 }
 
 const locked = {
-  "src/ui/App.tsx": "93121f4b4fcd45d11761fcb88344eebf996e6476",
+  "src/ui/App.tsx": "9c3a3022a5f18e10aa372d35fedc063d6d1d7e21",
   "src/ui/HelpOverlay.tsx": "0df3ac17d5fca4c774e957340804b71fc1c25a51",
   "src/ui/HostPage.tsx": "ee11ca39ddf74b9088a189c18fd2f39f50ca18ae",
   "src/ui/QrPanel.tsx": "76ed933b176ef51da6a029d4d45f895cadb99154",
@@ -26,7 +26,7 @@ const locked = {
   "src/ui/helpContent.ts": "2bef40cacea5a596accd4d9dd066a50588e06a1f",
   "src/ui/reference-layout.css": "6f5feb1a058ff4845d5505bb768891034dbf26c3",
   "src/ui/referenceChrome.ts": "6186875b47f0fde2d6d47002c68f74741c3d999b",
-  "src/ui/styles.css": "8f83fa67fdb0287414ffcba4b3f71747e385d668",
+  "src/ui/styles.css": "376f6661bfcebbdbf09d2f6239bd90601b1ed663",
   "index.html": "cb312fe13483d53582c0f9e1511d1258bdf69741",
   "src/main.tsx": "5924fb5d8dff93501e70c2aadeb821b1604ca228"
 };

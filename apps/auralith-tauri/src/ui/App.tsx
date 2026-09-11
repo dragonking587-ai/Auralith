@@ -30,7 +30,8 @@ import { HelpOverlay, Hint, setTutorialDone, tutorialDone } from "./HelpOverlay"
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
-const APP_VERSION = "1.0.0-rc.44";
+declare const __AURALITH_VERSION__: string;
+const APP_VERSION = __AURALITH_VERSION__;
 const POLL_BUS = "auralith.poll.bus";
 const PARAM_LABELS: Record<string, [string, string, string]> = {
   VoidEnergy: ["Void Size", "Tendril Reach", "Tendril Count"],
@@ -136,6 +137,8 @@ function parseVcam(raw: unknown): VcamUi {
   return fallback;
 }
 
+type AppPage = "home" | "editor" | "audio" | "output" | "server" | "devices" | "settings";
+
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -202,7 +205,7 @@ export function App() {
   const [updateDetails, setUpdateDetails] = useState("");
   const [showUpdateDetails, setShowUpdateDetails] = useState(false);
   const pendingUpdateRef = useRef<any>(null);
-  const [tab, setTab] = useState<"effects"|"audio"|"output"|"settings">("output");
+  const [tab, setTab] = useState<AppPage>("home");
   const [activity, setActivity] = useState<string[]>([]);
   const logAct = (msg: string) => setActivity((rows) => [`${new Date().toLocaleTimeString()}  ${msg}`, ...rows].slice(0, 40));
   const [helpMode, setHelpMode] = useState<"off" | "welcome" | "tour" | "help">(() => tutorialDone() ? "off" : "welcome");
@@ -894,7 +897,8 @@ export function App() {
 
   const applyLoadedProject = (p: Project) => {
     if (p.version !== 1) throw new Error("unsupported project");
-    setProject(p);
+    const validQuality: Project["quality"] = (["Low","Medium","High","Ultra"] as const).includes(p.quality as any) ? p.quality : "High";
+    setProject({ ...p, quality: validQuality });
     setPollCfg(p.poll || defaultPollConfig());
     setPollRt(defaultPollRuntime());
     pollVotes.current = new Map();
@@ -969,6 +973,7 @@ export function App() {
 
   const selected = project.regions.find((r) => r.id === sel);
   const clean = view === "CleanCapture";
+  const managementPage = tab === "home" || tab === "server" || tab === "devices" || tab === "settings";
   const snap = audio.snapshot;
   const filteredFx = ALL_EFFECTS.filter((k) => !fxQuery || k.toLowerCase().includes(fxQuery.toLowerCase()));
   const patchFx = (id: string, patch: Record<string, unknown>) => {
@@ -1153,16 +1158,15 @@ export function App() {
         <button className="gold" onClick={() => setView("CleanCapture")}>Clean Capture</button>
       </div>
       <div className={`nav ${clean ? "hidden" : ""}`}>
-        {[
-          ["output","Home"],["effects","Editor"],["effects","Effects"],["effects","Scenes"],
-          ["audio","Audio"],["output","Output"],["output","Server"],["output","Devices"],["settings","About"]
-        ].map(([id,label]) => (
-          <button key={label} className={tab===id && ((label==="Home"||label==="Server"||label==="Devices"||label==="Output") ? tab==="output" : tab===id) ? "on" : (tab===id && (label==="Editor"||label==="Effects"||label==="Scenes") ? "on" : tab===id ? "on" : "")}
-            onClick={()=>setTab(id as typeof tab)}>{label}</button>
+        {([
+          ["home","Home"],["editor","Editor"],["audio","Audio"],["output","Output"],
+          ["server","Server"],["devices","Devices"],["settings","Settings"]
+        ] as const).map(([id,label]) => (
+          <button key={id} className={tab===id ? "on" : ""} onClick={()=>setTab(id)}>{label}</button>
         ))}
       </div>
       <div className={`stage ${clean ? "clean" : ""}`}>
-        <div className="canvas-wrap" ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
+        <div className={`canvas-wrap ${managementPage ? "management-hidden" : ""}`} ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
           <canvas id="gl" ref={canvasRef} />
           {!clean && project.showMarkers && view === "Edit" && (
             <div className="overlay">
@@ -1272,14 +1276,58 @@ export function App() {
             <div className="statusstrip">{project.width}×{project.height} · {view} · Audio {audio.status} · {selected?selected.effects.length:0} effects</div>
           )}
         </div>
-        <aside className={`side ${clean ? "hidden" : ""}`}>
-          <div className="tabs">
-            {(["effects","audio","output","settings"] as const).map((id)=>(
-              <button key={id} className={tab===id?"tab on":"tab"} onClick={()=>setTab(id)}>{id.toUpperCase()}</button>
-            ))}
+        <aside className={`side ${clean ? "hidden" : ""} ${managementPage ? "management-page" : ""}`}>
+          <div className="tabs page-title">
+            <strong>{tab === "home" ? "HOME" : tab === "editor" ? "EDITOR" : tab === "audio" ? "AUDIO" : tab === "output" ? "OUTPUT" : tab === "server" ? "SERVER" : tab === "devices" ? "DEVICES" : "SETTINGS"}</strong>
           </div>
 
-          {tab==="effects" && (
+          {tab==="home" && (
+            <div className="pane home-pane">
+              <div className="home-hero">
+                <h2>AURALITH REBORN</h2>
+                <p>Installed {APP_VERSION} · 80 reactive effects</p>
+                <div className="row">
+                  <button className="gold" onClick={()=>setTab("editor")}>Open Editor</button>
+                  <button onClick={()=>setHelpMode("tour")}>Start Tutorial</button>
+                  <button onClick={()=>{ setTab("settings"); setFbMsg(""); }}>Send Feedback</button>
+                </div>
+              </div>
+              <div className="home-grid">
+                <div className="card">
+                  <h3>WHAT'S NEW</h3>
+                  <p><strong>Complete 80-effect renderer coverage.</strong> All selectable effects are now covered by the current Reborn rendering stack with the rc.49 compatibility path retained.</p>
+                  <p>Particle, volumetric, electrical, optical, pulse/energy, digital, shadow, ice/symbol and environmental effect families are integrated.</p>
+                  <p className="muted">Effect visual tuning found during real-world testing can be corrected independently without redesigning the app.</p>
+                </div>
+                <div className="card">
+                  <h3>UPCOMING</h3>
+                  <p><strong>Next:</strong> Audio source and routing reliability.</p>
+                  <p>Planned: Loudman.live DJ-board bridge · transformable browser/web surfaces · Overlay Creator · custom wave visualizers · reactive image regions · optional Unreal Engine bridge.</p>
+                  <p className="muted">Upcoming items are roadmap targets, not promises that a feature is already installed.</p>
+                </div>
+                <div className="card">
+                  <h3>UPDATES</h3>
+                  <p>Installed: {APP_VERSION}</p>
+                  {updateAvail && <p>Available: {updateAvail}</p>}
+                  {updateNotes && <pre className="notes">{updateNotes}</pre>}
+                  {updatePct && <p>{updatePct}</p>}
+                  {updateMsg && <p>{updateMsg}</p>}
+                  <div className="row">
+                    <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Check for Updates</button>
+                    {updateAvail && semverNewer(updateAvail, APP_VERSION) && (
+                      <button className="gold" disabled={updateBusy} onClick={()=>void installUpdate()}>Download &amp; Install</button>
+                    )}
+                    {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
+                    <button onClick={()=>window.open("https://github.com/dragonking587-ai/Auralith/releases","_blank")}>View Releases</button>
+                  </div>
+                  {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
+                  {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab==="editor" && (
             <div className="pane">
               <h3>MASTERS</h3>
               {selected && (selected.kind==="Shape" || selected.kind==="Prop") && (
@@ -1374,6 +1422,7 @@ export function App() {
               <label>Quality <select value={project.quality} onChange={(e)=>setProject({...project, quality: e.target.value as Project["quality"]})}>
                 {["Low","Medium","High","Ultra"].map((q)=><option key={q}>{q}</option>)}
               </select></label>
+              <p className="muted">Low = lightest workload · Medium = balanced · High = full detail · Ultra = maximum detail. Quality is saved with the project.</p>
               {false && <h3>EXPERIMENTAL TOOLS</h3>}
               {neonWarn && neonOpen && (
                 <div className="warnbox">
@@ -1564,22 +1613,75 @@ export function App() {
 
           {tab==="output" && (
             <div className="pane dash">
-              <h3>CLEAN OUTPUT</h3>
+<h3>CLEAN OUTPUT</h3>
               <button className="gold" onClick={() => setView("CleanCapture")}>Open Clean Capture</button>
               <button onClick={() => setView("Edit")}>Close Clean Capture</button>
               <p>{project.width}×{project.height} · F11 / ESC</p>
-              <h3>HOST INSTANCE</h3>
-              <label>Instance Name
-                <input value={instanceName} onChange={(e)=>setInstanceName(e.target.value.slice(0,40))} />
-              </label>
-              <button onClick={()=>{
-                const n = setInstanceDisplayName(instanceName);
-                setInstanceName(n);
-                relayRef.current.sendHost("set_instance_name", { name: n, hostInstanceId: hostId });
-              }}>Save Name</button>
-              <p>Fingerprint {hostFingerprint(hostId)}</p>
-              <p className="muted">Display name only. Tenant identity does not change when you rename.</p>
-              <h3>LIVE CONTROL</h3>
+              <h3>VIRTUAL CAMERA</h3>
+              <p>Device: Auralith Reborn Camera</p>
+              <p className={/ERROR/i.test(vcam.state)?"warn":"ok"}>Status: {vcam.state}</p>
+              {vcam.error && <p className="warn">{vcam.error}</p>}
+              <button disabled={vcamBusy || (vcam.installed && !/ERROR|NOT INSTALLED/i.test(vcam.state))} onClick={async ()=>{
+                console.log("UI_VCAM_INSTALL_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "INSTALLING" }));
+                try {
+                  const r = await invoke("vcam_install");
+                  console.log("UI_VCAM_INSTALL_OK", r);
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: st.installed || /READY|LIVE/i.test(st.state) ? "READY" : (st.state || "READY") });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_INSTALL_ERR", e);
+                  const msg = String(e);
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: false, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Install Virtual Camera</button>
+              <button disabled={vcamBusy || vcam.running || !(/READY|STOPPED/i.test(vcam.state) || vcam.installed)} onClick={async ()=>{
+                console.log("UI_VCAM_START_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "STARTING" }));
+                try {
+                  await invoke("vcam_start");
+                  vcamLive.current = true;
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: "LIVE", running: true });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_START_ERR", e);
+                  const msg = String(e);
+                  vcamLive.current = false;
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Start Virtual Camera</button>
+              <button disabled={vcamBusy || !(vcam.running || /LIVE|STARTING/i.test(vcam.state))} onClick={async ()=>{
+                console.log("UI_VCAM_STOP_CLICK");
+                if (vcamBusy) return;
+                setVcamBusy(true);
+                setVcam((s) => ({ ...s, state: "STOPPING" }));
+                try {
+                  vcamLive.current = false;
+                  await invoke("vcam_stop");
+                  const st = parseVcam(await invoke("vcam_status"));
+                  setVcam({ ...st, state: "STOPPED", running: false });
+                  setErr("");
+                } catch (e) {
+                  console.error("UI_VCAM_STOP_ERR", e);
+                  const msg = String(e);
+                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
+                  setErr(msg);
+                } finally { setVcamBusy(false); }
+              }}>Stop Virtual Camera</button>
+            </div>
+          )}
+
+          {tab==="server" && (
+            <div className="pane dash">
+<h3>LIVE CONTROL</h3>
               <p className="coach">Polls, reactions, and Fireworks are controlled in Auralith Host Console. This window stays the renderer and Public Server.</p>
               <p>Poll: {pollRt.running ? "LIVE" : "STOPPED"} · RED {pollRt.red} · GREEN {pollRt.green}</p>
               <p>Audience Reactions: {rxEngine.enabled ? "ENABLED" : "DISABLED"}</p>
@@ -1791,116 +1893,6 @@ export function App() {
                   )}
                 </>
               )}
-              <h4>HOST REMOTE</h4>
-              <p>Private Host QR for Auralith Remote. Never shown in Clean Capture.</p>
-              <label>Access Level
-                <select value={hostRole} onChange={(e)=>setHostRole(e.target.value as any)}>
-                  <option value="FULL_HOST">Full Host</option>
-                  <option value="POLL_MODERATOR">Poll Moderator</option>
-                  <option value="EFFECTS_OPERATOR">Effects Operator</option>
-                  <option value="REACTION_MODERATOR">Reaction Moderator</option>
-                </select>
-              </label>
-              <div className="row">
-                <button onClick={()=>{
-                  const s = relayRef.current.session;
-                  if (!s || relayStatus !== "ONLINE") {
-                    setRelayErr("Start Public Server first, then Generate Host QR.");
-                    return;
-                  }
-                  const origin = publicRelayOrigin(s.baseUrl || relayUrl);
-                  fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
-                    method:"POST",
-                    headers:{
-                      "content-type":"application/json",
-                      authorization:"Bearer "+s.hostToken
-                    },
-                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120, hostInstanceId: hostId })
-                  }).then(async (r)=>{
-                    const j = await r.json().catch(()=>({}));
-                    if (!r.ok) throw new Error(j.error || j.message || ("pairing failed HTTP "+r.status));
-                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
-                    const qrUrl = rewritePublicPairingUrl(origin, String(j.qrUrl || j.pairingUrl || ""), j.pairingId);
-                    if (!qrUrl || /tauri\.localhost|localhost|127\.0\.0\.1/i.test(qrUrl)) {
-                      throw new Error("Pairing URL was not a public Railway HTTPS address.");
-                    }
-                    setRelayErr("");
-                    setHostPair({ ...j, qrUrl });
-                    setShowHostQrModal(true);
-                  }).catch((e)=>setRelayErr("Host QR request failed: "+String(e?.message||e)+" — check Public Server is ONLINE and Railway is reachable."));
-                }}>Generate Host QR</button>
-                <Hint text="Host QR is PRIVATE. Never show it on stream. Short-lived, one-time, requires Approve." />
-                {relayErr && <p className="warn">{relayErr}</p>}
-                <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
-                <button onClick={()=>{
-                  setRemoteEnabled(true);
-                  relayRef.current.sendHost("enable_remote_host");
-                  setRelayErr("Remote host control is ON. Generate a new Host QR and Approve the Host Console again.");
-                }}>Enable All Remote Host Control</button>
-                <button onClick={()=>{ setRemoteEnabled(false); relayRef.current.sendHost("disable_remote_host"); }}>Disable All Remote Host Control</button>
-                <button onClick={()=>{ relayRef.current.sendHost("revoke_all"); setRemoteDevices([]); }}>Revoke All Devices</button>
-              </div>
-              {hostPair?.qrUrl && view !== "CleanCapture" && (
-                <div className="card">
-                  <p>HOST REMOTE PAIRING · {hostPair.role}</p>
-                  <div style={{ background: "#FFFFFF", padding: 8, width: 216 }}>
-                    <QrImage value={String(hostPair.qrUrl).trim()} size={200} alt="Host pairing QR" />
-                  </div>
-                  <p style={{ wordBreak: "break-all" }}>{hostPair.qrUrl}</p>
-                  <button onClick={()=>{ if (hostPair.qrUrl) navigator.clipboard.writeText(hostPair.qrUrl).catch(()=>{}); }}>Copy Host Pairing URL</button>
-                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste this URL into Host Console → PAIR WITH AURALITH, then Approve here.</p>
-                  <button onClick={()=>setShowHostQrModal(true)}>Show Host QR</button>
-                </div>
-              )}
-              {showHostQrModal && hostPair?.qrUrl && view !== "CleanCapture" && (
-                <QrModal
-                  title="HOST REMOTE PAIRING QR"
-                  value={String(hostPair.qrUrl).trim()}
-                  room={hostPair.role}
-                  onCopy={() => { navigator.clipboard.writeText(String(hostPair.qrUrl).trim()).catch(()=>{}); }}
-                  onClose={() => setShowHostQrModal(false)}
-                />
-              )}
-              {pendingRemote && (
-                <div className="card">
-                  <p>REMOTE HOST REQUEST</p>
-                  <p>Device: {pendingRemote.deviceDisplayName} · {pendingRemote.platform}</p>
-                  <p>Role: {pendingRemote.requestedRole}</p>
-                  <button onClick={()=>{
-                    const s = relayRef.current.session;
-                    if (!s) { setRelayErr("Public Server is offline. Start it, then Approve."); return; }
-                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
-                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
-                      method:"POST",
-                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                      body: JSON.stringify({ action:"approve_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
-                    }).then(async (r)=>{
-                      const j = await r.json().catch(()=>({}));
-                      if (!r.ok) throw new Error(j.error || ("approve failed HTTP "+r.status));
-                      setPendingRemote(null);
-                      setRelayErr("");
-                      logAct("Host pairing approved");
-                    }).catch((e)=>setRelayErr(String(e?.message||e)));
-                  }}>Approve</button>
-                  <button onClick={()=>{
-                    const s = relayRef.current.session;
-                    if (!s) { setPendingRemote(null); return; }
-                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
-                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
-                      method:"POST",
-                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
-                      body: JSON.stringify({ action:"deny_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
-                    }).finally(()=>setPendingRemote(null));
-                  }}>Deny</button>
-                </div>
-              )}
-              <p>Authorized devices: {remoteDevices.length} · Remote host {remoteEnabled ? "ON" : "OFF"}</p>
-              {remoteDevices.map((d:any)=>(
-                <div className="card" key={d.deviceSessionId}>
-                  <p>{d.deviceName} · {d.role} · {d.connected ? "connected" : "idle"}</p>
-                  <button onClick={()=>{ relayRef.current.sendHost("revoke_device", { deviceId: d.deviceSessionId }); setRemoteDevices((x)=>x.filter((y:any)=>y.deviceSessionId!==d.deviceSessionId)); }}>Revoke</button>
-                </div>
-              ))}
               <h4>AUDIENCE REACTIONS</h4>
               <p>Status: {rxEngine.enabled ? "ENABLED" : "DISABLED"} · Last: {rxEngine.last?.id || "—"}</p>
               <p>Fireworks {rxEngine.counts.fireworks} · Lightning {rxEngine.counts.lightning} · Rune {rxEngine.counts.rune_burst} · Meteor {rxEngine.counts.meteor_shower}</p>
@@ -2015,65 +2007,143 @@ export function App() {
               <label className="chk"><input type="checkbox" checked={pollCfg.display.showPct} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showPct:e.target.checked}})} /> Percentages</label>
               <label className="chk"><input type="checkbox" checked={pollCfg.display.showTotal} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showTotal:e.target.checked}})} /> Total</label>
               <label className="chk"><input type="checkbox" checked={pollCfg.display.showLeader} onChange={(e)=>setPollAndProject({...pollCfg, display:{...pollCfg.display, showLeader:e.target.checked}})} /> Leader Indicator</label>
-              <h3>VIRTUAL CAMERA</h3>
-              <p>Device: Auralith Reborn Camera</p>
-              <p className={/ERROR/i.test(vcam.state)?"warn":"ok"}>Status: {vcam.state}</p>
-              {vcam.error && <p className="warn">{vcam.error}</p>}
-              <button disabled={vcamBusy || (vcam.installed && !/ERROR|NOT INSTALLED/i.test(vcam.state))} onClick={async ()=>{
-                console.log("UI_VCAM_INSTALL_CLICK");
-                if (vcamBusy) return;
-                setVcamBusy(true);
-                setVcam((s) => ({ ...s, state: "INSTALLING" }));
-                try {
-                  const r = await invoke("vcam_install");
-                  console.log("UI_VCAM_INSTALL_OK", r);
-                  const st = parseVcam(await invoke("vcam_status"));
-                  setVcam({ ...st, state: st.installed || /READY|LIVE/i.test(st.state) ? "READY" : (st.state || "READY") });
-                  setErr("");
-                } catch (e) {
-                  console.error("UI_VCAM_INSTALL_ERR", e);
-                  const msg = String(e);
-                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: false, running: false });
-                  setErr(msg);
-                } finally { setVcamBusy(false); }
-              }}>Install Virtual Camera</button>
-              <button disabled={vcamBusy || vcam.running || !(/READY|STOPPED/i.test(vcam.state) || vcam.installed)} onClick={async ()=>{
-                console.log("UI_VCAM_START_CLICK");
-                if (vcamBusy) return;
-                setVcamBusy(true);
-                setVcam((s) => ({ ...s, state: "STARTING" }));
-                try {
-                  await invoke("vcam_start");
-                  vcamLive.current = true;
-                  const st = parseVcam(await invoke("vcam_status"));
-                  setVcam({ ...st, state: "LIVE", running: true });
-                  setErr("");
-                } catch (e) {
-                  console.error("UI_VCAM_START_ERR", e);
-                  const msg = String(e);
-                  vcamLive.current = false;
-                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
-                  setErr(msg);
-                } finally { setVcamBusy(false); }
-              }}>Start Virtual Camera</button>
-              <button disabled={vcamBusy || !(vcam.running || /LIVE|STARTING/i.test(vcam.state))} onClick={async ()=>{
-                console.log("UI_VCAM_STOP_CLICK");
-                if (vcamBusy) return;
-                setVcamBusy(true);
-                setVcam((s) => ({ ...s, state: "STOPPING" }));
-                try {
-                  vcamLive.current = false;
-                  await invoke("vcam_stop");
-                  const st = parseVcam(await invoke("vcam_status"));
-                  setVcam({ ...st, state: "STOPPED", running: false });
-                  setErr("");
-                } catch (e) {
-                  console.error("UI_VCAM_STOP_ERR", e);
-                  const msg = String(e);
-                  setVcam({ state: `ERROR — ${msg}`, error: msg, installed: vcam.installed, running: false });
-                  setErr(msg);
-                } finally { setVcamBusy(false); }
-              }}>Stop Virtual Camera</button>
+              
+            </div>
+          )}
+
+          {tab==="devices" && (
+            <div className="pane dash">
+<h3>HOST INSTANCE</h3>
+              <label>Instance Name
+                <input value={instanceName} onChange={(e)=>setInstanceName(e.target.value.slice(0,40))} />
+              </label>
+              <button onClick={()=>{
+                const n = setInstanceDisplayName(instanceName);
+                setInstanceName(n);
+                relayRef.current.sendHost("set_instance_name", { name: n, hostInstanceId: hostId });
+              }}>Save Name</button>
+              <p>Fingerprint {hostFingerprint(hostId)}</p>
+              <p className="muted">Display name only. Tenant identity does not change when you rename.</p>
+              <h4>HOST REMOTE</h4>
+              <p>Private Host QR for Auralith Remote. Never shown in Clean Capture.</p>
+              <label>Access Level
+                <select value={hostRole} onChange={(e)=>setHostRole(e.target.value as any)}>
+                  <option value="FULL_HOST">Full Host</option>
+                  <option value="POLL_MODERATOR">Poll Moderator</option>
+                  <option value="EFFECTS_OPERATOR">Effects Operator</option>
+                  <option value="REACTION_MODERATOR">Reaction Moderator</option>
+                </select>
+              </label>
+              <div className="row">
+                <button onClick={()=>{
+                  const s = relayRef.current.session;
+                  if (!s || relayStatus !== "ONLINE") {
+                    setRelayErr("Start Public Server first, then Generate Host QR.");
+                    return;
+                  }
+                  const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                  fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
+                    method:"POST",
+                    headers:{
+                      "content-type":"application/json",
+                      authorization:"Bearer "+s.hostToken
+                    },
+                    body: JSON.stringify({ action:"create_pairing", role: hostRole, ttlSec: 120, hostInstanceId: hostId })
+                  }).then(async (r)=>{
+                    const j = await r.json().catch(()=>({}));
+                    if (!r.ok) throw new Error(j.error || j.message || ("pairing failed HTTP "+r.status));
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    const qrUrl = rewritePublicPairingUrl(origin, String(j.qrUrl || j.pairingUrl || ""), j.pairingId);
+                    if (!qrUrl || /tauri\.localhost|localhost|127\.0\.0\.1/i.test(qrUrl)) {
+                      throw new Error("Pairing URL was not a public Railway HTTPS address.");
+                    }
+                    setRelayErr("");
+                    setHostPair({ ...j, qrUrl });
+                    setShowHostQrModal(true);
+                  }).catch((e)=>setRelayErr("Host QR request failed: "+String(e?.message||e)+" — check Public Server is ONLINE and Railway is reachable."));
+                }}>Generate Host QR</button>
+                <Hint text="Host QR is PRIVATE. Never show it on stream. Short-lived, one-time, requires Approve." />
+                {relayErr && <p className="warn">{relayErr}</p>}
+                <button onClick={()=>setHostPair(null)}>Cancel Pairing</button>
+                <button onClick={()=>{
+                  setRemoteEnabled(true);
+                  relayRef.current.sendHost("enable_remote_host");
+                  setRelayErr("Remote host control is ON. Generate a new Host QR and Approve the Host Console again.");
+                }}>Enable All Remote Host Control</button>
+                <button onClick={()=>{ setRemoteEnabled(false); relayRef.current.sendHost("disable_remote_host"); }}>Disable All Remote Host Control</button>
+                <button onClick={()=>{ relayRef.current.sendHost("revoke_all"); setRemoteDevices([]); }}>Revoke All Devices</button>
+              </div>
+              {hostPair?.qrUrl && view !== "CleanCapture" && (
+                <div className="card">
+                  <p>HOST REMOTE PAIRING · {hostPair.role}</p>
+                  <div style={{ background: "#FFFFFF", padding: 8, width: 216 }}>
+                    <QrImage value={String(hostPair.qrUrl).trim()} size={200} alt="Host pairing QR" />
+                  </div>
+                  <p style={{ wordBreak: "break-all" }}>{hostPair.qrUrl}</p>
+                  <button onClick={()=>{ if (hostPair.qrUrl) navigator.clipboard.writeText(hostPair.qrUrl).catch(()=>{}); }}>Copy Host Pairing URL</button>
+                  <p>Expires {hostPair.expiresAt ? new Date(hostPair.expiresAt).toLocaleTimeString() : ""} — paste this URL into Host Console → PAIR WITH AURALITH, then Approve here.</p>
+                  <button onClick={()=>setShowHostQrModal(true)}>Show Host QR</button>
+                </div>
+              )}
+              {showHostQrModal && hostPair?.qrUrl && view !== "CleanCapture" && (
+                <QrModal
+                  title="HOST REMOTE PAIRING QR"
+                  value={String(hostPair.qrUrl).trim()}
+                  room={hostPair.role}
+                  onCopy={() => { navigator.clipboard.writeText(String(hostPair.qrUrl).trim()).catch(()=>{}); }}
+                  onClose={() => setShowHostQrModal(false)}
+                />
+              )}
+              {pendingRemote && (
+                <div className="card">
+                  <p>REMOTE HOST REQUEST</p>
+                  <p>Device: {pendingRemote.deviceDisplayName} · {pendingRemote.platform}</p>
+                  <p>Role: {pendingRemote.requestedRole}</p>
+                  <button onClick={()=>{
+                    const s = relayRef.current.session;
+                    if (!s) { setRelayErr("Public Server is offline. Start it, then Approve."); return; }
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
+                      method:"POST",
+                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
+                      body: JSON.stringify({ action:"approve_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
+                    }).then(async (r)=>{
+                      const j = await r.json().catch(()=>({}));
+                      if (!r.ok) throw new Error(j.error || ("approve failed HTTP "+r.status));
+                      setPendingRemote(null);
+                      setRelayErr("");
+                      logAct("Host pairing approved");
+                    }).catch((e)=>setRelayErr(String(e?.message||e)));
+                  }}>Approve</button>
+                  <button onClick={()=>{
+                    const s = relayRef.current.session;
+                    if (!s) { setPendingRemote(null); return; }
+                    const origin = publicRelayOrigin(s.baseUrl || relayUrl);
+                    fetch(origin+"/api/rooms/"+encodeURIComponent(s.room)+"/host", {
+                      method:"POST",
+                      headers:{ "content-type":"application/json", authorization:"Bearer "+s.hostToken },
+                      body: JSON.stringify({ action:"deny_pairing", pairingId: pendingRemote.pairingId, hostInstanceId: hostId })
+                    }).finally(()=>setPendingRemote(null));
+                  }}>Deny</button>
+                </div>
+              )}
+              <p>Authorized devices: {remoteDevices.length} · Remote host {remoteEnabled ? "ON" : "OFF"}</p>
+              {remoteDevices.map((d:any)=>(
+                <div className="card" key={d.deviceSessionId}>
+                  <p>{d.deviceName} · {d.role} · {d.connected ? "connected" : "idle"}</p>
+                  <button onClick={()=>{ relayRef.current.sendHost("revoke_device", { deviceId: d.deviceSessionId }); setRemoteDevices((x)=>x.filter((y:any)=>y.deviceSessionId!==d.deviceSessionId)); }}>Revoke</button>
+                </div>
+              ))}
+                            <h3>HOST IDENTITY</h3>
+              <p>Host Fingerprint: {hostFingerprint(hostId)}</p>
+              <p>Room: {relayRoom || customRoom}</p>
+              <p className="muted">This PC is one isolated host tenant. Another install gets a different identity.</p>
+              <button className="danger" onClick={()=>{
+                if (!confirm("Resetting your Host Identity will disconnect Host Console and Host Remote sessions. You must pair again. Continue?")) return;
+                resetHostInstance();
+                location.reload();
+              }}>Reset Host Identity</button>
+
             </div>
           )}
 
@@ -2170,7 +2240,7 @@ export function App() {
                   }}>Accept Trace</button>
                   <button onClick={()=>setAiPreview(null)}>Reject</button>
                   <button onClick={()=>setAiMode(aiMode==="idle"?"click":aiMode)}>Try Again</button>
-                  <button onClick={()=>{ setAiPreview(null); setTool("Trace"); setTab("effects"); }}>Manual Trace</button>
+                  <button onClick={()=>{ setAiPreview(null); setTool("Trace"); setTab("editor"); }}>Manual Trace</button>
                 </div>
               )}
               <h3>SCENE ANALYSIS</h3>
@@ -2266,23 +2336,6 @@ export function App() {
               <label className="chk"><input type="checkbox" checked={traceDebug} onChange={(e)=>setTraceDebug(e.target.checked)} /> Trace debug</label>
               <label className="chk"><input type="checkbox" checked={showGrid} onChange={(e)=>setShowGrid(e.target.checked)} /> Pixel grid (editor)</label>
               <label className="chk"><input type="checkbox" checked={oneOpen} onChange={(e)=>setOneOpen(e.target.checked)} /> One effect expanded at a time</label>
-              <h3>UPDATES</h3>
-              <p>Installed: {APP_VERSION}</p>
-              {updateAvail && <p>Available: {updateAvail}</p>}
-              {updateNotes && <pre className="notes">{updateNotes}</pre>}
-              {updatePct && <p>{updatePct}</p>}
-              {updateMsg && <p>{updateMsg}</p>}
-              <div className="row">
-                <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Check for Updates</button>
-                {updateAvail && semverNewer(updateAvail, APP_VERSION) && (
-                  <button disabled={updateBusy} onClick={()=>void installUpdate()}>Download &amp; Install</button>
-                )}
-                {updateAvail && <button disabled={updateBusy} onClick={()=>{ setUpdateAvail(""); setUpdateNotes(""); setUpdateMsg(""); }}>Later</button>}
-                <button disabled={updateBusy} onClick={()=>void checkUpdates(false)}>Retry Update</button>
-                <button onClick={()=>window.open("https://github.com/dragonking587-ai/Auralith/releases","_blank")}>View Release</button>
-              </div>
-              {updateDetails && <button onClick={()=>setShowUpdateDetails((v)=>!v)}>{showUpdateDetails?"Hide":"View"} Details</button>}
-              {showUpdateDetails && updateDetails && <pre>{updateDetails}</pre>}
               <h3>HELP & TUTORIALS</h3>
               <p className="coach">Viewer QR is PUBLIC. Host QR is PRIVATE. Clear Votes starts a new round.</p>
               <div className="row">
@@ -2290,15 +2343,6 @@ export function App() {
                 <button onClick={()=>setHelpMode("help")}>Open Help Center</button>
                 <button onClick={()=>{ setTutorialDone(false); setHelpMode("welcome"); }}>Reset Tutorials</button>
               </div>
-              <h3>HOST IDENTITY</h3>
-              <p>Host Fingerprint: {hostFingerprint(hostId)}</p>
-              <p>Room: {relayRoom || customRoom}</p>
-              <p className="muted">This PC is one isolated host tenant. Another install gets a different identity.</p>
-              <button className="danger" onClick={()=>{
-                if (!confirm("Resetting your Host Identity will disconnect Host Console and Host Remote sessions. You must pair again. Continue?")) return;
-                resetHostInstance();
-                location.reload();
-              }}>Reset Host Identity</button>
               <h3>ABOUT</h3>
               <p>Auralith Reborn {APP_VERSION}</p>
               <p>80 effects registered</p>
