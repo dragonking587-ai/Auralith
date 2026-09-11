@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
+// This audit is part of npm run build, including normal Windows preview builds.
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const read = (rel) => fs.readFileSync(path.join(root, rel), "utf8");
