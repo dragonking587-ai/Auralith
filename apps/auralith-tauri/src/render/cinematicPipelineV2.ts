@@ -8,6 +8,7 @@ import type { AudioSnapshot } from "../audio/engine";
 import type { EffectKind, Project } from "../scene/types";
 import { ThreeDistortionLayer } from "./threeDistortionLayer";
 import { ThreeElectricalLayer } from "./threeElectricalLayer";
+import { ThreeLightOpticalLayer } from "./threeLightOpticalLayer";
 import { ThreeParticleLayer } from "./threeParticleLayer";
 import { ThreeVolumetricLayer } from "./threeVolumetricLayer";
 
@@ -84,10 +85,10 @@ const FINISH_SHADER = {
 };
 
 const BLOOM_FRIENDLY = new Set<EffectKind>([
-  "LightSurge", "GlowBloom", "Afterglow", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst",
+  "LightSurge", "GlowBloom", "Afterglow", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",
   "MagicEnergy", "Plasma", "VoidEnergy", "Portal", "EnergyBeam", "EnergySparks", "SpectralAura",
   "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser", "RealisticFlame", "Embers", "Sparks",
-  "NeonGlow", "NeonChase", "Shimmer", "GlitterSparkle", "Aurora", "IceShimmer", "Fireflies",
+  "NeonGlow", "NeonChase", "Shimmer", "GlitterSparkle", "PrismaticLight", "Aurora", "IceShimmer", "Fireflies",
   "BioluminescentSpores", "RuneGlow", "SigilActivation", "Eclipse", "CelestialStars", "CosmicNebula", "SmartNeon",
   "Caustics", "WaterRipple", "WetReflection", "WaterReflection"
 ]);
@@ -130,6 +131,7 @@ export class CinematicPipelineV2 {
   private volumetricLayer: ThreeVolumetricLayer;
   private electricalLayer: ThreeElectricalLayer;
   private distortionLayer: ThreeDistortionLayer;
+  private lightOpticalLayer: ThreeLightOpticalLayer;
   private frameTexture: THREE.FramebufferTexture;
   private sourceMaterial: THREE.MeshBasicMaterial;
   private bloomPass: UnrealBloomPass;
@@ -185,6 +187,7 @@ export class CinematicPipelineV2 {
     this.volumetricLayer = new ThreeVolumetricLayer(this.scene);
     this.particleLayer = new ThreeParticleLayer(this.scene);
     this.electricalLayer = new ThreeElectricalLayer(this.scene);
+    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);
 
     const supportsHalfFloat = Boolean(gl.getExtension("EXT_color_buffer_float"));
     const target = new THREE.WebGLRenderTarget(2, 2, {
@@ -209,7 +212,7 @@ export class CinematicPipelineV2 {
     this.composer.addPass(this.finishPass);
     this.composer.addPass(new OutputPass());
 
-    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical passes=bloom,chromatic,vignette,grain,color-output");
+    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical passes=bloom,chromatic,vignette,grain,color-output");
   }
 
   private makeFrameTexture(w: number, h: number) {
@@ -292,6 +295,7 @@ export class CinematicPipelineV2 {
     this.volumetricLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
     this.particleLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
     this.electricalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
+    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);
 
     try {
       this.renderer.resetState();
@@ -321,6 +325,7 @@ export class CinematicPipelineV2 {
 
   dispose() {
     this.distortionLayer.dispose();
+    this.lightOpticalLayer.dispose();
     this.electricalLayer.dispose();
     this.volumetricLayer.dispose();
     this.particleLayer.dispose();
