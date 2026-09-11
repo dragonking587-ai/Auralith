@@ -41,6 +41,10 @@ jobs:
           echo "REBORN_VERSION=$v"
       - name: Install frontend
         run: npm install
+      - name: Audit UI navigation and quality tiers
+        run: |
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
       - name: Build frontend
         run: npm run build
       - name: Build virtual camera DLL
