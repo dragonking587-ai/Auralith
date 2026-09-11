@@ -1,0 +1,21 @@
+{
+  "manifest": {
+    "format": 1,
+    "id": "obsidianwolf.void-howl",
+    "name": "Void Howl",
+    "author": "Obsidian Wolf",
+    "version": "1.0.0",
+    "description": "Deep violet void energy surrounded by spectral aura, shadow breathing and reactive energy sparks.",
+    "category": "Dark Magic",
+    "tags": ["void", "dark", "magic", "wolf"],
+    "collection": "Obsidian Wolf Effects Collection",
+    "minAuralithVersion": "1.0.0-rc.49.3.7",
+    "recommendedQuality": "High"
+  },
+  "effects": [
+    {"id":"ow-void-core","kind":"VoidEnergy","intensity":0.92,"opacity":0.9,"audio":"Bass","audioInfluence":0.68,"color":"#5a18a8","color2":"#12001f","color3":"#c778ff","p0":0.76,"p1":0.72,"p2":0.62},
+    {"id":"ow-void-aura","kind":"SpectralAura","intensity":0.58,"opacity":0.72,"audio":"Low","audioInfluence":0.48,"color":"#8b35ff","color2":"#311057","color3":"#d7b0ff"},
+    {"id":"ow-void-shadow","kind":"ShadowPulse","intensity":0.36,"opacity":0.54,"audio":"Bass","audioInfluence":0.42,"speed":0.62},
+    {"id":"ow-void-sparks","kind":"EnergySparks","intensity":0.34,"opacity":0.86,"audio":"High","audioInfluence":0.74,"color":"#b96cff","color2":"#e9d0ff"}
+  ]
+}
