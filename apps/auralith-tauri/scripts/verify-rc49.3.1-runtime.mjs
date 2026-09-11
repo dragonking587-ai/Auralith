@@ -23,6 +23,7 @@ const shadowDark = read("src", "render", "threeShadowDarkLayer.ts");
 const iceSymbol = read("src", "render", "threeIceSymbolLayer.ts");
 const environmentFinal = read("src", "render", "threeEnvironmentFinalLayer.ts");
 const pkg = JSON.parse(read("package.json"));
+const lock = JSON.parse(read("package-lock.json"));
 
 // Core rc.49 application integrity must remain authoritative.
 must(app.includes('import { GlRenderer } from "../render/cinematicRenderer";'), "cinematic wrapper is not wired into App");
@@ -40,6 +41,10 @@ must(cinematic.includes("new CinematicPipelineV2(this.overlayCanvas, gl, canvas)
 must(pipeline.includes("float outAlpha = mix(c.a, glowAlpha, overlayMode);"), "cinematic overlay can still become opaque from post-processing alpha");
 must(pipeline.includes("this.finishPass.uniforms.overlayMode.value = 1.0;"), "cinematic pipeline is not forced into effects-only alpha mode");
 must(pkg.dependencies?.three === "0.185.1", "Three.js runtime dependency is missing or unpinned");
+must(lock.version === pkg.version, `package-lock version ${lock.version} does not match package version ${pkg.version}`);
+must(lock.packages?.[""]?.version === pkg.version, "package-lock root package version is stale");
+must(lock.packages?.[""]?.dependencies?.three === pkg.dependencies?.three, "package-lock is missing the pinned Three.js runtime dependency");
+must(lock.packages?.[""]?.devDependencies?.["@types/three"] === pkg.devDependencies?.["@types/three"], "package-lock is missing the pinned Three.js type dependency");
 
 const particleKinds = ["Sparks", "EnergySparks", "Embers", "Fireflies", "Snow", "Ash", "DustMotes", "BioluminescentSpores"];
 const volumetricKinds = ["MagicEnergy", "Plasma", "VoidEnergy", "Portal", "Vortex", "SmokeFog", "Mist", "AtmosphericHaze", "Aurora", "CosmicNebula", "FrozenBreath", "SpectralAura"];
@@ -111,4 +116,4 @@ must(migrated.size === 80, `expected 80 unique migrated effects, found ${migrate
 for (const kind of allEffects) must(migrated.has(kind), `selectable effect ${kind} is still legacy-only`);
 must(!allEffects.includes("SmartNeon"), "SmartNeon unexpectedly returned to selectable catalog");
 
-console.log("[rc.49.x audit] PASS — rc.49 base integrity preserved; isolated Three.js contexts verified; all 80 selectable effects are covered by migrated families for point/emitter/stamp placements");
+console.log("[rc.49.x audit] PASS — rc.49 base integrity, reproducible dependency lock, isolated Three.js contexts, and all 80 selectable migrated effects verified for point/emitter/stamp placements");
