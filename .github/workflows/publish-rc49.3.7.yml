@@ -1,0 +1,170 @@
+name: Publish Auralith Reborn RC49.3.7
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - ".github/workflows/publish-rc49.3.7.yml"
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  prepare-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Prepare RC49.3.7 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="$(tr -d '\r\n' < apps/auralith-tauri/VERSION)"
+          if [[ "$current" != "1.0.0-rc.49.3.6" && "$current" != "1.0.0-rc.49.3.7" ]]; then
+            echo "Refusing to prepare from unexpected version: $current"
+            exit 1
+          fi
+
+          printf '1.0.0-rc.49.3.7\n' > apps/auralith-tauri/VERSION
+          node <<'NODE'
+          const fs = require('fs');
+          const version = '1.0.0-rc.49.3.7';
+          const pkgPath = 'apps/auralith-tauri/package.json';
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          pkg.version = version;
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
+          const confPath = 'apps/auralith-tauri/src-tauri/tauri.conf.json';
+          const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+          conf.version = version;
+          fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
+          NODE
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('apps/auralith-tauri/src-tauri/Cargo.toml')
+          s = p.read_text()
+          import re
+          s2, n = re.subn(r'^version = "1\.0\.0-rc\.49\.3\.(?:6|7)"$', 'version = "1.0.0-rc.49.3.7"', s, count=1, flags=re.M)
+          if n != 1:
+              raise SystemExit('Cargo version anchor missing')
+          p.write_text(s2)
+          PY
+
+          cat > apps/auralith-tauri/RELEASE_NOTES.md <<'EOF'
+          # Auralith 1.0.0-rc.49.3.7 — Online Effect Pack Library
+
+          ## Download & Install Effect Packs Inside Auralith
+          Auralith now includes an **Online Effect Pack Library** directly in the Editor. Official packs can be discovered from inside the app and installed with one **Download & Install** button — no browser download or manual file import is required.
+
+          The library refreshes from Auralith's official effect-pack catalog, so new official packs can be added to the catalog without redesigning the renderer or changing the project format.
+
+          ## Obsidian Wolf Effects Collection
+          The first official downloadable collection includes:
+          - **Inferno Aura** — Realistic Flame + Heat Distortion + Embers + Glow Bloom + Sparks
+          - **Void Howl** — Void Energy + Spectral Aura + Shadow Pulse + Energy Sparks
+          - **Storm Fang** — Lightning Arc + Electric Crawl + Thunder Flash + Glow Bloom
+          - **Blood Moon Ritual** — Eclipse + Rune Glow + Atmospheric Haze + Shadow Tendrils
+          - **Frostbite Wolf** — Frost / Ice + Crystal Growth + Ice Shimmer + Frozen Breath
+
+          Each pack remains fully editable after installation because it expands into normal Auralith effect layers.
+
+          ## Effect Pack Creator & Local Packs
+          The existing custom-pack workflow is retained:
+          - Save the selected region's current effect stack as a reusable pack
+          - Export `.aurapack` files
+          - Import/install local `.aurapack` files
+          - Apply a pack as a replacement stack or append it to an existing stack
+          - Uninstall custom packs without changing the original project image
+
+          ## Download Safety
+          Online packs remain **data-only**. The official downloader:
+          - only accepts HTTPS pack files from the controlled `dragonking587-ai/Auralith` effect-pack catalog path;
+          - limits downloaded pack files to 512 KB;
+          - validates catalog ID and version against the downloaded pack;
+          - reuses Auralith's existing effect whitelist and parameter sanitizer;
+          - caps each pack at 32 effect layers;
+          - does not allow arbitrary JavaScript, DLLs, WebAssembly, executable shader source, or other executable plugin code.
+
+          ## Quality & Compatibility
+          Low / Medium / High / Ultra quality selection remains intact. Packs can declare a recommended quality tier and a minimum Auralith version. Incompatible packs are blocked until the app is updated.
+
+          The renderer architecture, 2048-point audio analysis, project files, image loading, trace/stamp/emitter workflows, Clean Output, capture plumbing, updater identity, and the rc.49 compatibility renderer remain unchanged.
+
+          ## Update Compatibility
+          Auralith Reborn **1.0.0-rc.49.3.6** can update directly to **1.0.0-rc.49.3.7** using **Check for Updates → Download & Install**.
+
+          ## WINDOWS SMARTSCREEN NOTICE
+          Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
+
+          If the installer came from the official `dragonking587-ai/Auralith` GitHub release, use **More info → Run anyway**. Do not disable Windows SmartScreen or Windows Defender.
+          EOF
+          sed -i 's/^          //' apps/auralith-tauri/RELEASE_NOTES.md
+
+          cd apps/auralith-tauri
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (pkg.version !== '1.0.0-rc.49.3.7') throw new Error('package version mismatch');
+          if (lock.version !== pkg.version || lock.packages[''].version !== pkg.version) throw new Error('lock version mismatch');
+          NODE
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+          cd ../..
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/auralith-tauri/VERSION apps/auralith-tauri/package.json apps/auralith-tauri/package-lock.json apps/auralith-tauri/src-tauri/tauri.conf.json apps/auralith-tauri/src-tauri/Cargo.toml apps/auralith-tauri/RELEASE_NOTES.md
+          if git diff --cached --quiet; then
+            echo "RC49.3.7 metadata already prepared."
+          else
+            git commit -m "release(reborn): 1.0.0-rc.49.3.7 online effect pack library"
+            git push origin HEAD:tauri/auralith-reborn
+          fi
+
+      - name: Dispatch signed RC49.3.7 release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run tauri-preview.yml \
+            --repo dragonking587-ai/Auralith \
+            --ref tauri/auralith-reborn \
+            -f publish=true
+          sleep 8
+          run_id="$(gh run list --repo dragonking587-ai/Auralith --workflow tauri-preview.yml --branch tauri/auralith-reborn --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+          if [[ -z "$run_id" ]]; then
+            echo "Could not resolve dispatched release run"
+            exit 1
+          fi
+          echo "Release workflow run: $run_id"
+          gh run watch "$run_id" --repo dragonking587-ai/Auralith --exit-status
+
+      - name: Finalize release notes and verify updater
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="1.0.0-rc.49.3.7"
+          tag="v$v"
+          gh release edit "$tag" --repo dragonking587-ai/Auralith \
+            --title "Auralith Reborn $v — Online Effect Pack Library" \
+            --notes-file apps/auralith-tauri/RELEASE_NOTES.md
+          gh release view "$tag" --repo dragonking587-ai/Auralith --json tagName,isDraft,isPrerelease,assets
+          rm -rf /tmp/auralith-updater && mkdir -p /tmp/auralith-updater
+          gh release download updater-latest --repo dragonking587-ai/Auralith --pattern latest.json --dir /tmp/auralith-updater --clobber
+          node <<'NODE'
+          const fs = require('fs');
+          const latest = JSON.parse(fs.readFileSync('/tmp/auralith-updater/latest.json', 'utf8').replace(/^\uFEFF/, ''));
+          if (latest.version !== '1.0.0-rc.49.3.7') throw new Error(`updater-latest points to ${latest.version}`);
+          console.log('updater-latest verified ->', latest.version);
+          NODE
