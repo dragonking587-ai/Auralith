@@ -1,4 +1,4 @@
-name: Publish Auralith Reborn RC49.3.5
+name: Publish Auralith Reborn RC49.3.6
 
 on:
   push:
@@ -21,159 +21,96 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Prepare RC49.3.5 metadata
+      - name: Prepare RC49.3.6 metadata
         shell: bash
         run: |
           set -euo pipefail
           current="$(tr -d '\r\n' < apps/auralith-tauri/VERSION)"
-          if [[ "$current" == "1.0.0-rc.49.3.5" ]]; then
-            echo "RC49.3.5 is already prepared; skipping metadata rewrite."
+          if [[ "$current" == "1.0.0-rc.49.3.6" ]]; then
+            echo "RC49.3.6 is already prepared; skipping metadata rewrite."
             exit 0
           fi
-          if [[ "$current" != "1.0.0-rc.49.3.4" ]]; then
+          if [[ "$current" != "1.0.0-rc.49.3.5" ]]; then
             echo "Refusing to prepare from unexpected version: $current"
             exit 1
           fi
 
-          printf '1.0.0-rc.49.3.5\n' > apps/auralith-tauri/VERSION
+          printf '1.0.0-rc.49.3.6\n' > apps/auralith-tauri/VERSION
           node <<'NODE'
           const fs = require('fs');
           const pkgPath = 'apps/auralith-tauri/package.json';
           const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
-          pkg.version = '1.0.0-rc.49.3.5';
+          pkg.version = '1.0.0-rc.49.3.6';
           fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
 
           const confPath = 'apps/auralith-tauri/src-tauri/tauri.conf.json';
           const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
-          conf.version = '1.0.0-rc.49.3.5';
+          conf.version = '1.0.0-rc.49.3.6';
           fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
           NODE
           python - <<'PY'
           from pathlib import Path
           p = Path('apps/auralith-tauri/src-tauri/Cargo.toml')
           s = p.read_text()
-          old = 'version = "1.0.0-rc.49.3.4"'
-          new = 'version = "1.0.0-rc.49.3.5"'
+          old = 'version = "1.0.0-rc.49.3.5"'
+          new = 'version = "1.0.0-rc.49.3.6"'
           if old not in s and new not in s:
               raise SystemExit('Cargo version anchor missing')
           p.write_text(s.replace(old, new, 1))
           PY
 
           cat > apps/auralith-tauri/RELEASE_NOTES.md <<'EOF'
-          # Auralith 1.0.0-rc.49.3.5 — Complete 80-Effect Renderer Coverage
+          # Auralith 1.0.0-rc.49.3.6 — Home, Navigation & Quality Cleanup
 
-          ## Complete Selectable Effect Migration
-          This release finishes new-engine coverage for all **80 selectable Auralith effects** on supported Point, Emitter, and Stamp placements while keeping the proven rc.49 renderer underneath as the compatibility and safety layer.
+          ## Home page cleanup
+          - Home is now a dedicated Auralith landing page instead of sharing the Server/Output control surface.
+          - Added What's New, Upcoming, installed version, update status, Editor shortcut, tutorial access, and feedback access.
+          - Removed server administration clutter from Home.
 
-          The final 24 effects added in this release are:
+          ## Navigation cleanup
+          - Home, Editor, Audio, Output, Server, Devices, and Settings now have distinct page states.
+          - Output contains Clean Capture and Virtual Camera controls.
+          - Server contains Public Relay, Local/LAN viewer, room, poll mapping, and server-status controls.
+          - Devices contains Host identity, Host Remote pairing, QR, authorization, revoke, and device-management controls.
+          - Audio contains audio-source controls and meters.
+          - Settings contains UI preferences, Help/Tutorials, About, and Feedback.
+          - Existing handlers were retained while controls were reorganized.
 
-          ### Color / Digital
-          - **Hue Shift** — continuously rotated source color with audio-driven hue movement.
-          - **Chromatic Pulse** — radial RGB separation driven by pulse, high-frequency energy, and transients.
-          - **Glitch Light** — procedural row/block displacement, jitter, RGB splitting, and transient spikes.
-          - **Kaleidoscope** — polar folding and scene sampling with controlled mirrored sectors.
-          - **Mirror Fracture** — fractured wedge sampling with animated crack highlights.
-          - **Pixel Dissolve** — procedural cell dissolve with reactive transition edges.
-          - **Scanline Pulse** — animated scanline modulation with a moving reactive sweep.
-          - **RGB Split** — directional red/green/blue separation driven by highs and transients.
-          - **Film Burn** — domain-warped burn fields, glowing edges, and beat-reactive ember color.
+          ## Quality system
+          - Project quality is explicitly Low / Medium / High / Ultra.
+          - High remains the default.
+          - Project files preserve the selected quality tier and invalid legacy values fall back to High.
+          - Low / Medium / High / Ultra now have build-time verification across legacy detail, particle density, volumetric detail, fireworks, and cinematic post-processing.
+          - Particle density targets are 48 / 80 / 128 / 192 from Low through Ultra.
 
-          ### Shadow / Dark
-          - **Shadow Pulse** — breathing radial darkness with bass/beat response.
-          - **Room Dim** — broad low-frequency dimming field with slow atmospheric drift.
-          - **Local Dim** — localized radial darkness with smooth breathing response.
-          - **Contrast Surge** — source-aware dynamic contrast lift with reactive highlight shaping.
-          - **Shadow Tendrils** — procedural rotating tendrils with organic noise deformation.
-          - **Eclipse** — dark core, corona, and reactive outer falloff.
-          - **Gravity Well** — source-image lensing, spiral pull, dark core, and event-horizon highlight.
+          ## Version reliability
+          - Runtime version display now comes from package metadata through Vite instead of a stale hard-coded App.tsx value.
+          - The updater comparison and About/Home version displays therefore follow the packaged release version.
 
-          ### Ice / Crystal / Symbol
-          - **Frost / Ice** — branching frost texture, crystalline facets, and high-frequency sparkle.
-          - **Crystal Growth** — expanding radial crystal branches and growing facet fronts.
-          - **Ice Shimmer** — directional crystalline shimmer, facets, and transient sparkle.
-          - **Rune Glow** — emissive rune ring with independently pulsing glyph marks.
-          - **Sigil Activation** — animated concentric sigil rings, spokes, glyph bands, and beat activation.
+          ## Build guard
+          - Preview builds now run dedicated navigation and quality audits before the frontend build.
+          - The release fails validation if page routing or the four-tier quality wiring regresses.
 
-          ### Final Environmental
-          - **Realistic Flame** — layered procedural flame body, turbulent tongues, hot core, rise, flicker, and continuous audio response.
-          - **Rain** — depth-varied slanted rain streaks with randomized drop placement and surface splash accents.
-          - **Celestial Stars** — distributed star field with independent twinkle timing and occasional cross-glints.
-
-          ## Full New-Engine Family Coverage
-          The complete selectable library is now accounted for across dedicated Three.js modules:
-          - Particle
-          - Volumetric / Atmospheric
-          - Electrical / Beam
-          - Water / Distortion / Refraction
-          - Light / Glow / Optical
-          - Pulse / Energy Motion
-          - Color / Digital
-          - Shadow / Dark
-          - Ice / Crystal / Symbol
-          - Environmental / Final
-
-          **Smart Neon remains intentionally outside the selectable 80-effect catalog** and has not been re-enabled.
-
-          ## Renderer Integrity
-          The rc.49 renderer still renders the complete project first, including the backdrop, props, project data, and legacy effects. The Three.js renderer remains on a separate transparent WebGL2 canvas and cannot take ownership of the rc.49 WebGL context.
-
-          Screen-space families such as distortion, color/digital, and shadow/dark receive the completed rc.49 canvas only as a read-only texture upload. If the cinematic renderer cannot initialize or a new shader fails, the rc.49 project remains visible underneath instead of becoming a blank image.
-
-          Clean Output retains its rc.49 fallback path, and updater recovery continues serializing the backdrop before restart so temporary blob URLs do not break restored projects.
-
-          ## Placement Compatibility
-          Point, Emitter, and Stamp placements can use the migrated GPU families. **Trace, Shape, and Prop/SDF placements remain on the proven rc.49 path renderer** until the path/mask subsystem receives its own dedicated migration. This prevents the new renderer from breaking existing traced outlines or shape workflows.
-
-          ## Audio-Reactive Behavior
-          The migration preserves Auralith's existing **2048-point audio analysis** and Bass / Low / Mid / High / Beat / Transient signals. The new modules use continuous smoothed modulation rather than simple trigger-only animation.
-
-          ## Regression / Build Guard
-          The build now verifies:
-          - all 80 selectable effects are represented by migrated families;
-          - no duplicate/missing effect names exist across those families;
-          - Smart Neon has not returned to the selectable catalog;
-          - the rc.49 base renderer and isolated Three.js context remain separate;
-          - read-only scene-texture families do not acquire a WebGL context;
-          - all new layers initialize, update every frame, and dispose correctly;
-          - transparent overlay pixels are discarded/capped to protect the base image;
-          - the frontend dependency lock matches the app version and pinned Three.js dependencies;
-          - the build-time migration patch is safe when Tauri invokes the frontend build more than once.
-
-          ## UI / Project Compatibility
-          No rc.49 interface redesign is included. Existing image loading, editor controls, markers, regions, trace workflow, project structure, audio engine, capture plumbing, updater behavior, and existing project files remain on the established compatibility path.
-
-          ## Update Compatibility
-          Auralith Reborn **1.0.0-rc.49.3.4** can update directly to **1.0.0-rc.49.3.5** using **Check for Updates → Download & Install**. The application identifier, updater public key, updater endpoints, passive Windows install mode, and updater signing chain are unchanged.
+          ## Compatibility
+          - Renderer architecture, audio analysis, project structure, image loading, editor tools, Clean Output, capture plumbing, and updater signing identity are preserved.
+          - Existing projects remain compatible.
+          - Auralith Reborn 1.0.0-rc.49.3.5 can update directly to 1.0.0-rc.49.3.6 using Check for Updates → Download & Install.
 
           ## WINDOWS SMARTSCREEN NOTICE
-          Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
-
-          If the installer came from the official `dragonking587-ai/Auralith` GitHub release, use **More info → Run anyway**. Do not disable Windows SmartScreen or Windows Defender.
-
-          ## NORTON 360 — INSTALL WITHOUT TURNING PROTECTION OFF
-          You do **not** need to disable Norton globally.
-
-          Before allowing anything, confirm the installer came from the official `dragonking587-ai/Auralith` GitHub release and verify the published SHA-256 checksum when possible.
-
-          If Norton quarantines the installer:
-          1. Open **Norton**.
-          2. Go to **Security → Security History**.
-          3. Change the view to **Quarantine**.
-          4. Select the Auralith installer and review **File Insight / Advanced details**.
-          5. Choose **Create exception & restore** or **Restore & exclude this file** (wording can vary by Norton version).
-          6. Run the restored installer again.
-
-          If Norton blocks Auralith after installation, add an exception only for the Auralith executable or installation folder. Keep **Auto-Protect, SONAR, Download Intelligence, and Norton itself enabled**.
+          Windows may show “Windows protected your PC” because Auralith does not yet have an established Windows code-signing reputation.
+          If the installer came from the official dragonking587-ai/Auralith GitHub release, use More info → Run anyway. Do not disable Windows SmartScreen or Windows Defender.
           EOF
           sed -i 's/^          //' apps/auralith-tauri/RELEASE_NOTES.md
 
           cd apps/auralith-tauri
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
           node - <<'NODE'
           const fs = require('fs');
           const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
           const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
-          if (pkg.version !== '1.0.0-rc.49.3.5') throw new Error('package version mismatch');
+          if (pkg.version !== '1.0.0-rc.49.3.6') throw new Error('package version mismatch');
           if (lock.version !== pkg.version || lock.packages[''].version !== pkg.version) throw new Error('lock version mismatch');
           if (lock.packages[''].dependencies.three !== pkg.dependencies.three) throw new Error('Three.js lock mismatch');
           NODE
@@ -182,9 +119,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add apps/auralith-tauri/VERSION apps/auralith-tauri/package.json apps/auralith-tauri/package-lock.json apps/auralith-tauri/src-tauri/tauri.conf.json apps/auralith-tauri/src-tauri/Cargo.toml apps/auralith-tauri/RELEASE_NOTES.md
-          git commit -m "release(reborn): 1.0.0-rc.49.3.5 complete 80-effect renderer migration"
+          git commit -m "release(reborn): 1.0.0-rc.49.3.6 home navigation and quality cleanup"
           git push origin HEAD:tauri/auralith-reborn
-      - name: Dispatch signed RC49.3.5 release
+
+      - name: Dispatch signed RC49.3.6 release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
@@ -194,4 +132,4 @@ jobs:
             --repo dragonking587-ai/Auralith \
             --ref tauri/auralith-reborn \
             -f publish=true
-          echo "Dispatched signed Auralith Reborn 1.0.0-rc.49.3.5 release."
+          echo "Dispatched signed Auralith Reborn 1.0.0-rc.49.3.6 release."
