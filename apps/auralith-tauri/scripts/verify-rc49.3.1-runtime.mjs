@@ -13,6 +13,7 @@ const cinematic = read("src", "render", "cinematicRenderer.ts");
 const pipeline = read("src", "render", "cinematicPipelineV2.ts");
 const electrical = read("src", "render", "threeElectricalLayer.ts");
 const distortion = read("src", "render", "threeDistortionLayer.ts");
+const lightOptical = read("src", "render", "threeLightOpticalLayer.ts");
 const pkg = JSON.parse(read("package.json"));
 
 must(app.includes('import { GlRenderer } from "../render/cinematicRenderer";'), "cinematic wrapper is not wired into App");
@@ -63,4 +64,22 @@ must(distortion.includes("alpha = clamp(alpha") && distortion.includes("0.68"), 
 must(distortion.includes("if (alpha < 0.003) discard;"), "distortion shader does not discard transparent pixels");
 must(!distortion.includes("getContext("), "distortion module must not acquire or share a WebGL context");
 
-console.log("[rc.49.x audit] PASS — image base, full effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency, electrical family and distortion/refraction family verified");
+const lightOpticalKinds = [
+  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",
+  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"
+];
+for (const kind of lightOpticalKinds) {
+  must(lightOptical.includes(`\"${kind}\"`), `light/optical module is missing ${kind}`);
+  must(cinematic.includes(`\"${kind}\"`), `cinematic routing is missing ${kind}`);
+}
+must(pipeline.includes('import { ThreeLightOpticalLayer } from "./threeLightOpticalLayer";'), "light/optical layer is not imported by cinematic pipeline");
+must(pipeline.includes("this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);"), "light/optical layer is not initialized");
+must(pipeline.includes("this.lightOpticalLayer.update(nativeProject"), "light/optical layer is not updated each frame");
+must(pipeline.includes("this.lightOpticalLayer.dispose();"), "light/optical layer is not disposed on shutdown");
+must(lightOptical.includes("THREE.AdditiveBlending"), "light/optical family is not using emissive additive blending");
+must(lightOptical.includes("if (alpha < 0.002) discard;"), "light/optical shader does not discard transparent pixels");
+must(lightOptical.includes("0.0, 0.62"), "light/optical overlay alpha is not capped for base-image safety");
+must(!lightOptical.includes("smoothstep(1.35, 0.10"), "light/optical shader contains reversed God Rays smoothstep edges");
+must(!lightOptical.includes("getContext("), "light/optical module must not acquire or share a WebGL context");
+
+console.log("[rc.49.x audit] PASS — image base, full effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency, electrical, distortion/refraction and light/glow/optical families verified");
