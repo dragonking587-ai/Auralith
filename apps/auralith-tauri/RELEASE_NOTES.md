@@ -1,47 +1,44 @@
-# Auralith 1.0.0-rc.49.3.2 — Electrical + Water / Distortion Pipeline Upgrade
+# Auralith 1.0.0-rc.49.3.3 — Light / Glow / Optical Pipeline Upgrade
 
-## New Three.js Electrical Family
-- Energy Beam — turbulent plasma sheath, stable bright core, and traveling compression waves.
-- Lightning Arc — stepped leader structure, branch forks, return stroke, ionized corona, and beat/transient response.
-- Electric Crawl — multiple independently moving electrical filaments.
-- Thunder Flash — short exposure-style flash driven by transients and beat energy.
-- Laser — coherent beam core, controlled diffraction glow, and traveling energy modulation.
-
-## New Water / Distortion / Refraction Family
-- Heat Distortion — rising multi-scale thermal turbulence and shimmer.
-- Refraction — radial lens refraction, micro-ripples, and restrained spectral dispersion.
-- Water Ripple — layered decaying ripple fronts that bend the already-rendered scene.
-- Caustics — warped intersecting wave cells that create moving focused-light patterns.
-- Wet Reflection — vertically dragged reflections, broken surface sheen, and wavering highlights.
-- Water Reflection — coherent horizontal wave normals with depth variation.
-- Spatial Warp — radial compression and tangent swirl around the selected emitter.
-- Holographic Distortion — scanline shear, intermittent strip jitter, and controlled RGB separation.
+## New Three.js Light / Glow / Optical Family
+- **Glow Bloom** — emissive hot core with broad photographic falloff and bass/beat breathing.
+- **Halo** — animated annular corona with a crisp ring and softer outer glow.
+- **Light Rays** — independent fan-shaped light shafts with subtle organic movement.
+- **God Rays** — crepuscular density shafts with broad radial falloff.
+- **Lens Flare** — source bloom, anamorphic streak, lens-element ghosts, and glints.
+- **Starburst** — diffraction spikes with a concentrated hot center.
+- **Spotlight** — soft cone lighting with controlled edge softness and distance falloff.
+- **Shimmer** — fine traveling specular bands driven strongly by high-frequency energy.
+- **Glitter Sparkle** — seeded independent glints with asynchronous twinkle behavior.
+- **Neon Glow** — bright tube core with a broader colored gas corona.
+- **Neon Chase** — energized segments traveling around the neon perimeter.
+- **Prismatic Light** — spectral fan with controlled color separation and emissive bloom.
 
 ## Renderer Integrity
-The rc.49 renderer remains authoritative for the backdrop, props, project data, and complete effect library. The new Three.js effects run on a separate transparent WebGL2 canvas above the rc.49 canvas.
+The proven rc.49 renderer remains authoritative for the backdrop, props, project data, and complete effect library. The new Three.js Light / Glow / Optical effects render on the existing separate transparent WebGL2 enhancement canvas above the rc.49 base.
 
-For the distortion family, the completed rc.49 canvas is copied into the isolated Three.js context only as a read-only CanvasTexture. No WebGL programs, textures, buffers, framebuffers, or state are shared between the two renderers.
+If the cinematic layer cannot initialize, compile, or render safely, the rc.49 image and original effects remain visible underneath. Clean Output continues to fall back to the rc.49 frame if cinematic readback fails.
 
-If the cinematic layer fails to initialize or render, the rc.49 image and original effects remain visible underneath. Clean Output continues to fall back to the rc.49 frame if cinematic readback fails.
+Trace, Shape, and Prop/SDF placements continue using the established rc.49 renderer until those placement modes receive their dedicated new-engine migration. Point, Emitter, and Stamp placements for the migrated family can use the new GPU layer.
 
 ## Build Regression Guard
-The runtime audit now checks that:
-- the rc.49 WebGL context remains unchanged;
-- the cinematic renderer uses its own WebGL2 context;
-- the complete rc.49 project is always rendered first;
-- all electrical and distortion effect kinds are correctly routed;
-- the distortion layer cannot acquire a WebGL context itself;
-- the read-only base-scene texture refreshes every frame;
-- distortion overlay alpha remains capped;
-- all new GPU layers are initialized, updated, and disposed correctly.
+The runtime integrity audit now verifies that:
+- the rc.49 base WebGL context remains unchanged;
+- the cinematic renderer uses its own isolated WebGL2 context;
+- the complete rc.49 project renders first as the safety underlay;
+- all 12 Light / Glow / Optical effect kinds are routed into the new layer;
+- the optical layer is initialized, updated every frame, and disposed correctly;
+- the optical layer uses emissive additive blending;
+- transparent pixels are discarded rather than covering the backdrop;
+- overlay alpha is capped to protect the base image;
+- the optical module cannot acquire or share a WebGL context;
+- the God Rays radial falloff avoids undefined reversed-smoothstep behavior.
 
 ## UI / Project Compatibility
-No rc.49 interface redesign is included. Existing controls, image loading, editor tools, project structure, trace/shape/prop rendering, marker behavior, capture plumbing, and audio engine remain on the established compatibility path.
-
-Trace, Shape, and Prop/SDF placements continue to use the proven rc.49 renderer until those placement modes receive their own dedicated new-engine migration.
+No rc.49 interface redesign is included. Existing controls, image loading, editor tools, project structure, marker behavior, audio engine, capture plumbing, updater flow, and existing project files remain on the established compatibility path.
 
 ## Update Compatibility
-Auralith Reborn **1.0.0-rc.49.3.1** can update directly to **1.0.0-rc.49.3.2** using **Check for Updates → Download & Install**. The application identifier, updater public key, updater endpoints, installer mode, and signing chain remain unchanged.
+Auralith Reborn **1.0.0-rc.49.3.2** can update directly to **1.0.0-rc.49.3.3** using **Check for Updates → Download & Install**. The application identifier, updater public key, updater endpoints, passive Windows install mode, and updater signing chain remain unchanged.
 
 ## WINDOWS SMARTSCREEN NOTICE
 Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
