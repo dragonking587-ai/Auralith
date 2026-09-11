@@ -5,13 +5,14 @@ import { fileURLToPath } from "node:url";
 const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const read = (...parts) => fs.readFileSync(path.join(root, ...parts), "utf8");
-const must = (condition, message) => { if (!condition) throw new Error(`[rc.49.3.1 audit] ${message}`); };
+const must = (condition, message) => { if (!condition) throw new Error(`[rc.49.x audit] ${message}`); };
 
 const app = read("src", "ui", "App.tsx");
 const renderer = read("src", "render", "renderer.ts");
 const cinematic = read("src", "render", "cinematicRenderer.ts");
 const pipeline = read("src", "render", "cinematicPipelineV2.ts");
 const electrical = read("src", "render", "threeElectricalLayer.ts");
+const distortion = read("src", "render", "threeDistortionLayer.ts");
 const pkg = JSON.parse(read("package.json"));
 
 must(app.includes('import { GlRenderer } from "../render/cinematicRenderer";'), "cinematic wrapper is not wired into App");
@@ -25,6 +26,7 @@ must(cinematic.includes("this.legacy.draw(project, snapshot"), "complete rc.49 p
 must(!cinematic.includes("splitSource") && !cinematic.includes("splitCache"), "stale project-identity split cache is still present");
 must(cinematic.includes('zIndex: "2"'), "cinematic overlay is not layered above the rc.49 canvas");
 must(cinematic.includes("return base;"), "clean-frame readback has no rc.49 fallback");
+must(cinematic.includes("new CinematicPipelineV2(this.overlayCanvas, gl, canvas)"), "legacy canvas is not passed read-only to the isolated distortion layer");
 must(pipeline.includes("float outAlpha = mix(c.a, glowAlpha, overlayMode);"), "cinematic overlay can still become opaque from post-processing alpha");
 must(pipeline.includes("this.finishPass.uniforms.overlayMode.value = 1.0;"), "cinematic pipeline is not forced into effects-only alpha mode");
 must(pkg.dependencies?.three === "0.185.1", "Three.js runtime dependency is missing or unpinned");
@@ -42,4 +44,23 @@ must(electrical.includes("THREE.AdditiveBlending"), "electrical family is not us
 must(electrical.includes("if (alpha < 0.002) discard;"), "electrical shader does not discard transparent pixels");
 must(!electrical.includes("smoothstep(1.0, 0."), "electrical shader contains reversed smoothstep edges");
 
-console.log("[rc.49.3.1 audit] PASS — image base, effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency and electrical-family integration verified");
+const distortionKinds = [
+  "HeatDistortion", "Refraction", "WaterRipple", "Caustics", "WetReflection",
+  "WaterReflection", "SpatialWarp", "HolographicDistortion"
+];
+for (const kind of distortionKinds) {
+  must(distortion.includes(`\"${kind}\"`), `distortion module is missing ${kind}`);
+  must(cinematic.includes(`\"${kind}\"`), `cinematic routing is missing ${kind}`);
+}
+must(pipeline.includes('import { ThreeDistortionLayer } from "./threeDistortionLayer";'), "distortion layer is not imported by cinematic pipeline");
+must(pipeline.includes("this.distortionLayer = new ThreeDistortionLayer(this.scene, sourceCanvas);"), "distortion layer is not initialized with the read-only rc.49 canvas source");
+must(pipeline.includes("this.distortionLayer.update(nativeProject"), "distortion layer is not updated each frame");
+must(pipeline.includes("this.distortionLayer.dispose();"), "distortion layer is not disposed on shutdown");
+must(distortion.includes("new THREE.CanvasTexture(sourceCanvas)"), "distortion layer does not sample the completed rc.49 canvas through a separate texture upload");
+must(distortion.includes("this.sourceTexture.needsUpdate = true;"), "distortion source texture is not refreshed from the current rc.49 frame");
+must(distortion.includes("THREE.NormalBlending"), "distortion family is not alpha-composited safely over rc.49");
+must(distortion.includes("alpha = clamp(alpha") && distortion.includes("0.68"), "distortion overlay alpha is not capped for base-image safety");
+must(distortion.includes("if (alpha < 0.003) discard;"), "distortion shader does not discard transparent pixels");
+must(!distortion.includes("getContext("), "distortion module must not acquire or share a WebGL context");
+
+console.log("[rc.49.x audit] PASS — image base, full effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency, electrical family and distortion/refraction family verified");
