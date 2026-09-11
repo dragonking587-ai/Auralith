@@ -1,0 +1,45 @@
+name: Auralith Effect Pack System
+
+on:
+  push:
+    branches:
+      - tauri/auralith-reborn
+    paths:
+      - ".github/workflows/effect-pack-system.yml"
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Apply effect pack UI and build guard
+        run: node apps/auralith-tauri/scripts/apply-effect-pack-system.mjs
+      - name: Check patch cleanliness
+        run: git diff --check
+      - name: Install frontend
+        working-directory: apps/auralith-tauri
+        run: npm install
+      - name: Audit effect pack system
+        working-directory: apps/auralith-tauri
+        run: node scripts/verify-effect-pack-system.mjs
+      - name: Commit effect pack integration candidate
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/package.json
+          git commit -m "feat(reborn): add downloadable stacked effect packs"
+      - name: Build frontend
+        working-directory: apps/auralith-tauri
+        run: npm run build
+      - name: Re-run effect pack audit after build transforms
+        working-directory: apps/auralith-tauri
+        run: node scripts/verify-effect-pack-system.mjs
+      - name: Push validated effect pack integration
+        run: git push origin HEAD:tauri/auralith-reborn
