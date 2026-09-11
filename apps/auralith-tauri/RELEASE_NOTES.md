@@ -1,39 +1,46 @@
-# Auralith 1.0.0-rc.49.3.6 — Home, Navigation & Quality Cleanup
+# Auralith 1.0.0-rc.49.3.7 — Online Effect Pack Library
 
-## Home page cleanup
-- Home is now a dedicated Auralith landing page instead of sharing the Server/Output control surface.
-- Added What's New, Upcoming, installed version, update status, Editor shortcut, tutorial access, and feedback access.
-- Removed server administration clutter from Home.
+## Download & Install Effect Packs Inside Auralith
+Auralith now includes an **Online Effect Pack Library** directly in the Editor. Official packs can be discovered from inside the app and installed with one **Download & Install** button — no browser download or manual file import is required.
 
-## Navigation cleanup
-- Home, Editor, Audio, Output, Server, Devices, and Settings now have distinct page states.
-- Output contains Clean Capture and Virtual Camera controls.
-- Server contains Public Relay, Local/LAN viewer, room, poll mapping, and server-status controls.
-- Devices contains Host identity, Host Remote pairing, QR, authorization, revoke, and device-management controls.
-- Audio contains audio-source controls and meters.
-- Settings contains UI preferences, Help/Tutorials, About, and Feedback.
-- Existing handlers were retained while controls were reorganized.
+The library refreshes from Auralith's official effect-pack catalog, so new official packs can be added to the catalog without redesigning the renderer or changing the project format.
 
-## Quality system
-- Project quality is explicitly Low / Medium / High / Ultra.
-- High remains the default.
-- Project files preserve the selected quality tier and invalid legacy values fall back to High.
-- Low / Medium / High / Ultra now have build-time verification across legacy detail, particle density, volumetric detail, fireworks, and cinematic post-processing.
-- Particle density targets are 48 / 80 / 128 / 192 from Low through Ultra.
+## Obsidian Wolf Effects Collection
+The first official downloadable collection includes:
+- **Inferno Aura** — Realistic Flame + Heat Distortion + Embers + Glow Bloom + Sparks
+- **Void Howl** — Void Energy + Spectral Aura + Shadow Pulse + Energy Sparks
+- **Storm Fang** — Lightning Arc + Electric Crawl + Thunder Flash + Glow Bloom
+- **Blood Moon Ritual** — Eclipse + Rune Glow + Atmospheric Haze + Shadow Tendrils
+- **Frostbite Wolf** — Frost / Ice + Crystal Growth + Ice Shimmer + Frozen Breath
 
-## Version reliability
-- Runtime version display now comes from package metadata through Vite instead of a stale hard-coded App.tsx value.
-- The updater comparison and About/Home version displays therefore follow the packaged release version.
+Each pack remains fully editable after installation because it expands into normal Auralith effect layers.
 
-## Build guard
-- Preview builds now run dedicated navigation and quality audits before the frontend build.
-- The release fails validation if page routing or the four-tier quality wiring regresses.
+## Effect Pack Creator & Local Packs
+The existing custom-pack workflow is retained:
+- Save the selected region's current effect stack as a reusable pack
+- Export `.aurapack` files
+- Import/install local `.aurapack` files
+- Apply a pack as a replacement stack or append it to an existing stack
+- Uninstall custom packs without changing the original project image
 
-## Compatibility
-- Renderer architecture, audio analysis, project structure, image loading, editor tools, Clean Output, capture plumbing, and updater signing identity are preserved.
-- Existing projects remain compatible.
-- Auralith Reborn 1.0.0-rc.49.3.5 can update directly to 1.0.0-rc.49.3.6 using Check for Updates → Download & Install.
+## Download Safety
+Online packs remain **data-only**. The official downloader:
+- only accepts HTTPS pack files from the controlled `dragonking587-ai/Auralith` effect-pack catalog path;
+- limits downloaded pack files to 512 KB;
+- validates catalog ID and version against the downloaded pack;
+- reuses Auralith's existing effect whitelist and parameter sanitizer;
+- caps each pack at 32 effect layers;
+- does not allow arbitrary JavaScript, DLLs, WebAssembly, executable shader source, or other executable plugin code.
+
+## Quality & Compatibility
+Low / Medium / High / Ultra quality selection remains intact. Packs can declare a recommended quality tier and a minimum Auralith version. Incompatible packs are blocked until the app is updated.
+
+The renderer architecture, 2048-point audio analysis, project files, image loading, trace/stamp/emitter workflows, Clean Output, capture plumbing, updater identity, and the rc.49 compatibility renderer remain unchanged.
+
+## Update Compatibility
+Auralith Reborn **1.0.0-rc.49.3.6** can update directly to **1.0.0-rc.49.3.7** using **Check for Updates → Download & Install**.
 
 ## WINDOWS SMARTSCREEN NOTICE
-Windows may show “Windows protected your PC” because Auralith does not yet have an established Windows code-signing reputation.
-If the installer came from the official dragonking587-ai/Auralith GitHub release, use More info → Run anyway. Do not disable Windows SmartScreen or Windows Defender.
+Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
+
+If the installer came from the official `dragonking587-ai/Auralith` GitHub release, use **More info → Run anyway**. Do not disable Windows SmartScreen or Windows Defender.
