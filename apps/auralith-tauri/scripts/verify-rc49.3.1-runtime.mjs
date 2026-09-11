@@ -14,6 +14,7 @@ const pipeline = read("src", "render", "cinematicPipelineV2.ts");
 const electrical = read("src", "render", "threeElectricalLayer.ts");
 const distortion = read("src", "render", "threeDistortionLayer.ts");
 const lightOptical = read("src", "render", "threeLightOpticalLayer.ts");
+const pulseEnergy = read("src", "render", "threePulseEnergyLayer.ts");
 const pkg = JSON.parse(read("package.json"));
 
 must(app.includes('import { GlRenderer } from "../render/cinematicRenderer";'), "cinematic wrapper is not wired into App");
@@ -82,4 +83,23 @@ must(lightOptical.includes("0.0, 0.62"), "light/optical overlay alpha is not cap
 must(!lightOptical.includes("smoothstep(1.35, 0.10"), "light/optical shader contains reversed God Rays smoothstep edges");
 must(!lightOptical.includes("getContext("), "light/optical module must not acquire or share a WebGL context");
 
-console.log("[rc.49.x audit] PASS — image base, full effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency, electrical, distortion/refraction and light/glow/optical families verified");
+const pulseEnergyKinds = [
+  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",
+  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"
+];
+for (const kind of pulseEnergyKinds) {
+  must(pulseEnergy.includes(`\"${kind}\"`), `pulse/energy module is missing ${kind}`);
+  must(cinematic.includes(`\"${kind}\"`), `cinematic routing is missing ${kind}`);
+}
+must(pipeline.includes('import { ThreePulseEnergyLayer } from "./threePulseEnergyLayer";'), "pulse/energy layer is not imported by cinematic pipeline");
+must(pipeline.includes("this.pulseEnergyLayer = new ThreePulseEnergyLayer(this.scene);"), "pulse/energy layer is not initialized");
+must(pipeline.includes("this.pulseEnergyLayer.update(nativeProject"), "pulse/energy layer is not updated each frame");
+must(pipeline.includes("this.pulseEnergyLayer.dispose();"), "pulse/energy layer is not disposed on shutdown");
+must(pulseEnergy.includes("THREE.AdditiveBlending"), "pulse/energy family is not using emissive additive blending");
+must(pulseEnergy.includes("if (alpha < 0.002) discard;"), "pulse/energy shader does not discard transparent pixels");
+must(pulseEnergy.includes("0.0, 0.58"), "pulse/energy overlay alpha is not capped for base-image safety");
+must(pulseEnergy.includes("uMemory"), "afterglow does not retain a decaying audio impulse envelope");
+must(!pulseEnergy.includes("smoothstep(1.0, 0."), "pulse/energy shader contains a reversed smoothstep edge");
+must(!pulseEnergy.includes("getContext("), "pulse/energy module must not acquire or share a WebGL context");
+
+console.log("[rc.49.x audit] PASS — image base, full effect fallback, isolated WebGL contexts, updater recovery, Three.js dependency, electrical, distortion/refraction, light/glow/optical and pulse/energy motion families verified");

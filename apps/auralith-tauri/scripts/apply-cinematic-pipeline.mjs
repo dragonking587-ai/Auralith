@@ -6,6 +6,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(here, "..");
 const appPath = path.join(root, "src", "ui", "App.tsx");
 const rendererPath = path.join(root, "src", "render", "renderer.ts");
+const cinematicPath = path.join(root, "src", "render", "cinematicRenderer.ts");
 const pipelinePath = path.join(root, "src", "render", "cinematicPipelineV2.ts");
 
 function replaceOnce(text, from, to, label) {
@@ -72,6 +73,67 @@ pipeline = replaceOnce(
   '    this.finishPass.uniforms.overlayMode.value = 1.0;',
   "effects-only overlay mode"
 );
+
+// Pulse / Energy Motion family: add a dedicated Three.js GPU layer without
+// changing the rc.49 source renderer. Point/Emitter/Stamp placements are routed
+// through this layer; trace/path placements continue using the legacy SDF path.
+pipeline = replaceOnce(
+  pipeline,
+  'import { ThreeParticleLayer } from "./threeParticleLayer";',
+  'import { ThreeParticleLayer } from "./threeParticleLayer";\nimport { ThreePulseEnergyLayer } from "./threePulseEnergyLayer";',
+  "pulse/energy import"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '  private lightOpticalLayer: ThreeLightOpticalLayer;',
+  '  private lightOpticalLayer: ThreeLightOpticalLayer;\n  private pulseEnergyLayer: ThreePulseEnergyLayer;',
+  "pulse/energy property"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);',
+  '    this.lightOpticalLayer = new ThreeLightOpticalLayer(this.scene);\n    this.pulseEnergyLayer = new ThreePulseEnergyLayer(this.scene);',
+  "pulse/energy initialization"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical passes=bloom,chromatic,vignette,grain,color-output");',
+  '    console.log("CINEMATIC_PIPELINE_V2_OK engine=three.js layers=distortion,volumetric,particle,electrical,light-optical,pulse-energy passes=bloom,chromatic,vignette,grain,color-output");',
+  "pulse/energy status"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '  "LightSurge", "GlowBloom", "Afterglow", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
+  '  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow", "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple", "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",',
+  "pulse/energy bloom routing"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
+  '    this.lightOpticalLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);\n    this.pulseEnergyLayer.update(nativeProject, snapshot, this.width, this.height, viewport, colorOverrides);',
+  "pulse/energy frame update"
+);
+pipeline = replaceOnce(
+  pipeline,
+  '    this.lightOpticalLayer.dispose();',
+  '    this.lightOpticalLayer.dispose();\n    this.pulseEnergyLayer.dispose();',
+  "pulse/energy dispose"
+);
 fs.writeFileSync(pipelinePath, pipeline);
 
-console.log("[cinematic] isolated Three.js overlay wired; rc.49 base renderer restored; durable image recovery enabled");
+let cinematic = fs.readFileSync(cinematicPath, "utf8");
+cinematic = replaceOnce(
+  cinematic,
+  `const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([\n  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",\n  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"\n]);`,
+  `const THREE_LIGHT_OPTICAL_KINDS = new Set<EffectKind>([\n  "GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight",\n  "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"\n]);\n\nconst THREE_PULSE_ENERGY_KINDS = new Set<EffectKind>([\n  "Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow",\n  "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"\n]);`,
+  "pulse/energy native kind set"
+);
+cinematic = replaceOnce(
+  cinematic,
+  '    THREE_DISTORTION_KINDS.has(kind) ||\n    THREE_LIGHT_OPTICAL_KINDS.has(kind);',
+  '    THREE_DISTORTION_KINDS.has(kind) ||\n    THREE_LIGHT_OPTICAL_KINDS.has(kind) ||\n    THREE_PULSE_ENERGY_KINDS.has(kind);',
+  "pulse/energy native routing"
+);
+fs.writeFileSync(cinematicPath, cinematic);
+
+console.log("[cinematic] isolated Three.js overlay wired; rc.49 base renderer restored; durable image recovery enabled; pulse/energy motion family active");
