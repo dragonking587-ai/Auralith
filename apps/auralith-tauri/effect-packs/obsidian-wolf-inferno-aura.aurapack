@@ -1,0 +1,22 @@
+{
+  "manifest": {
+    "format": 1,
+    "id": "obsidianwolf.inferno-aura",
+    "name": "Inferno Aura",
+    "author": "Obsidian Wolf",
+    "version": "1.0.0",
+    "description": "Natural fire, heat shimmer, embers, bloom and transient sparks layered into one aggressive fire aura.",
+    "category": "Fire",
+    "tags": ["fire", "embers", "heat", "aura"],
+    "collection": "Obsidian Wolf Effects Collection",
+    "minAuralithVersion": "1.0.0-rc.49.3.7",
+    "recommendedQuality": "High"
+  },
+  "effects": [
+    {"id":"ow-inferno-flame","kind":"RealisticFlame","intensity":0.95,"opacity":0.92,"audio":"Bass","audioInfluence":0.72,"p0":0.86,"p1":0.82,"p2":0.58,"color":"#ffb000","color2":"#ff3d00","color3":"#fff0b0"},
+    {"id":"ow-inferno-heat","kind":"HeatDistortion","intensity":0.42,"opacity":0.62,"audio":"Low","audioInfluence":0.48,"speed":0.78,"p0":0.58,"p1":0.44,"p2":0.36},
+    {"id":"ow-inferno-embers","kind":"Embers","intensity":0.52,"opacity":0.86,"audio":"Mid","audioInfluence":0.55,"speed":0.72,"p0":0.48,"p1":0.62,"p2":0.44,"color":"#ff7a00","color2":"#ffcf5c"},
+    {"id":"ow-inferno-bloom","kind":"GlowBloom","intensity":0.38,"opacity":0.72,"audio":"Bass","audioInfluence":0.36,"color":"#ff6500","color2":"#ffb000"},
+    {"id":"ow-inferno-sparks","kind":"Sparks","intensity":0.32,"opacity":0.92,"audio":"Transient","audioInfluence":0.86,"speed":1.15,"p0":0.42,"p1":0.58,"p2":0.52,"color":"#ffd36a","color2":"#ffffff"}
+  ]
+}
