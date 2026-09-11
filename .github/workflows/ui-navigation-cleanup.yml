@@ -19,13 +19,15 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
+      - name: Make rc49 hotfix package-version aware
+        run: node apps/auralith-tauri/scripts/fix-rc49-package-version-source.mjs
       - name: Apply navigation cleanup
         run: node apps/auralith-tauri/scripts/apply-ui-navigation-cleanup.mjs
       - name: Commit candidate cleanup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/vite.config.ts apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs .github/workflows/tauri-preview.yml
+          git add apps/auralith-tauri/src/ui/App.tsx apps/auralith-tauri/src/ui/styles.css apps/auralith-tauri/vite.config.ts apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs apps/auralith-tauri/scripts/apply-rc49-hotfix.mjs .github/workflows/tauri-preview.yml
           git commit -m "feat(reborn): clean navigation home and quality controls"
       - name: Install frontend
         working-directory: apps/auralith-tauri
