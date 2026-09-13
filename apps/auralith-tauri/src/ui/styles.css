@@ -416,3 +416,22 @@ canvas#gl {
 .effect-pack-title span{font-size:11px;opacity:.72;text-align:right}
 .effect-pack-card p{margin:7px 0}
 .effect-pack-card .row{flex-wrap:wrap}
+
+
+/* AURALITH_GAMING_OVERLAY_RC4938 */
+.gaming-overlay-surface{position:absolute;inset:0;overflow:hidden;pointer-events:none;z-index:18}
+.gaming-overlay-surface.editing{pointer-events:none}
+.gaming-overlay-item{position:absolute;overflow:visible;pointer-events:none;will-change:transform}
+.gaming-overlay-item.selected .gaming-overlay-edit-hit{outline:2px solid #d4af37;box-shadow:0 0 0 1px rgba(0,0,0,.65),0 0 18px rgba(212,175,55,.45)}
+.gaming-overlay-web,.gaming-overlay-panel,.gaming-overlay-text{display:block;width:100%;height:100%;box-sizing:border-box;border:0;overflow:hidden}
+.gaming-overlay-web{background:transparent}
+.gaming-overlay-panel{pointer-events:none}
+.gaming-overlay-text{display:flex;align-items:center;justify-content:center;padding:10px;line-height:1.05;white-space:pre-wrap;overflow:hidden;text-shadow:0 2px 8px rgba(0,0,0,.65)}
+.gaming-overlay-edit-hit{position:absolute;inset:0;pointer-events:auto;cursor:move;border-radius:inherit;background:rgba(0,0,0,.015);outline:1px dashed rgba(212,175,55,.55)}
+.gaming-overlay-edit-hit span{position:absolute;left:6px;top:6px;padding:3px 6px;border-radius:4px;background:rgba(10,10,12,.82);color:#f4d27a;font-size:10px;letter-spacing:.04em;max-width:80%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gaming-overlay-designer .overlay-list-item{display:flex;align-items:center;gap:8px;margin:5px 0;padding:5px;border:1px solid rgba(255,255,255,.08);border-radius:6px}
+.gaming-overlay-designer .overlay-list-item.on{border-color:#d4af37;background:rgba(212,175,55,.08)}
+.gaming-overlay-designer .overlay-select{flex:1;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gaming-overlay-designer textarea{min-height:70px;resize:vertical}
+.gaming-overlay-designer .warn{color:#ffcf73;font-size:12px}
+.overlay-properties h4{margin:14px 0 6px;color:#d4af37;letter-spacing:.06em}

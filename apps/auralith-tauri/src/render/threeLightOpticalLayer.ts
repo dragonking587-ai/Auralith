@@ -203,12 +203,16 @@ const FRAG = /* glsl */`
       col = mix(uColorB, uColorA, clamp(glow + glitter * 0.15, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 10.5) {
-      float d = abs(sdBox(q, vec2(0.52, 0.30))) - 0.018;
-      float tube = exp(-abs(d) * (78.0 + p1 * 52.0));
-      float gas = exp(-abs(d) * (12.0 + p2 * 8.0));
+      // Neon Glow follows the local effect footprint. Do not bake a rectangle into the shader.
+      float neonRadius = clamp(0.34 + p0 * 0.16, 0.24, 0.72);
+      float d = abs(r - neonRadius);
+      float tube = exp(-d * (72.0 + p1 * 58.0));
+      float gas = exp(-d * (10.0 + p2 * 10.0));
+      float innerGlow = exp(-r * (3.1 + p2 * 1.6)) * 0.16;
+      float broken = 0.94 + 0.06 * sin(ang * (5.0 + p1 * 4.0) + t * (1.2 + p0));
       float hum = 0.91 + 0.09 * sin(t * (3.0 + p0 * 2.5)) + uHigh * 0.06;
-      intensity = (tube * 1.28 + gas * 0.32) * (0.22 + drive * 0.70) * hum;
-      hot = clamp(tube * 1.1, 0.0, 1.0);
+      intensity = (tube * 1.28 + gas * 0.32 + innerGlow) * (0.22 + drive * 0.70) * hum * broken;
+      hot = clamp(tube * 1.1 + innerGlow * 0.25, 0.0, 1.0);
       col = mix(uColorB, uColorA, clamp(gas + tube, 0.0, 1.0));
       col = mix(col, uColorC, hot);
     } else if (uMode < 11.5) {

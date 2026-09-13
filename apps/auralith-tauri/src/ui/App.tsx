@@ -36,6 +36,9 @@ import {
   downloadAndInstallOfficialEffectPack, fetchOfficialEffectPackCatalog,
   type OnlineEffectPackEntry
 } from "../scene/effectPackLibrary";
+import { normalizeGamingOverlays, type GamingOverlayItem } from "../scene/gamingOverlay";
+import { GamingOverlaySurface } from "./GamingOverlaySurface";
+import { GamingOverlayDesigner } from "./GamingOverlayDesigner";
 
 const audio = new AudioEngine();
 const rxEngine = new ReactionEngine();
@@ -146,7 +149,7 @@ function parseVcam(raw: unknown): VcamUi {
   return fallback;
 }
 
-type AppPage = "home" | "editor" | "audio" | "output" | "server" | "devices" | "settings";
+type AppPage = "home" | "editor" | "overlay" | "audio" | "output" | "server" | "devices" | "settings";
 
 export function App() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -193,6 +196,7 @@ export function App() {
   const panRef = useRef(pan);
   panRef.current = pan;
   const [sel, setSel] = useState<string | null>(null);
+  const [overlaySel, setOverlaySel] = useState<string | null>(null);
   const [fbType, setFbType] = useState<(typeof FEEDBACK_TYPES)[number]>("Bug Report");
   const [fbTitle, setFbTitle] = useState("");
   const [fbBody, setFbBody] = useState("");
@@ -916,7 +920,7 @@ export function App() {
   const applyLoadedProject = (p: Project) => {
     if (p.version !== 1) throw new Error("unsupported project");
     const validQuality: Project["quality"] = (["Low","Medium","High","Ultra"] as const).includes(p.quality as any) ? p.quality : "High";
-    setProject({ ...p, quality: validQuality });
+    setProject({ ...p, quality: validQuality, overlays: normalizeGamingOverlays(p.overlays, p.width, p.height) });
     setPollCfg(p.poll || defaultPollConfig());
     setPollRt(defaultPollRuntime());
     pollVotes.current = new Map();
@@ -990,6 +994,11 @@ export function App() {
   };
 
   const selected = project.regions.find((r) => r.id === sel);
+  const gamingOverlays = normalizeGamingOverlays(project.overlays, project.width, project.height);
+  const setGamingOverlays = (items: GamingOverlayItem[]) => setProject({ ...project, overlays: normalizeGamingOverlays(items, project.width, project.height) });
+  const patchGamingOverlay = (id: string, patch: Partial<GamingOverlayItem>) => {
+    setProject((cur) => ({ ...cur, overlays: normalizeGamingOverlays(cur.overlays, cur.width, cur.height).map((item) => item.id === id ? { ...item, ...patch } : item) }));
+  };
   const clean = view === "CleanCapture";
   const managementPage = tab === "home" || tab === "server" || tab === "devices" || tab === "settings";
   const snap = audio.snapshot;
@@ -1251,7 +1260,7 @@ export function App() {
           <option value="1080x1920">1080×1920</option>
           <option value="1440x2560">1440×2560</option>
         </select>
-        <label className="chk"><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Overlays</label>
+        <label className="chk"><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Editor Markers</label>
         <span className="grp">VIEW</span>
         <select value={viewZoom==="fit"?"fit":String(viewZoom)} onChange={(e)=>{ const v=e.target.value; if(v==="fit"){ setViewZoom("fit"); setPan({x:0,y:0}); } else setViewZoom(Number(v)); }}>
           <option value="fit">Fit</option>
@@ -1265,7 +1274,7 @@ export function App() {
       </div>
       <div className={`nav ${clean ? "hidden" : ""}`}>
         {([
-          ["home","Home"],["editor","Editor"],["audio","Audio"],["output","Output"],
+          ["home","Home"],["editor","Editor"],["overlay","Overlay"],["audio","Audio"],["output","Output"],
           ["server","Server"],["devices","Devices"],["settings","Settings"]
         ] as const).map(([id,label]) => (
           <button key={id} className={tab===id ? "on" : ""} onClick={()=>setTab(id)}>{label}</button>
@@ -1274,6 +1283,19 @@ export function App() {
       <div className={`stage ${clean ? "clean" : ""}`}>
         <div className={`canvas-wrap ${managementPage ? "management-hidden" : ""}`} ref={wrapRef} onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} onWheel={onWheel}>
           <canvas id="gl" ref={canvasRef} />
+          {wrapRef.current && (
+            <GamingOverlaySurface
+              items={gamingOverlays}
+              viewport={currentVp(wrapRef.current.getBoundingClientRect())}
+              projectWidth={project.width}
+              projectHeight={project.height}
+              edit={!clean && tab === "overlay" && view === "Edit"}
+              previewInteractive={!clean && view === "Preview"}
+              selectedId={overlaySel}
+              onSelect={(id)=>setOverlaySel(id)}
+              onPatch={patchGamingOverlay}
+            />
+          )}
           {!clean && project.showMarkers && view === "Edit" && (
             <div className="overlay">
               <svg>
@@ -1384,7 +1406,7 @@ export function App() {
         </div>
         <aside className={`side ${clean ? "hidden" : ""} ${managementPage ? "management-page" : ""}`}>
           <div className="tabs page-title">
-            <strong>{tab === "home" ? "HOME" : tab === "editor" ? "EDITOR" : tab === "audio" ? "AUDIO" : tab === "output" ? "OUTPUT" : tab === "server" ? "SERVER" : tab === "devices" ? "DEVICES" : "SETTINGS"}</strong>
+            <strong>{tab === "home" ? "HOME" : tab === "editor" ? "EDITOR" : tab === "overlay" ? "GAMING OVERLAY" : tab === "audio" ? "AUDIO" : tab === "output" ? "OUTPUT" : tab === "server" ? "SERVER" : tab === "devices" ? "DEVICES" : "SETTINGS"}</strong>
           </div>
 
           {tab==="home" && (
@@ -1401,14 +1423,14 @@ export function App() {
               <div className="home-grid">
                 <div className="card">
                   <h3>WHAT'S NEW</h3>
-                  <p><strong>Complete 80-effect renderer coverage.</strong> All selectable effects are now covered by the current Reborn rendering stack with the rc.49 compatibility path retained.</p>
+                  <p><strong>Gaming Overlay foundation.</strong> Create frames, text, and transformable web/song cards directly over your scene, including perspective and angle matching.</p>
                   <p>Particle, volumetric, electrical, optical, pulse/energy, digital, shadow, ice/symbol and environmental effect families are integrated.</p>
                   <p className="muted">Effect visual tuning found during real-world testing can be corrected independently without redesigning the app.</p>
                 </div>
                 <div className="card">
                   <h3>UPCOMING</h3>
-                  <p><strong>Next:</strong> Audio source and routing reliability.</p>
-                  <p>Planned: Loudman.live DJ-board bridge · transformable browser/web surfaces · Overlay Creator · custom wave visualizers · reactive image regions · optional Unreal Engine bridge.</p>
+                  <p><strong>Also improved:</strong> Neon Glow no longer carries a fixed center rectangle, and Realistic Flame now uses a natural broad multi-tongue fire model.</p>
+                  <p>Planned next: Loudman.live DJ-board bridge · custom wave visualizers · reactive image regions · gaming-event reactions · optional Unreal Engine bridge.</p>
                   <p className="muted">Upcoming items are roadmap targets, not promises that a feature is already installed.</p>
                 </div>
                 <div className="card">
@@ -1431,6 +1453,17 @@ export function App() {
                 </div>
               </div>
             </div>
+          )}
+
+          {tab==="overlay" && (
+            <GamingOverlayDesigner
+              items={gamingOverlays}
+              selectedId={overlaySel}
+              projectWidth={project.width}
+              projectHeight={project.height}
+              onChange={setGamingOverlays}
+              onSelect={setOverlaySel}
+            />
           )}
 
           {tab==="editor" && (

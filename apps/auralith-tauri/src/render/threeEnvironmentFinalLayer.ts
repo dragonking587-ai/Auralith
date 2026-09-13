@@ -81,21 +81,56 @@ const FRAG = /* glsl */`
 
     if (uMode < 1.5) {
       vec2 p = q;
-      p.y += 0.42;
-      float rise = uTime * (0.55 + p0 * 1.25 + uBass * 0.16);
-      float warpA = fbm(vec2(p.x * (2.4 + p1 * 1.5), p.y * 2.1 - rise));
-      float warpB = fbm(vec2(p.x * 4.2 + 7.0, p.y * 3.5 - rise * 1.55));
-      float width = 0.46 + (1.0 - clamp((p.y + 1.0) * 0.5, 0.0, 1.0)) * 0.16;
-      float taper = max(0.05, width * (1.0 - clamp((p.y + 0.70) * 0.46, 0.0, 0.86)));
-      float body = 1.0 - smoothstep(taper * 0.48, taper, abs(p.x + (warpA - 0.5) * (0.34 + p2 * 0.18)));
-      float vertical = smoothstep(-1.0, -0.35, p.y) * (1.0 - smoothstep(0.42, 1.04, p.y));
-      float tongues = smoothstep(0.42, 0.80, warpA * 0.72 + warpB * 0.38 + (0.45 - p.y) * 0.16);
-      float core = body * vertical * smoothstep(0.52, 0.92, warpB + (0.18 - abs(p.x)) * 0.45);
-      float flame = body * vertical * (0.32 + tongues * 0.88);
-      float flick = 0.86 + 0.14 * sin(uTime * (4.0 + p0 * 3.2) + warpB * 8.0) + uTransient * 0.08;
-      intensity = (flame * 0.76 + core * 0.72) * flick * (0.24 + drive * 0.78 + uBass * 0.10 + uMid * 0.08);
-      hot = clamp(core * 1.25 + tongues * 0.18, 0.0, 1.0);
-      col = mix(uColorB, uColorA, clamp(flame + tongues * 0.22, 0.0, 1.0));
+      p.y += 0.10;
+      float rise = uTime * (0.48 + p0 * 1.05 + uBass * 0.12);
+      float fire = 0.0;
+      float core = 0.0;
+      float tipWisps = 0.0;
+
+      // Broad open-fire bed: dense near the fuel line rather than a single nozzle/jet.
+      float bedNoise = fbm(vec2(p.x * (3.2 + p1), p.y * 4.0 - rise * 0.65));
+      float bedX = 1.0 - smoothstep(0.58, 0.94, abs(p.x));
+      float bedY = exp(-pow((p.y + 0.72) * 4.2, 2.0));
+      float bed = bedX * bedY * (0.72 + bedNoise * 0.55);
+      fire += bed * 0.92;
+      core += bed * (0.46 + 0.28 * (1.0 - abs(p.x)));
+
+      // Nine independently moving tongues. Each has its own base, height, curl and breakup.
+      for (int i = 0; i < 9; i++) {
+        float fi = float(i);
+        float seed = hash21(vec2(fi * 7.13 + 2.1, fi * 3.71 + 9.4));
+        float seed2 = hash21(vec2(fi * 2.37 + 5.8, fi * 8.19 + 1.2));
+        float baseX = mix(-0.68, 0.68, fi / 8.0) + (seed - 0.5) * 0.10;
+        float height = 0.72 + seed * 0.58 + p0 * 0.20 + uBass * 0.10;
+        float localY = (p.y + 0.76) / max(height, 0.25);
+        float alive = smoothstep(-0.03, 0.07, localY) * (1.0 - smoothstep(0.78, 1.04, localY));
+        float turbulence = fbm(vec2(fi * 2.7 + p.y * (2.8 + p1), p.y * 4.4 - rise * (0.82 + seed * 0.44)));
+        float curl = sin(uTime * (1.55 + seed * 1.55) + fi * 1.73 + p.y * (2.1 + p2 * 1.8));
+        float center = baseX + curl * (0.025 + localY * 0.075) + (turbulence - 0.5) * (0.10 + localY * 0.15);
+        float width = mix(0.145 + seed2 * 0.055, 0.018 + seed * 0.024, clamp(localY, 0.0, 1.0));
+        float dist = abs(p.x - center);
+        float body = 1.0 - smoothstep(width * 0.42, width, dist);
+        float breakup = smoothstep(0.22, 0.82, turbulence + (1.0 - clamp(localY, 0.0, 1.0)) * 0.22);
+        float tongue = body * alive * (0.48 + breakup * 0.78);
+        fire += tongue * (0.66 + seed * 0.42);
+
+        float coreWidth = width * mix(0.45, 0.20, clamp(localY, 0.0, 1.0));
+        float coreBody = 1.0 - smoothstep(coreWidth * 0.35, coreWidth, dist);
+        core += coreBody * alive * (1.0 - smoothstep(0.42, 0.86, localY)) * (0.46 + breakup * 0.30);
+
+        float tipBand = smoothstep(0.62, 0.84, localY) * (1.0 - smoothstep(0.88, 1.05, localY));
+        tipWisps += body * tipBand * smoothstep(0.48, 0.82, turbulence) * (0.12 + seed * 0.12);
+      }
+
+      fire = clamp(fire, 0.0, 1.55);
+      core = clamp(core, 0.0, 1.20);
+      float edgeFlicker = 0.88 + 0.12 * sin(uTime * (4.1 + p0 * 2.8) + bedNoise * 7.0) + uTransient * 0.07;
+      float audioBody = 0.48 + drive * 0.62 + uBass * 0.12 + uLow * 0.07;
+      float detail = 1.0 + uMid * 0.07 + uHigh * 0.04;
+      intensity = (fire * 0.84 + core * 0.90 + tipWisps) * edgeFlicker * audioBody * detail;
+      hot = clamp(core * 1.12 + bed * 0.28 + uTransient * 0.04, 0.0, 1.0);
+      float bodyMix = clamp(fire * 0.72 + bed * 0.30, 0.0, 1.0);
+      col = mix(uColorB, uColorA, bodyMix);
       col = mix(col, uColorC, hot);
     } else if (uMode < 2.5) {
       vec2 p = vUv;
@@ -134,7 +169,8 @@ const FRAG = /* glsl */`
       col = mix(col, uColorC, hot);
     }
 
-    float alpha = clamp(intensity * uOpacity, 0.0, 0.62);
+    float alphaCap = uMode < 1.5 ? 0.94 : 0.62;
+    float alpha = clamp(intensity * uOpacity, 0.0, alphaCap);
     if (alpha < 0.002) discard;
     float emission = 1.0 + hot * 1.65 + min(intensity, 2.0) * 0.24;
     gl_FragColor = vec4(max(col, vec3(0.0)) * emission, alpha);
@@ -171,10 +207,10 @@ function makeMaterial(kind: EffectKind) {
     uniforms: {
       uTime: { value: 0 }, uMode: { value: MODE[kind] || 1 }, uP0: { value: 0.65 }, uP1: { value: 0.5 }, uP2: { value: 0.4 }, uDrive: { value: 1 },
       uBass: { value: 0 }, uLow: { value: 0 }, uMid: { value: 0 }, uHigh: { value: 0 }, uBeat: { value: 0 }, uTransient: { value: 0 },
-      uOpacity: { value: 0.42 }, uColorA: { value: new THREE.Color("#ff9a24") }, uColorB: { value: new THREE.Color("#4c8cff") }, uColorC: { value: new THREE.Color("#ffffff") },
+      uOpacity: { value: kind === "RealisticFlame" ? 0.88 : 0.42 }, uColorA: { value: new THREE.Color("#ff9a24") }, uColorB: { value: new THREE.Color("#4c8cff") }, uColorC: { value: new THREE.Color("#ffffff") },
     },
     transparent: true,
-    blending: THREE.AdditiveBlending,
+    blending: kind === "RealisticFlame" ? THREE.NormalBlending : THREE.AdditiveBlending,
     depthTest: false,
     depthWrite: false,
     toneMapped: false,
@@ -265,7 +301,9 @@ export class ThreeEnvironmentFinalLayer {
     u.uHigh.value = entry.env.high;
     u.uBeat.value = entry.env.beat;
     u.uTransient.value = entry.env.transient;
-    u.uOpacity.value = Math.max(0, Math.min(0.60, effect.opacity * effect.brightness * project.masters.brightness * 0.48));
+    u.uOpacity.value = effect.kind === "RealisticFlame"
+      ? Math.max(0, Math.min(0.92, effect.opacity * effect.brightness * project.masters.brightness * 0.88))
+      : Math.max(0, Math.min(0.60, effect.opacity * effect.brightness * project.masters.brightness * 0.48));
     u.uColorA.value.set(colorOverrides?.[effect.id] || effect.color || (effect.kind === "RealisticFlame" ? "#ff9a24" : "#c6e7ff"));
     u.uColorB.value.set(effect.color2 || (effect.kind === "RealisticFlame" ? "#ff3a00" : "#4c8cff"));
     u.uColorC.value.set(effect.color3 || "#ffffff");
