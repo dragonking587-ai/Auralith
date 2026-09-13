@@ -1,0 +1,205 @@
+name: Publish Auralith Reborn RC49.3.8
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - ".github/workflows/publish-rc49.3.8.yml"
+
+permissions:
+  actions: write
+  contents: write
+
+jobs:
+  prepare-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Prepare RC49.3.8 metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          current="$(tr -d '\r\n' < apps/auralith-tauri/VERSION)"
+          if [[ "$current" != "1.0.0-rc.49.3.7" && "$current" != "1.0.0-rc.49.3.8" ]]; then
+            echo "Refusing to prepare from unexpected version: $current"
+            exit 1
+          fi
+
+          printf '1.0.0-rc.49.3.8\n' > apps/auralith-tauri/VERSION
+          node <<'NODE'
+          const fs = require('fs');
+          const version = '1.0.0-rc.49.3.8';
+          const pkgPath = 'apps/auralith-tauri/package.json';
+          const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+          pkg.version = version;
+          fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+
+          const confPath = 'apps/auralith-tauri/src-tauri/tauri.conf.json';
+          const conf = JSON.parse(fs.readFileSync(confPath, 'utf8'));
+          conf.version = version;
+          fs.writeFileSync(confPath, JSON.stringify(conf, null, 2) + '\n');
+          NODE
+
+          python - <<'PY'
+          from pathlib import Path
+          import re
+          p = Path('apps/auralith-tauri/src-tauri/Cargo.toml')
+          s = p.read_text()
+          s2, n = re.subn(r'^version = "1\.0\.0-rc\.49\.3\.(?:7|8)"$', 'version = "1.0.0-rc.49.3.8"', s, count=1, flags=re.M)
+          if n != 1:
+              raise SystemExit('Cargo version anchor missing')
+          p.write_text(s2)
+          PY
+
+          cat > apps/auralith-tauri/RELEASE_NOTES.md <<'EOF'
+          # Auralith 1.0.0-rc.49.3.8 — Gaming Overlay & Natural Flame
+
+          ## Gaming Overlay — first step toward Gaming Mode
+          Auralith now has a dedicated **Overlay** workspace for building stream and gaming overlays directly on top of the current scene.
+
+          The first overlay object types are:
+          - **Web / Song Card** — embed an HTTPS web surface such as an embeddable Loudman.live card or page.
+          - **Frame / Panel** — create resizable HUD frames, borders and themed panels.
+          - **Text** — create labels, titles, player names and other overlay text.
+
+          Overlay objects are saved inside normal `.auralith` projects and can be duplicated, hidden, reordered or deleted.
+
+          ## Angle and perspective matching
+          Web cards and other overlay objects can be transformed to visually match objects already present in a background image:
+          - Position X / Y
+          - Width / height
+          - Rotate Z
+          - Tilt X / Y
+          - Skew X / Y
+          - Perspective depth
+          - Opacity
+          - Rounded corners
+          - Layer ordering
+
+          This makes it possible to place an embeddable song card onto an angled monitor, wall display, sign, desk screen or similar surface in the background.
+
+          Web surfaces also include **Hue, Saturation, Brightness and Contrast** controls so the embedded content can better match the scene theme.
+
+          ## Clean Capture behavior
+          Overlay objects remain visible in **Clean Capture** while editor outlines, selection handles and controls are hidden.
+
+          **Current limitation:** Web / Song Card objects are HTML/WebView overlay surfaces. They are visible through Auralith's window/clean-capture workflow, but the existing Virtual Camera framebuffer readback does not yet rasterize HTML iframe content into its WebGL pixel buffer. A later Gaming Mode step can add a dedicated web-surface-to-texture path for VCAM output.
+
+          Some external websites may also block iframe embedding with their own CSP or X-Frame-Options policy. Auralith cannot override a site's security policy. The Overlay workspace supports embeddable HTTPS pages; a dedicated native browser-surface renderer remains a future option for sites that need it.
+
+          ## Neon Glow correction
+          The new-renderer **Neon Glow** no longer draws a hard-coded rectangle in the center of the effect.
+
+          Neon Glow now uses its local effect footprint instead of baked rectangular geometry, so the unwanted center rectangle is removed from both normal viewing and Clean Capture.
+
+          ## Realistic Flame rebuild
+          **Realistic Flame** has been rebuilt from the single center-column / flamethrower-style shape into a broad natural fire bed with **nine independently moving flame tongues**.
+
+          The new flame model includes:
+          - independent tongue heights, widths, curl and turbulence;
+          - natural breakup and thin tip wisps;
+          - a denser hot core near the base;
+          - broader fuel-bed coverage instead of a nozzle-like center stream;
+          - Bass / Low response for body movement;
+          - Mid / High response for detail;
+          - Transient response for sharper flicker;
+          - higher inner-body opacity while keeping softer outer flame detail.
+
+          Realistic Flame now uses a denser normal blend for the flame body rather than treating the whole effect as a transparent additive energy effect.
+
+          ## Existing features preserved
+          - All 80 selectable effects and the rc.49 compatibility renderer remain available.
+          - Low / Medium / High / Ultra quality tiers remain intact.
+          - The 2048-point audio analysis and Bass / Low / Mid / High / Beat / Transient mappings remain intact.
+          - Trace, Stamp, Emitter, Shape, Prop, marker and region workflows remain intact.
+          - Online Effect Pack Library and the Obsidian Wolf Effects Collection remain intact.
+          - Existing project, updater and capture plumbing are preserved.
+
+          ## Update compatibility
+          Auralith Reborn **1.0.0-rc.49.3.7** can update directly to **1.0.0-rc.49.3.8** using **Check for Updates → Download & Install**.
+
+          ## WINDOWS SMARTSCREEN NOTICE
+          Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
+
+          If the installer came from the official `dragonking587-ai/Auralith` GitHub release, use **More info → Run anyway**. Do not disable Windows SmartScreen or Windows Defender.
+          EOF
+          sed -i 's/^          //' apps/auralith-tauri/RELEASE_NOTES.md
+
+          cd apps/auralith-tauri
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          node <<'NODE'
+          const fs = require('fs');
+          const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+          const lock = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          if (pkg.version !== '1.0.0-rc.49.3.8') throw new Error('package version mismatch');
+          if (lock.version !== pkg.version || lock.packages[''].version !== pkg.version) throw new Error('lock version mismatch');
+          NODE
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+          node scripts/verify-rc49.3.8-gaming-overlay.mjs
+          cd ../..
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/auralith-tauri/VERSION \
+            apps/auralith-tauri/package.json \
+            apps/auralith-tauri/package-lock.json \
+            apps/auralith-tauri/src-tauri/tauri.conf.json \
+            apps/auralith-tauri/src-tauri/Cargo.toml \
+            apps/auralith-tauri/RELEASE_NOTES.md
+          if git diff --cached --quiet; then
+            echo "RC49.3.8 metadata already prepared."
+          else
+            git commit -m "release(reborn): 1.0.0-rc.49.3.8 gaming overlay and natural flame"
+            git push origin HEAD:tauri/auralith-reborn
+          fi
+
+      - name: Dispatch signed RC49.3.8 release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh workflow run tauri-preview.yml \
+            --repo dragonking587-ai/Auralith \
+            --ref tauri/auralith-reborn \
+            -f publish=true
+          sleep 8
+          run_id="$(gh run list --repo dragonking587-ai/Auralith --workflow tauri-preview.yml --branch tauri/auralith-reborn --event workflow_dispatch --limit 1 --json databaseId --jq '.[0].databaseId')"
+          if [[ -z "$run_id" ]]; then
+            echo "Could not resolve dispatched release run"
+            exit 1
+          fi
+          echo "Release workflow run: $run_id"
+          gh run watch "$run_id" --repo dragonking587-ai/Auralith --exit-status
+
+      - name: Finalize release notes and verify updater
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          v="1.0.0-rc.49.3.8"
+          tag="v$v"
+          gh release edit "$tag" --repo dragonking587-ai/Auralith \
+            --title "Auralith Reborn $v — Gaming Overlay & Natural Flame" \
+            --notes-file apps/auralith-tauri/RELEASE_NOTES.md
+          gh release view "$tag" --repo dragonking587-ai/Auralith --json tagName,isDraft,isPrerelease,assets
+          rm -rf /tmp/auralith-updater && mkdir -p /tmp/auralith-updater
+          gh release download updater-latest --repo dragonking587-ai/Auralith --pattern latest.json --dir /tmp/auralith-updater --clobber
+          node <<'NODE'
+          const fs = require('fs');
+          const latest = JSON.parse(fs.readFileSync('/tmp/auralith-updater/latest.json', 'utf8').replace(/^\uFEFF/, ''));
+          if (latest.version !== '1.0.0-rc.49.3.8') throw new Error(`updater-latest points to ${latest.version}`);
+          console.log('updater-latest verified ->', latest.version);
+          NODE
