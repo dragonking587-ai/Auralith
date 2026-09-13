@@ -60,3 +60,5 @@ jobs:
         run: node scripts/verify-rc49.3.8-gaming-overlay.mjs
       - name: Push validated implementation
         run: git push origin HEAD:tauri/auralith-reborn
+
+# rerun after Overlay was added to the navigation contract
