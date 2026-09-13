@@ -1,0 +1,62 @@
+name: Implement Auralith RC49.3.8 Gaming Overlay
+
+on:
+  push:
+    branches: [tauri/auralith-reborn]
+    paths:
+      - ".github/workflows/implement-rc49.3.8.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  implement:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: tauri/auralith-reborn
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Apply RC49.3.8 changes
+        run: node apps/auralith-tauri/scripts/apply-rc49.3.8-gaming-overlay.mjs
+      - name: Refresh approved UI lock
+        run: node apps/auralith-tauri/scripts/refresh-rc49-ui-lock.mjs
+      - name: Check patch cleanliness
+        run: git diff --check
+      - name: Commit candidate before build transforms
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            apps/auralith-tauri/src/scene/types.ts \
+            apps/auralith-tauri/src/render/threeLightOpticalLayer.ts \
+            apps/auralith-tauri/src/render/threeEnvironmentFinalLayer.ts \
+            apps/auralith-tauri/src/ui/App.tsx \
+            apps/auralith-tauri/src/ui/styles.css \
+            apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs \
+            .github/workflows/tauri-preview.yml
+          git commit -m "feat(reborn): add gaming overlay and natural flame fixes"
+      - name: Install frontend
+        working-directory: apps/auralith-tauri
+        run: npm install
+      - name: Audit candidate
+        working-directory: apps/auralith-tauri
+        run: |
+          node scripts/verify-ui-navigation.mjs
+          node scripts/verify-quality-system.mjs
+          node scripts/verify-effect-pack-system.mjs
+          node scripts/verify-online-effect-pack-library.mjs
+          node scripts/verify-rc49.3.8-gaming-overlay.mjs
+      - name: Build frontend
+        working-directory: apps/auralith-tauri
+        run: npm run build
+      - name: Re-run RC49.3.8 audit after build transforms
+        working-directory: apps/auralith-tauri
+        run: node scripts/verify-rc49.3.8-gaming-overlay.mjs
+      - name: Push validated implementation
+        run: git push origin HEAD:tauri/auralith-reborn
