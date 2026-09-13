@@ -22,6 +22,8 @@ jobs:
           node-version: "20"
       - name: Apply RC49.3.8 changes
         run: node apps/auralith-tauri/scripts/apply-rc49.3.8-gaming-overlay.mjs
+      - name: Keep preview workflow unchanged in app candidate
+        run: git checkout -- .github/workflows/tauri-preview.yml
       - name: Refresh approved UI lock
         run: node apps/auralith-tauri/scripts/refresh-rc49-ui-lock.mjs
       - name: Check patch cleanliness
@@ -38,8 +40,7 @@ jobs:
             apps/auralith-tauri/src/render/threeEnvironmentFinalLayer.ts \
             apps/auralith-tauri/src/ui/App.tsx \
             apps/auralith-tauri/src/ui/styles.css \
-            apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs \
-            .github/workflows/tauri-preview.yml
+            apps/auralith-tauri/scripts/verify-rc49-ui-lock.mjs
           git commit -m "feat(reborn): add gaming overlay and natural flame fixes"
       - name: Install frontend
         working-directory: apps/auralith-tauri
@@ -60,5 +61,3 @@ jobs:
         run: node scripts/verify-rc49.3.8-gaming-overlay.mjs
       - name: Push validated implementation
         run: git push origin HEAD:tauri/auralith-reborn
-
-# rerun after Overlay was added to the navigation contract
