@@ -24,21 +24,20 @@ jobs:
           New-Item -ItemType Directory -Force artifacts | Out-Null
           & $csc /nologo /target:winexe /platform:x64 /optimize+ "/out:artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe" "tools\Auralith.UpdateBridge.cs"
           if ($LASTEXITCODE -ne 0) { throw "Bridge compilation failed" }
-          $bridge = Get-Item "artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe"
+          $path = "artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe"
+          $bridge = Get-Item $path
           if ($bridge.Length -lt 4096 -or $bridge.Length -gt 5000000) { throw "Unexpected bridge size $($bridge.Length)" }
-          Write-Host "bridge size $($bridge.Length)"
+          $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
+          Write-Host "BRIDGE_SIZE=$($bridge.Length)"
+          Write-Host "BRIDGE_SHA256=$hash"
+          Write-Host "BRIDGE_BASE64=$([Convert]::ToBase64String([IO.File]::ReadAllBytes($path)))"
       - name: Attach bridge to rc.51 release
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           $tag = "Auralith-Native-2.0.0-rc.51"
-          $ready = $false
-          for ($i = 1; $i -le 45; $i++) {
-            gh release view $tag --repo dragonking587-ai/Auralith *> $null
-            if ($LASTEXITCODE -eq 0) { $ready = $true; break }
-            Start-Sleep -Seconds 20
-          }
-          if (-not $ready) { throw "rc.51 release was not available" }
+          gh release view $tag --repo dragonking587-ai/Auralith *> $null
+          if ($LASTEXITCODE -ne 0) { throw "rc.51 release was not available" }
           gh release upload $tag "artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe" --clobber --repo dragonking587-ai/Auralith
           if ($LASTEXITCODE -ne 0) { throw "Failed to attach update bridge" }
