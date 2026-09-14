@@ -50,7 +50,7 @@ foreach ($m in $dynamic) {
     $start = $m.Index
     $length = [Math]::Min(1200, $code.Length - $start)
     $window = $code.Substring($start, $length)
-    $wirePattern = '\b' + [regex]::Escape($name) + '\.Click\s*+=' 
+    $wirePattern = '\b' + [regex]::Escape($name) + '\.Click\s*\+=' 
     if ($window -notmatch $wirePattern) { $dynamicErrors += $name }
 }
 if ($dynamicErrors.Count -gt 0) { throw "Dynamic buttons without Click subscription: $($dynamicErrors -join ', ')" }
