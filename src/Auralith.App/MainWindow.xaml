@@ -11,8 +11,8 @@
         <StackPanel x:Name="TopBar" Margin="16,10,16,6" Spacing="6">
             <TextBlock Text="AURALITH" FontSize="20" FontWeight="SemiBold" Foreground="#D4AF37" CharacterSpacing="140"/>
             <StackPanel Orientation="Horizontal" Spacing="6">
-                <Button Content="Load Image" Click="OnLoadImage"/>
-                <Button Content="Remove Image" Click="OnClearImage"/>
+                <Button Content="Load Image" Click="OnLoadImagePortable"/>
+                <Button Content="Remove Image" Click="OnClearImagePortable"/>
                 <ComboBox x:Name="FitBox" Width="110" SelectionChanged="OnFitChanged">
                     <ComboBoxItem Content="Fit" IsSelected="True"/>
                     <ComboBoxItem Content="Fill"/>
@@ -25,8 +25,8 @@
                 <Button Content="Fullscreen" Click="OnFullscreen"/>
                 <Button Content="Undo" Click="OnUndo"/>
                 <Button Content="Redo" Click="OnRedo"/>
-                <Button Content="Save Project" Click="OnSaveProject"/>
-                <Button Content="Open Project" Click="OnOpenProject"/>
+                <Button Content="Save Project" Click="OnSaveProjectPortable"/>
+                <Button Content="Open Project" Click="OnOpenProjectPortable"/>
                 <TextBlock x:Name="VersionText" VerticalAlignment="Center" Foreground="#9AA3B2"/>
                 <Button Content="Check for Updates" Click="OnCheckUpdates"/>
                 <Button x:Name="InstallUpdateButton" Content="Download &amp; Install" Click="OnInstallUpdate" Visibility="Collapsed"/>
@@ -52,9 +52,9 @@
                 <Grid x:Name="CanvasHost">
                     <Image x:Name="Preview" Stretch="Uniform"/>
                     <Canvas x:Name="Overlay" Background="Transparent"
-                            PointerPressed="OnOverlayPressed"
-                            PointerMoved="OnOverlayMoved"
-                            PointerReleased="OnOverlayReleased"/>
+                            PointerPressed="OnOverlayPressedParity"
+                            PointerMoved="OnOverlayMovedParity"
+                            PointerReleased="OnOverlayReleasedParity"/>
                 </Grid>
             </Border>
             <ScrollViewer x:Name="RightPanel" Grid.Column="2" Margin="8,0,12,0">
@@ -71,6 +71,7 @@
                     <StackPanel x:Name="EffectList" Spacing="6"/>
                     <TextBlock Text="SELECTED EFFECT" Foreground="#D4AF37"/>
                     <StackPanel x:Name="EffectInspector" Spacing="4"/>
+                    <Button Content="Intensity, Colors &amp; Quality…" Click="OnAdvancedEffectControls"/>
                     <TextBlock Text="MASTER" Foreground="#D4AF37"/>
                     <TextBlock x:Name="MasterLabels" Foreground="#9AA3B2" FontSize="11"/>
                     <Slider x:Name="MasterInt" Minimum="0" Maximum="200" Value="100" Width="240" ValueChanged="OnMasterChanged"/>
@@ -98,6 +99,6 @@
             </ScrollViewer>
         </Grid>
         <TextBlock x:Name="Hud" Grid.Row="2" Margin="16,8,16,10" Foreground="#E8E6E3" FontSize="12"
-                   Text="Editor + desktop audio + Group A effects. ESC exits Clean Capture."/>
+                   Text="Editor + desktop audio + Skia effects. ESC exits Clean Capture."/>
     </Grid>
 </Window>
