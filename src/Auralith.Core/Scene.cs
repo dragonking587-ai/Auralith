@@ -27,12 +27,14 @@ public sealed class Region
 
 public sealed class Scene
 {
-    public int SchemaVersion { get; set; } = 2;
+    public int SchemaVersion { get; set; } = SceneProjectCodec.CurrentSchemaVersion;
     public int CanvasWidth { get; set; } = 1920;
     public int CanvasHeight { get; set; } = 1080;
     public int TargetFps { get; set; } = 30;
     public FitMode Fit { get; set; } = FitMode.Fit;
     public string? BackdropPath { get; set; }
+    /// <summary>Portable compressed image payload retained in .auralith project files.</summary>
+    public string? BackdropDataUrl { get; set; }
     public bool ShowEditorOverlays { get; set; } = true;
     public ViewMode View { get; set; } = ViewMode.Edit;
     public float MasterIntensity { get; set; } = 1f;

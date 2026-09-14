@@ -2,13 +2,15 @@ $ErrorActionPreference = 'Stop'
 
 $repo = Split-Path -Parent $PSScriptRoot
 $xamlPath = Join-Path $repo 'src/Auralith.App/MainWindow.xaml'
-$codePath = Join-Path $repo 'src/Auralith.App/MainWindow.xaml.cs'
+$codeDir = Join-Path $repo 'src/Auralith.App'
 
 if (-not (Test-Path $xamlPath)) { throw "Missing $xamlPath" }
-if (-not (Test-Path $codePath)) { throw "Missing $codePath" }
+if (-not (Test-Path $codeDir)) { throw "Missing $codeDir" }
 
 $xaml = Get-Content $xamlPath -Raw
-$code = Get-Content $codePath -Raw
+$codeFiles = Get-ChildItem $codeDir -Filter 'MainWindow*.cs' -File
+if ($codeFiles.Count -eq 0) { throw 'No MainWindow code-behind files found.' }
+$code = ($codeFiles | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 
 # Every visible XAML button must explicitly wire Click.
 $buttonMatches = [regex]::Matches($xaml, '<Button\b(?<attrs>[^>]*)/?>', [System.Text.RegularExpressions.RegexOptions]::IgnoreCase)
@@ -24,7 +26,7 @@ foreach ($m in $buttonMatches) {
 }
 if ($buttonErrors.Count -gt 0) { throw ($buttonErrors -join [Environment]::NewLine) }
 
-# All declared XAML event handlers must resolve to a code-behind method.
+# All declared XAML event handlers must resolve to a method in any MainWindow partial.
 # Require the attribute to start at whitespace so IsChecked="True" cannot be
 # mistaken for Checked="True".
 $eventPattern = '(?:^|\s)(?:Click|Checked|Unchecked|SelectionChanged|ValueChanged|PointerPressed|PointerMoved|PointerReleased|KeyDown)="(?<handler>[A-Za-z_][A-Za-z0-9_]*)"'
@@ -53,4 +55,4 @@ foreach ($m in $dynamic) {
 }
 if ($dynamicErrors.Count -gt 0) { throw "Dynamic buttons without Click subscription: $($dynamicErrors -join ', ')" }
 
-Write-Host "UI handler audit PASS: $($buttonMatches.Count) XAML buttons, $($handlers.Count) XAML event handlers, $($dynamic.Count) dynamic buttons."
+Write-Host "UI handler audit PASS: $($buttonMatches.Count) XAML buttons, $($handlers.Count) XAML event handlers, $($dynamic.Count) dynamic buttons across $($codeFiles.Count) MainWindow partial files."
