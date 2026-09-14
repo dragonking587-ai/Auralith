@@ -230,8 +230,8 @@ public sealed partial class MainWindow
         var primary = new ColorPicker { Color = ToUiColor(fx.PrimaryColor) };
         var secondary = new ColorPicker { Color = ToUiColor(fx.SecondaryColor) };
         var quality = new ComboBox { Width = 180 };
-        foreach (var q in Enum.GetValues<QualityLevel>())
-            quality.Items.Add(new ComboBoxItem { Content = q.ToString(), Tag = q, IsSelected = q == fx.Quality });
+        foreach (var qualityLevel in Enum.GetValues<QualityLevel>())
+            quality.Items.Add(new ComboBoxItem { Content = qualityLevel.ToString(), Tag = qualityLevel, IsSelected = qualityLevel == fx.Quality });
 
         var panel = new StackPanel { Spacing = 6 };
         panel.Children.Add(new TextBlock { Text = "Intensity %" });
@@ -260,7 +260,7 @@ public sealed partial class MainWindow
         fx.Brightness = (float)brightness.Value / 100f;
         fx.PrimaryColor = FromUiColor(primary.Color);
         fx.SecondaryColor = FromUiColor(secondary.Color);
-        if (quality.SelectedItem is ComboBoxItem item && item.Tag is QualityLevel q) fx.Quality = q;
+        if (quality.SelectedItem is ComboBoxItem item && item.Tag is QualityLevel selectedQuality) fx.Quality = selectedQuality;
         BuildInspector();
     }
 
