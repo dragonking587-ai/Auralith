@@ -1,0 +1,31 @@
+name: Auralith PR Windows Verify
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.415"
+      - name: Verify UI handlers
+        shell: pwsh
+        run: ./tools/Verify-UiHandlers.ps1
+      - name: Restore
+        run: dotnet restore Auralith.sln
+      - name: Build
+        run: dotnet build Auralith.sln -c Release --no-restore -p:Platform=x64
+      - name: Core tests
+        run: dotnet test tests/Auralith.Core.Tests/Auralith.Core.Tests.csproj -c Release -p:Platform=x64
+      - name: Audio tests
+        run: dotnet test tests/Auralith.Audio.Tests/Auralith.Audio.Tests.csproj -c Release -p:Platform=x64
+      - name: Rendering tests
+        run: dotnet test tests/Auralith.Rendering.Tests/Auralith.Rendering.Tests.csproj -c Release -p:Platform=x64
