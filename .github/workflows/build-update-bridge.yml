@@ -30,7 +30,6 @@ jobs:
           $hash = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
           Write-Host "BRIDGE_SIZE=$($bridge.Length)"
           Write-Host "BRIDGE_SHA256=$hash"
-          Write-Host "BRIDGE_BASE64=$([Convert]::ToBase64String([IO.File]::ReadAllBytes($path)))"
       - name: Attach bridge to rc.51 release
         shell: pwsh
         env:
@@ -41,3 +40,17 @@ jobs:
           if ($LASTEXITCODE -ne 0) { throw "rc.51 release was not available" }
           gh release upload $tag "artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe" --clobber --repo dragonking587-ai/Auralith
           if ($LASTEXITCODE -ne 0) { throw "Failed to attach update bridge" }
+      - name: Retain transfer copy in source repository
+        shell: pwsh
+        run: |
+          $dest = "tools\release-bridge\Auralith-2.0.0-rc.51-UpdateBridge.exe"
+          New-Item -ItemType Directory -Force (Split-Path $dest) | Out-Null
+          Copy-Item "artifacts\Auralith-2.0.0-rc.51-UpdateBridge.exe" $dest -Force
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add $dest
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "build: retain rc.51 updater bridge binary"
+            git push origin HEAD:main
+          }
