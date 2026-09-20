@@ -27,7 +27,7 @@ jobs:
         run: |
           set -euo pipefail
           current="$(tr -d '\r\n' < apps/auralith-tauri/VERSION)"
-          if [[ "$current" != "1.0.0-rc.49.3.9" && "$current" != "1.0.0-rc.49.3.9" ]]; then
+          if [[ "$current" != "1.0.0-rc.49.3.8" && "$current" != "1.0.0-rc.49.3.9" ]]; then
             echo "Refusing to prepare from unexpected version: $current"
             exit 1
           fi
@@ -123,7 +123,7 @@ jobs:
           - Existing project, updater and capture plumbing are preserved.
 
           ## Update compatibility
-          Auralith Reborn **1.0.0-rc.49.3.9** can update directly to **1.0.0-rc.49.3.9** using **Check for Updates → Download & Install**.
+          Auralith Reborn **1.0.0-rc.49.3.8** can update directly to **1.0.0-rc.49.3.9** using **Check for Updates → Download & Install**.
 
           ## WINDOWS SMARTSCREEN NOTICE
           Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation.
