@@ -1,6 +1,8 @@
 name: Validate Auralith RC49.3.9 Windows
 
 on:
+  pull_request:
+    branches: [tauri/auralith-reborn]
   push:
     branches: [tauri/auralith-reborn]
     paths:
