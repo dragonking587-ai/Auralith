@@ -56,6 +56,19 @@ function nativeProject(project: Project): { project: Project; count: number } {
   return { project: { ...project, regions }, count };
 }
 
+function legacyProjectWithoutNativeNeon(project: Project): { project: Project; removed: number } {
+  let removed = 0;
+  const regions = project.regions.map((region) => {
+    const effects = region.effects.filter((effect) => {
+      const hideLegacyNeon = effect.kind === "NeonGlow" && isThreeNativePlacement(region, effect);
+      if (hideLegacyNeon) removed++;
+      return !hideLegacyNeon;
+    });
+    return effects.length === region.effects.length ? region : { ...region, effects };
+  });
+  return { project: removed ? { ...project, regions } : project, removed };
+}
+
 /**
  * Compatibility-first cinematic renderer for the rc.49 line.
  *
@@ -148,15 +161,18 @@ export class GlRenderer {
     colorOverrides?: Record<string, string>,
     reactions?: any[],
   ) {
-    // Always draw the complete project through rc.49 first. This is the safety
-    // underlay and guarantees backdrop/prop/effect visibility even if Three.js
-    // cannot initialize, compile, sample the base canvas or render on a GPU.
-    this.legacy.draw(project, snapshot, cssW, cssH, viewCss, colorOverrides, reactions);
+    const pipeline = this.pipeline;
+    const threeReady = Boolean(pipeline?.enabled && this.overlayGl);
+    // Suppress the legacy copy only for Neon Glow placements that are being
+    // rendered by Three.js. This prevents the old underlay from leaking a
+    // filled/rectangular center through the cinematic bloom pass.
+    const legacyNeon = threeReady ? legacyProjectWithoutNativeNeon(project) : { project, removed: 0 };
+    this.legacy.draw(legacyNeon.project, snapshot, cssW, cssH, viewCss, colorOverrides, reactions);
     this.fps = this.legacy.fps;
     this.lastW = this.legacy.lastW;
     this.lastH = this.legacy.lastH;
 
-    if (!this.pipeline?.enabled || !this.overlayGl) {
+    if (!pipeline?.enabled || !this.overlayGl) {
       this.clearOverlay();
       return;
     }
@@ -175,14 +191,19 @@ export class GlRenderer {
       : sceneViewport(width, height, project.width, project.height, project.fit);
 
     try {
-      this.pipeline.prepareSize(width, height);
+      pipeline.prepareSize(width, height);
       this.clearOverlay();
-      this.pipeline.render(snapshot, project, viewport, colorOverrides, native.project);
+      pipeline.render(snapshot, project, viewport, colorOverrides, native.project);
       this.overlayCanvas.style.display = "block";
       this.overlayHasContent = true;
       this.pipelineErrorLogged = false;
     } catch (error) {
       this.clearOverlay();
+      // Restore the complete rc.49 fallback immediately if the Three.js frame
+      // failed after its duplicate Neon Glow underlay was suppressed.
+      if (legacyNeon.removed > 0) {
+        this.legacy.draw(project, snapshot, cssW, cssH, viewCss, colorOverrides, reactions);
+      }
       if (!this.pipelineErrorLogged) {
         console.error("CINEMATIC_PIPELINE_V2_FALLBACK_FRAME base=rc49", error);
         this.pipelineErrorLogged = true;
