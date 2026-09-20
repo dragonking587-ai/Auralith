@@ -161,7 +161,8 @@ export class GlRenderer {
     colorOverrides?: Record<string, string>,
     reactions?: any[],
   ) {
-    const threeReady = Boolean(this.pipeline?.enabled && this.overlayGl);
+    const pipeline = this.pipeline;
+    const threeReady = Boolean(pipeline?.enabled && this.overlayGl);
     // Suppress the legacy copy only for Neon Glow placements that are being
     // rendered by Three.js. This prevents the old underlay from leaking a
     // filled/rectangular center through the cinematic bloom pass.
@@ -171,7 +172,7 @@ export class GlRenderer {
     this.lastW = this.legacy.lastW;
     this.lastH = this.legacy.lastH;
 
-    if (!threeReady) {
+    if (!pipeline?.enabled || !this.overlayGl) {
       this.clearOverlay();
       return;
     }
@@ -190,9 +191,9 @@ export class GlRenderer {
       : sceneViewport(width, height, project.width, project.height, project.fit);
 
     try {
-      this.pipeline.prepareSize(width, height);
+      pipeline.prepareSize(width, height);
       this.clearOverlay();
-      this.pipeline.render(snapshot, project, viewport, colorOverrides, native.project);
+      pipeline.render(snapshot, project, viewport, colorOverrides, native.project);
       this.overlayCanvas.style.display = "block";
       this.overlayHasContent = true;
       this.pipelineErrorLogged = false;
