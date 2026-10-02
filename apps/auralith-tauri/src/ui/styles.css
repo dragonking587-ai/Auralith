@@ -423,9 +423,8 @@ canvas#gl {
 .gaming-overlay-surface.editing{pointer-events:none}
 .gaming-overlay-item{position:absolute;overflow:visible;pointer-events:none;will-change:transform}
 .gaming-overlay-item.selected .gaming-overlay-edit-hit{outline:2px solid #d4af37;box-shadow:0 0 0 1px rgba(0,0,0,.65),0 0 18px rgba(212,175,55,.45)}
-.gaming-overlay-web-frame{position:relative;display:block;width:100%;height:100%;overflow:hidden;border-radius:inherit;background:transparent}
 .gaming-overlay-web,.gaming-overlay-panel,.gaming-overlay-text{display:block;width:100%;height:100%;box-sizing:border-box;border:0;overflow:hidden}
-.gaming-overlay-web{position:absolute;background:transparent;transform-origin:50% 50%}
+.gaming-overlay-web{background:transparent}
 .gaming-overlay-panel{pointer-events:none}
 .gaming-overlay-text{display:flex;align-items:center;justify-content:center;padding:10px;line-height:1.05;white-space:pre-wrap;overflow:hidden;text-shadow:0 2px 8px rgba(0,0,0,.65)}
 .gaming-overlay-edit-hit{position:absolute;inset:0;pointer-events:auto;cursor:move;border-radius:inherit;background:rgba(0,0,0,.015);outline:1px dashed rgba(212,175,55,.55)}
