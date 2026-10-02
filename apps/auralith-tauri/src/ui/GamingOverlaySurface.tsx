@@ -70,6 +70,7 @@ export function GamingOverlaySurface(props: Props) {
         }
         const webStyle: React.CSSProperties = webFit === "native"
           ? {
+              position: "absolute",
               left: 0,
               top: 0,
               width: "100%",
@@ -79,6 +80,7 @@ export function GamingOverlaySurface(props: Props) {
               pointerEvents: props.edit ? "none" : (item.interactive && props.previewInteractive ? "auto" : "none"),
             }
           : {
+              position: "absolute",
               left: "50%",
               top: "50%",
               width: `${sourceWidth}px`,
@@ -102,7 +104,15 @@ export function GamingOverlaySurface(props: Props) {
             }}
           >
             {item.kind === "web" && (
-              <div className="gaming-overlay-web-frame" style={{ borderRadius: item.borderRadius }}>
+              <div className="gaming-overlay-web-frame" style={{
+                position: "relative",
+                display: "block",
+                width: "100%",
+                height: "100%",
+                overflow: "hidden",
+                borderRadius: item.borderRadius,
+                background: "transparent",
+              }}>
                 <iframe
                   title={item.name}
                   src={safeOverlayUrl(item.url) || "about:blank"}
