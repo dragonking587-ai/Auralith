@@ -1,4 +1,4 @@
-import { createGamingOverlay, safeOverlayUrl, type GamingOverlayItem, type GamingOverlayKind } from "../scene/gamingOverlay";
+import { createGamingOverlay, safeOverlayUrl, type GamingOverlayItem, type GamingOverlayKind, type GamingOverlayWebFit } from "../scene/gamingOverlay";
 
 type Props = {
   items: GamingOverlayItem[];
@@ -62,6 +62,19 @@ export function GamingOverlayDesigner(props: Props) {
             <label>Embed URL <input value={selected.url || ""} placeholder="https://loudman.live/..." onChange={(e) => patch(selected.id, { url: e.target.value })} /></label>
             {(selected.url || "") && !safeOverlayUrl(selected.url) && <p className="warn">Use an HTTPS URL. HTTP is only allowed for localhost.</p>}
             <label className="chk"><input type="checkbox" checked={!!selected.interactive} onChange={(e) => patch(selected.id, { interactive: e.target.checked })} /> Allow interaction in Preview</label>
+            <label>Card Fit
+              <select value={selected.webFit || "fit"} onChange={(e) => patch(selected.id, { webFit: e.target.value as GamingOverlayWebFit })}>
+                <option value="fit">Fit — show whole card</option>
+                <option value="fill">Fill — crop edges</option>
+                <option value="stretch">Stretch — match box</option>
+                <option value="native">Native — resize webpage viewport</option>
+              </select>
+            </label>
+            {(selected.webFit || "fit") !== "native" && <>
+              <label>Source Width <input type="number" min={160} max={4096} value={Math.round(selected.sourceWidth || 640)} onChange={(e) => patch(selected.id, { sourceWidth: Math.max(160, number(e.target.value, 640)) })} /></label>
+              <label>Source Height <input type="number" min={120} max={4096} value={Math.round(selected.sourceHeight || 360)} onChange={(e) => patch(selected.id, { sourceHeight: Math.max(120, number(e.target.value, 360)) })} /></label>
+              <p className="muted">Fit keeps the embedded page at a stable browser size, then scales the complete card into the overlay box instead of cropping it as the box is resized.</p>
+            </>}
           </>}
 
           {selected.kind === "text" && <>

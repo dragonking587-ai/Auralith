@@ -1,4 +1,5 @@
 export type GamingOverlayKind = "web" | "panel" | "text";
+export type GamingOverlayWebFit = "fit" | "fill" | "stretch" | "native";
 
 export type GamingOverlayItem = {
   id: string;
@@ -20,6 +21,9 @@ export type GamingOverlayItem = {
   borderRadius: number;
   url?: string;
   interactive?: boolean;
+  webFit?: GamingOverlayWebFit;
+  sourceWidth?: number;
+  sourceHeight?: number;
   hue?: number;
   saturation?: number;
   brightness?: number;
@@ -81,7 +85,18 @@ export function createGamingOverlay(kind: GamingOverlayKind, projectWidth = 1920
     borderRadius: 18,
   };
   if (kind === "web") {
-    return { ...base, url: "https://loudman.live/", interactive: false, hue: 0, saturation: 1, brightness: 1, contrast: 1 };
+    return {
+      ...base,
+      url: "https://loudman.live/",
+      interactive: false,
+      webFit: "fit",
+      sourceWidth: 640,
+      sourceHeight: 360,
+      hue: 0,
+      saturation: 1,
+      brightness: 1,
+      contrast: 1,
+    };
   }
   if (kind === "panel") {
     return { ...base, fillColor: "#0d0f14", borderColor: "#d4af37", borderWidth: 4, glow: 18, opacity: 0.72 };
@@ -95,6 +110,10 @@ export function normalizeGamingOverlay(raw: unknown, projectWidth = 1920, projec
   const kind: GamingOverlayKind = r.kind === "web" || r.kind === "panel" || r.kind === "text" ? r.kind : "panel";
   const d = createGamingOverlay(kind, projectWidth, projectHeight);
   const align = r.align === "left" || r.align === "right" || r.align === "center" ? r.align : d.align;
+  const webFit: GamingOverlayWebFit =
+    r.webFit === "fit" || r.webFit === "fill" || r.webFit === "stretch" || r.webFit === "native"
+      ? r.webFit
+      : "fit";
   return {
     ...d,
     id: text(r.id, d.id, 96),
@@ -116,6 +135,9 @@ export function normalizeGamingOverlay(raw: unknown, projectWidth = 1920, projec
     borderRadius: clamp(r.borderRadius, d.borderRadius, 0, 200),
     url: kind === "web" ? safeOverlayUrl(r.url) : undefined,
     interactive: kind === "web" ? r.interactive === true : undefined,
+    webFit: kind === "web" ? webFit : undefined,
+    sourceWidth: kind === "web" ? clamp(r.sourceWidth, d.sourceWidth ?? 640, 160, 4096) : undefined,
+    sourceHeight: kind === "web" ? clamp(r.sourceHeight, d.sourceHeight ?? 360, 120, 4096) : undefined,
     hue: kind === "web" ? clamp(r.hue, d.hue ?? 0, -180, 180) : undefined,
     saturation: kind === "web" ? clamp(r.saturation, d.saturation ?? 1, 0, 3) : undefined,
     brightness: kind === "web" ? clamp(r.brightness, d.brightness ?? 1, 0.2, 3) : undefined,

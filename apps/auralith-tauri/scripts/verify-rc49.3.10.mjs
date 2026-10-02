@@ -28,10 +28,20 @@ must(flame.includes("tipWisps"), "flame tip wisps missing");
 must(flame.includes('blending: kind === "RealisticFlame" ? THREE.NormalBlending'), "natural flame blending missing");
 
 const designer = read("src/ui/GamingOverlayDesigner.tsx");
-for (const label of ["Web / Song Card", "Tilt X", "Tilt Y", "Skew X", "Skew Y", "Perspective", "Loudman.live"]) {
+for (const label of ["Web / Song Card", "Card Fit", "Fit — show whole card", "Source Width", "Source Height", "Tilt X", "Tilt Y", "Skew X", "Skew Y", "Perspective", "Loudman.live"]) {
   must(designer.includes(label), `overlay control missing: ${label}`);
 }
 const surface = read("src/ui/GamingOverlaySurface.tsx");
 must(surface.includes("perspective(${item.perspective}px) rotateX(${item.rotateX}deg) rotateY(${item.rotateY}deg)"), "overlay perspective transform chain missing");
+must(surface.includes('const webFit = item.webFit || "fit";'), "web-card fit mode missing");
+must(surface.includes("Math.min(width / sourceWidth, height / sourceHeight)"), "web-card Fit scale missing");
+must(surface.includes("Math.max(width / sourceWidth, height / sourceHeight)"), "web-card Fill scale missing");
+must(surface.includes('transform: `translate(-50%, -50%) scale(${webScaleX}, ${webScaleY})`'), "web-card whole-surface scaling missing");
 
-console.log("RC49.3.10_VERIFY_OK neon=fixed flame=multi-tongue gaming-overlay=enabled");
+const overlayModel = read("src/scene/gamingOverlay.ts");
+must(overlayModel.includes('export type GamingOverlayWebFit = "fit" | "fill" | "stretch" | "native";'), "web fit model missing");
+must(overlayModel.includes('webFit: "fit"'), "new web cards must default to Fit");
+must(overlayModel.includes("sourceWidth: 640"), "web-card source width default missing");
+must(overlayModel.includes("sourceHeight: 360"), "web-card source height default missing");
+
+console.log("RC49.3.10_VERIFY_OK neon=fixed flame=multi-tongue gaming-overlay=enabled song-card-fit=fixed");
