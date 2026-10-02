@@ -104,10 +104,6 @@ jobs:
           $latest | ConvertTo-Json -Depth 6 | Set-Content dist-install/latest.json -Encoding utf8
           if (-not $sigText) { Write-Warning "No updater signature produced" }
           Get-ChildItem dist-install | Format-Table Name,Length
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Auralith-Reborn-Preview-${{ steps.ver.outputs.version }}
-          path: apps/auralith-tauri/dist-install/*
       - name: Publish GitHub Release
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         uses: softprops/action-gh-release@v2
@@ -144,7 +140,7 @@ jobs:
             Installer: ${{ steps.ver.outputs.file }}
             Branch: tauri/auralith-reborn
             Commit: ${{ github.sha }}
-      - name: Rewrite latest.json from uploaded assets
+      - name: Rewrite latest.json from release assets
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -160,7 +156,7 @@ jobs:
           $url = $exe.browser_download_url
           if ($url -match 'Host-Console|Host\.Console') { throw "Main manifest must not point at Host Console" }
           $code = (Invoke-WebRequest -Method Head -Uri $url -UseBasicParsing).StatusCode
-          if ($code -ne 200) { throw "Updater artifact 404: $url" }
+          if ($code -ne 200) { throw "Updater release asset 404: $url" }
           $sig = ""
           if (Test-Path "dist-install/latest.json") {
             $old = Get-Content dist-install/latest.json -Raw | ConvertFrom-Json
