@@ -76,10 +76,6 @@ jobs:
           if (-not $sigText) { Write-Warning "No Host Console updater signature produced" }
           Get-FileHash "dist/$friendly" -Algorithm SHA256 | Out-File "dist/SHA256.txt"
           Get-ChildItem dist
-      - uses: actions/upload-artifact@v4
-        with:
-          name: Auralith-Host-Console-nsis
-          path: apps/auralith-host-console/dist/*
       - name: Attach Host Console to the same version tag
         if: github.event_name == 'workflow_dispatch' && inputs.publish == true
         env:
@@ -106,7 +102,7 @@ jobs:
           $url = $exe.browser_download_url
           if ($url -match 'Auralith-Reborn|Auralith\.Reborn') { throw "Host Console manifest must not point at Main Auralith" }
           $code = (Invoke-WebRequest -Method Head -Uri $url -UseBasicParsing).StatusCode
-          if ($code -ne 200) { throw "Host Console updater artifact 404: $url" }
+          if ($code -ne 200) { throw "Host Console updater release asset 404: $url" }
           $sig = ""
           if (Test-Path dist/latest-host-console.json) {
             $old = Get-Content dist/latest-host-console.json -Raw | ConvertFrom-Json
