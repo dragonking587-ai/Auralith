@@ -1,4 +1,5 @@
 name: Publish Auralith Reborn RC49.3.10
+# SONG_CARD_UI_LOCK_REPUBLISH
 
 on:
   push:
