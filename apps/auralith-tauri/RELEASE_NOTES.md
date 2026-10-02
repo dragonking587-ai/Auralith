@@ -14,6 +14,19 @@ The natural fire rebuild remains intact:
 - continuous Bass / Low / Mid / High / Beat / Transient response;
 - normal blending for a denser natural flame body.
 
+## Web / Song Card scaling fix
+Web/Song Card overlays now separate the **browser render size** from the **display box size**.
+
+The default **Fit** mode keeps the embedded Loudman.live card at a stable source viewport and scales the complete card into the selected overlay box. Resizing the overlay no longer shrinks the iframe viewport and cuts off the lower part of the song card.
+
+Additional modes are available:
+- **Fit** — preserve aspect ratio and show the whole card;
+- **Fill** — preserve aspect ratio and intentionally crop edges;
+- **Stretch** — scale independently to the selected width and height;
+- **Native** — use the previous behavior and resize the webpage viewport directly.
+
+Existing saved web cards normalize to **Fit** unless they explicitly choose another mode.
+
 ## Gaming Overlay — first Gaming Mode foundation
 The Overlay workspace remains included and supports:
 - Web / Song Card surfaces;

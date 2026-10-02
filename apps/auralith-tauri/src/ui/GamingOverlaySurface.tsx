@@ -51,6 +51,43 @@ export function GamingOverlaySurface(props: Props) {
           transform, transformOrigin: "50% 50%", borderRadius: item.borderRadius,
         };
         const webFilter = `hue-rotate(${item.hue || 0}deg) saturate(${item.saturation ?? 1}) brightness(${item.brightness ?? 1}) contrast(${item.contrast ?? 1})`;
+        const sourceWidth = Math.max(160, item.sourceWidth || 640);
+        const sourceHeight = Math.max(120, item.sourceHeight || 360);
+        const webFit = item.webFit || "fit";
+        let webScaleX = 1;
+        let webScaleY = 1;
+        if (webFit === "fit") {
+          const scale = Math.min(width / sourceWidth, height / sourceHeight);
+          webScaleX = scale;
+          webScaleY = scale;
+        } else if (webFit === "fill") {
+          const scale = Math.max(width / sourceWidth, height / sourceHeight);
+          webScaleX = scale;
+          webScaleY = scale;
+        } else if (webFit === "stretch") {
+          webScaleX = width / sourceWidth;
+          webScaleY = height / sourceHeight;
+        }
+        const webStyle: React.CSSProperties = webFit === "native"
+          ? {
+              left: 0,
+              top: 0,
+              width: "100%",
+              height: "100%",
+              transform: "none",
+              filter: webFilter,
+              pointerEvents: props.edit ? "none" : (item.interactive && props.previewInteractive ? "auto" : "none"),
+            }
+          : {
+              left: "50%",
+              top: "50%",
+              width: `${sourceWidth}px`,
+              height: `${sourceHeight}px`,
+              transform: `translate(-50%, -50%) scale(${webScaleX}, ${webScaleY})`,
+              transformOrigin: "50% 50%",
+              filter: webFilter,
+              pointerEvents: props.edit ? "none" : (item.interactive && props.previewInteractive ? "auto" : "none"),
+            };
         return (
           <div
             key={item.id}
@@ -65,14 +102,16 @@ export function GamingOverlaySurface(props: Props) {
             }}
           >
             {item.kind === "web" && (
-              <iframe
-                title={item.name}
-                src={safeOverlayUrl(item.url) || "about:blank"}
-                className="gaming-overlay-web"
-                sandbox="allow-scripts allow-forms allow-popups allow-same-origin allow-presentation"
-                referrerPolicy="strict-origin-when-cross-origin"
-                style={{ filter: webFilter, pointerEvents: props.edit ? "none" : (item.interactive && props.previewInteractive ? "auto" : "none") }}
-              />
+              <div className="gaming-overlay-web-frame" style={{ borderRadius: item.borderRadius }}>
+                <iframe
+                  title={item.name}
+                  src={safeOverlayUrl(item.url) || "about:blank"}
+                  className="gaming-overlay-web"
+                  sandbox="allow-scripts allow-forms allow-popups allow-same-origin allow-presentation"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  style={webStyle}
+                />
+              </div>
             )}
             {item.kind === "panel" && (
               <div className="gaming-overlay-panel" style={{
