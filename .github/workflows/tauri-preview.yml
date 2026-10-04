@@ -12,6 +12,10 @@ on:
         required: false
         default: false
         type: boolean
+concurrency:
+  group: auralith-reborn-windows-release
+  cancel-in-progress: false
+
 jobs:
   windows:
     if: github.ref == 'refs/heads/tauri/auralith-reborn'
@@ -79,20 +83,21 @@ jobs:
           Copy-Item $exe.FullName $dest
           Copy-Item $exe.FullName "dist-install/$($exe.Name)"
           $hash = (Get-FileHash $dest -Algorithm SHA256).Hash.ToLower()
-          "$name  $hash" | Set-Content dist-install/SHA256SUMS.txt
+          "$hash  $name" | Set-Content dist-install/SHA256SUMS.txt
           Get-Item $dest | Format-List FullName,Length
           Write-Host "SHA256 $hash"
-          $sig = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.sig | Select-Object -First 1
-          $zip = Get-ChildItem -Recurse src-tauri/target/release/bundle -Include *.nsis.zip,*.zip | Where-Object { $_.Name -match "nsis|updater" } | Select-Object -First 1
-          if ($sig) { Copy-Item $sig.FullName "dist-install/$($sig.Name)" }
-          if ($zip) { Copy-Item $zip.FullName "dist-install/$($zip.Name)" }
-          $sigText = if ($sig) { (Get-Content $sig.FullName -Raw).Trim() } else { "" }
-          $signedName = if ($zip) { $zip.Name } else { $exe.Name }
+          $sigPath = "$($exe.FullName).sig"
+          if (-not (Test-Path $sigPath)) { throw "Signed updater artifact missing: $sigPath" }
+          $sig = Get-Item $sigPath
+          Copy-Item $sig.FullName "dist-install/$($sig.Name)"
+          $sigText = (Get-Content $sig.FullName -Raw).Trim()
+          if (-not $sigText) { throw "Empty updater signature; refusing to publish" }
+          $signedName = $exe.Name
           $enc = [uri]::EscapeDataString($signedName)
           $url = "https://github.com/dragonking587-ai/Auralith/releases/download/v$v/$enc"
           $latest = [ordered]@{
             version = $v
-            notes = "Auralith Reborn $v — cinematic render pipeline"
+            notes = (Get-Content RELEASE_NOTES.md -Raw)
             pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             platforms = @{
               "windows-x86_64" = @{
@@ -102,46 +107,22 @@ jobs:
             }
           }
           $latest | ConvertTo-Json -Depth 6 | Set-Content dist-install/latest.json -Encoding utf8
-          if (-not $sigText) { Write-Warning "No updater signature produced" }
+          if (-not $sigText) { throw "No updater signature produced" }
           Get-ChildItem dist-install | Format-Table Name,Length
       - name: Publish GitHub Release
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish]'))
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.ver.outputs.tag }}
-          name: Auralith Reborn ${{ steps.ver.outputs.version }} — Cinematic Render Pipeline
-          target_commitish: tauri/auralith-reborn
+          name: Auralith Reborn ${{ steps.ver.outputs.version }} — Custom Overlay Colors & Effects
+          target_commitish: ${{ github.sha }}
           prerelease: false
           fail_on_unmatched_files: true
           files: |
             apps/auralith-tauri/dist-install/*
-          body: |
-            # Auralith ${{ steps.ver.outputs.version }} — Cinematic Render Pipeline
-
-            This release continues the rc.49 Reborn application with the existing UI and workflow preserved while upgrading rendering underneath it.
-
-            ## New rendering pipeline
-            - Three.js-managed cinematic compositor on the existing Reborn/Tauri shell
-            - HDR-capable intermediate rendering and bloom
-            - Audio-reactive chromatic aberration, film grain, vignette and output color processing
-            - Dedicated GPU particle family for Sparks, Energy Sparks, Embers, Fireflies, Snow, Ash, Dust Motes and Bioluminescent Spores
-            - Dedicated GPU volumetric family for Magic Energy, Plasma, Void Energy, Portal, Vortex, Smoke/Fog, Mist, Atmospheric Haze, Aurora, Cosmic Nebula, Frozen Breath and Spectral Aura
-            - Existing trace/shape/prop SDF rendering retained for compatibility until those placement modes are migrated
-            - Automatic fallback to the rc.49 renderer if the cinematic pipeline cannot initialize
-            - Transparent capture path preserved for OBS-style overlays
-
-            Public installer. No Beta Access Code is required.
-
-            ## WINDOWS SMARTSCREEN NOTICE
-            Windows may show "Windows protected your PC" because this build does not yet have an established Windows code-signing reputation.
-            If downloaded from this official Auralith GitHub Release, use More info → Run anyway.
-            Do not disable Windows SmartScreen or Windows Defender.
-
-            Installer: ${{ steps.ver.outputs.file }}
-            Branch: tauri/auralith-reborn
-            Commit: ${{ github.sha }}
+          body_path: apps/auralith-tauri/RELEASE_NOTES.md
       - name: Rewrite latest.json from release assets
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish]'))
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: pwsh
@@ -162,9 +143,10 @@ jobs:
             $old = Get-Content dist-install/latest.json -Raw | ConvertFrom-Json
             $sig = $old.platforms.'windows-x86_64'.signature
           }
+          if (-not $sig) { throw "Updater signature missing; refusing to move update feed" }
           $latest = [ordered]@{
             version = $v
-            notes = "Auralith Reborn $v — cinematic render pipeline"
+            notes = (Get-Content RELEASE_NOTES.md -Raw)
             pub_date = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
             platforms = @{ "windows-x86_64" = @{ signature = $sig; url = $url } }
           }
@@ -172,12 +154,12 @@ jobs:
           Write-Host "MAIN UPDATER URL $url HTTP $code"
           gh release upload $tag dist-install/latest.json --repo dragonking587-ai/Auralith --clobber
       - name: Publish updater-latest pointer
-        if: github.event_name == 'workflow_dispatch' && inputs.publish == true
+        if: (github.event_name == 'workflow_dispatch' && inputs.publish == true) || (github.event_name == 'push' && contains(github.event.head_commit.message, '[publish]'))
         uses: softprops/action-gh-release@v2
         with:
           tag_name: updater-latest
           name: Auralith Reborn updater metadata
-          target_commitish: tauri/auralith-reborn
+          target_commitish: ${{ github.sha }}
           prerelease: true
           files: |
             apps/auralith-tauri/dist-install/latest.json

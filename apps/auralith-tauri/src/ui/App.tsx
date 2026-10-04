@@ -41,6 +41,7 @@ import { GamingOverlaySurface } from "./GamingOverlaySurface";
 import { GamingOverlayDesigner } from "./GamingOverlayDesigner";
 
 const audio = new AudioEngine();
+const readOverlayAudio = () => audio.snapshot;
 const rxEngine = new ReactionEngine();
 declare const __AURALITH_VERSION__: string;
 const APP_VERSION = __AURALITH_VERSION__;
@@ -1294,6 +1295,7 @@ export function App() {
               selectedId={overlaySel}
               onSelect={(id)=>setOverlaySel(id)}
               onPatch={patchGamingOverlay}
+              getAudioSnapshot={readOverlayAudio}
             />
           )}
           {!clean && project.showMarkers && view === "Edit" && (

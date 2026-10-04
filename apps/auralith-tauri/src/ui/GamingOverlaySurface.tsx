@@ -1,5 +1,7 @@
-import { useRef } from "react";
+import { useEffect, useRef } from "react";
+import type { AudioSnapshot } from "../audio/engine";
 import { safeOverlayUrl, type GamingOverlayItem } from "../scene/gamingOverlay";
+import { overlayAudioLevel, overlayEffectState, overlayRgba, smoothOverlayAudio } from "../scene/overlayEffects";
 
 export type OverlayViewport = { x: number; y: number; w: number; h: number };
 
@@ -13,6 +15,7 @@ type Props = {
   selectedId: string | null;
   onSelect: (id: string) => void;
   onPatch: (id: string, patch: Partial<GamingOverlayItem>) => void;
+  getAudioSnapshot?: () => AudioSnapshot;
 };
 
 type DragState = { id: string; startX: number; startY: number; originX: number; originY: number; pointerId: number };
@@ -21,6 +24,41 @@ export function GamingOverlaySurface(props: Props) {
   const drag = useRef<DragState | null>(null);
   const sx = props.viewport.w / Math.max(1, props.projectWidth);
   const sy = props.viewport.h / Math.max(1, props.projectHeight);
+  const scale = Math.min(sx, sy);
+  const elements = useRef(new Map<string, HTMLDivElement>());
+  const live = useRef(props);
+  live.current = props;
+  const animated = props.items.some((item) => item.visible && (item.effect === "pulse" || item.effect === "chase" || item.audioReactive));
+
+  useEffect(() => {
+    if (!animated) return;
+    let frame = 0;
+    let previousTime = performance.now();
+    const envelopes = new Map<string, number>();
+    const tick = (now: number) => {
+      const current = live.current;
+      const dt = (now - previousTime) / 1000;
+      previousTime = now;
+      const audio = current.getAudioSnapshot?.();
+      const viewportScale = Math.min(current.viewport.w / Math.max(1, current.projectWidth), current.viewport.h / Math.max(1, current.projectHeight));
+      for (const item of current.items) {
+        const element = elements.current.get(item.id);
+        if (!item.visible || !element) continue;
+        const level = smoothOverlayAudio(envelopes.get(item.id) || 0, overlayAudioLevel(item, audio), dt);
+        envelopes.set(item.id, level);
+        const effect = overlayEffectState(item, now / 1000, level);
+        element.style.setProperty("--overlay-border-color", effect.borderColor);
+        element.style.setProperty("--overlay-glow-color", effect.glowColor);
+        element.style.setProperty("--overlay-glow", effect.glow * viewportScale + "px");
+        element.style.setProperty("--overlay-chase-opacity", String(effect.chaseOpacity));
+        element.style.setProperty("--overlay-angle", effect.angle + "deg");
+      }
+      for (const id of envelopes.keys()) if (!elements.current.has(id)) envelopes.delete(id);
+      frame = requestAnimationFrame(tick);
+    };
+    frame = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frame);
+  }, [animated]);
 
   const onPointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = drag.current;
@@ -46,10 +84,18 @@ export function GamingOverlaySurface(props: Props) {
         const width = item.width * sx;
         const height = item.height * sy;
         const transform = `translate(-50%, -50%) perspective(${item.perspective}px) rotateX(${item.rotateX}deg) rotateY(${item.rotateY}deg) rotateZ(${item.rotation}deg) skewX(${item.skewX}deg) skewY(${item.skewY}deg)`;
-        const common: React.CSSProperties = {
+        const effect = overlayEffectState(item, 0);
+        const common = {
           left, top, width, height, opacity: item.opacity, zIndex: 30 + item.zIndex,
-          transform, transformOrigin: "50% 50%", borderRadius: item.borderRadius,
-        };
+          transform, transformOrigin: "50% 50%", borderRadius: item.borderRadius * scale,
+          "--overlay-border-color": effect.borderColor,
+          "--overlay-glow-color": effect.glowColor,
+          "--overlay-accent-color": item.effectColor || "#31d8ef",
+          "--overlay-border-width": (item.borderWidth || 0) * scale + "px",
+          "--overlay-glow": effect.glow * scale + "px",
+          "--overlay-chase-opacity": effect.chaseOpacity,
+          "--overlay-angle": effect.angle + "deg",
+        } as React.CSSProperties;
         const webFilter = `hue-rotate(${item.hue || 0}deg) saturate(${item.saturation ?? 1}) brightness(${item.brightness ?? 1}) contrast(${item.contrast ?? 1})`;
         const sourceWidth = Math.max(160, item.sourceWidth || 640);
         const sourceHeight = Math.max(120, item.sourceHeight || 360);
@@ -93,6 +139,7 @@ export function GamingOverlaySurface(props: Props) {
         return (
           <div
             key={item.id}
+            ref={(element) => { if (element) elements.current.set(item.id, element); else elements.current.delete(item.id); }}
             className={`gaming-overlay-item ${selected ? "selected" : ""} kind-${item.kind}`}
             style={common}
             onPointerDown={(e) => {
@@ -110,7 +157,7 @@ export function GamingOverlaySurface(props: Props) {
                 width: "100%",
                 height: "100%",
                 overflow: "hidden",
-                borderRadius: item.borderRadius,
+                borderRadius: "inherit",
                 background: "transparent",
               }}>
                 <iframe
@@ -125,23 +172,23 @@ export function GamingOverlaySurface(props: Props) {
             )}
             {item.kind === "panel" && (
               <div className="gaming-overlay-panel" style={{
-                background: item.fillColor,
-                border: `${item.borderWidth || 0}px solid ${item.borderColor || "transparent"}`,
-                borderRadius: item.borderRadius,
-                boxShadow: (item.glow || 0) > 0 ? `0 0 ${item.glow}px ${item.borderColor || "#d4af37"}` : "none",
+                background: overlayRgba(item.fillColor || "#000000", item.fillOpacity ?? 1),
+                borderRadius: "inherit",
               }} />
             )}
             {item.kind === "text" && (
               <div className="gaming-overlay-text" style={{
                 color: item.textColor,
-                background: item.fillColor,
-                border: `${item.borderWidth || 0}px solid ${item.borderColor || "transparent"}`,
-                borderRadius: item.borderRadius,
+                background: overlayRgba(item.fillColor || "#000000", item.fillOpacity ?? 1),
+                borderRadius: "inherit",
                 fontSize: `${Math.max(8, (item.fontSize || 48) * Math.min(sx, sy))}px`,
                 fontWeight: item.fontWeight || 700,
                 textAlign: item.align || "center",
               }}>{item.text}</div>
             )}
+            <div className="gaming-overlay-decoration" aria-hidden="true">
+              {item.effect === "chase" && <div className="gaming-overlay-chase" />}
+            </div>
             {props.edit && <div className="gaming-overlay-edit-hit"><span>{item.name}</span></div>}
           </div>
         );

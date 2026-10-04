@@ -1,52 +1,28 @@
-# Auralith 1.0.0-rc.49.3.10 — Neon Glow Fix & Gaming Overlay Foundation
+# Auralith 1.0.0-rc.49.4 — Custom Overlay Colors & Effects
 
-## Neon Glow center-artifact fix
-The Three.js Neon Glow renderer now guarantees a transparent center and fades before the edges of its render quad, preventing the render plane itself from appearing as a rectangle.
+Overlay boxes now have independent styles and live effects. New frames start with a subtle obsidian fill and violet/cyan border instead of a solid gold box.
 
-When the Three.js Neon Glow path is active, Auralith also suppresses the duplicate legacy Neon Glow underlay for native point, emitter and stamp placements. If a Three.js frame fails, Auralith immediately redraws the complete rc.49 fallback frame.
+## Customize each box
+Open **Overlay**, select a Frame / Panel, Text item, or Web / Song Card, then use **Box Style** and **Box Effects**.
 
-## Natural multi-tongue Realistic Flame
-The natural fire rebuild remains intact:
-- broad fuel-bed fire rather than a centered jet;
-- nine independently moving flame tongues;
-- separate height, width, curl, turbulence and breakup;
-- hot inner core and thin tip wisps;
-- continuous Bass / Low / Mid / High / Beat / Transient response;
-- normal blending for a denser natural flame body.
+- Choose **Border Color** and a separate **Effect Color**.
+- Set border width, corner radius, overall opacity, and glow.
+- Set fill color and **Fill Opacity** independently of the border and text; zero gives a transparent center.
+- Apply **Obsidian**, **Ice**, **Crimson**, or **Gold** presets, then customize any setting.
+- Select **Static**, **Neon Glow**, **Breathing Pulse**, or **Border Chase**.
+- Give every animated box its own speed and intensity.
+- Enable **Audio Reactive** per box and choose Full Mix, Bass, Low, Mid, High, Beat, or Transient, with independent sensitivity and a smooth attack/release response.
 
-## Web / Song Card scaling fix
-Web/Song Card overlays now separate the **browser render size** from the **display box size**.
+Web cards retain their stable source viewport, Fit/Fill/Stretch/Native behavior, and perspective controls while their surrounding frame can have its own colors and effects.
 
-The default **Fit** mode keeps the embedded Loudman.live card at a stable source viewport and scales the complete card into the selected overlay box. Resizing the overlay no longer shrinks the iframe viewport and cuts off the lower part of the song card.
+## Projects and output
+Colors, effects, transparency, and audio settings save in normal .auralith projects. Existing saved frames retain their colors, solid fills, and static behavior. Changing one box does not change another.
 
-Additional modes are available:
-- **Fit** — preserve aspect ratio and show the whole card;
-- **Fill** — preserve aspect ratio and intentionally crop edges;
-- **Stretch** — scale independently to the selected width and height;
-- **Native** — use the previous behavior and resize the webpage viewport directly.
+The overlay remains visible in Preview and Clean Capture. Editor outlines and labels stay out of Clean Capture. These HTML overlay surfaces use the existing window/clean-capture path; the current Virtual Camera framebuffer does not include HTML overlays or embedded iframe content.
 
-Existing saved web cards normalize to **Fit** unless they explicitly choose another mode.
-
-## Gaming Overlay — first Gaming Mode foundation
-The Overlay workspace remains included and supports:
-- Web / Song Card surfaces;
-- Frames / Panels;
-- Text objects.
-
-Overlay items can be positioned, resized, hidden, duplicated, reordered and saved with the project.
-
-## Embedded link perspective matching
-Web/Song Card surfaces, including embeddable Loudman.live links, retain Rotate Z, Tilt X/Y, Skew X/Y, Perspective, position, size, opacity, corner radius, z-order and color-matching controls. This lets users visually align a card to an angled monitor, wall display, sign, desk screen or similar background surface.
-
-Some websites can still refuse iframe embedding through their own CSP or X-Frame-Options policies; Auralith does not bypass those policies.
-
-## Existing features preserved
-- Three.js 0.185.1 remains the cinematic effects renderer over the rc.49 compatibility base.
-- All 80 selectable effects remain available.
-- Existing quality tiers, audio mappings, editor workflows, updater, project and capture plumbing remain intact.
+The existing Neon Glow center fix, natural flame rebuild, 80 effects, quality controls, and editor workflows remain included.
 
 ## Update compatibility
-Auralith Reborn **1.0.0-rc.49.3.9** can update directly to **1.0.0-rc.49.3.10** using **Check for Updates → Download & Install** once the signed release metadata is published.
+The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4** is newer than **1.0.0-rc.49.3.10**, including with the comparison used by older rc.49.3 clients.
 
-## WINDOWS SMARTSCREEN NOTICE
-Windows may show **“Windows protected your PC”** because Auralith does not yet have an established Windows code-signing reputation. If the installer came from the official `dragonking587-ai/Auralith` GitHub release, use **More info → Run anyway**.
+Use **Settings → Check for Updates → Download & Install**. The update saves the current project recovery data before installing and restarting. The signed installer and latest.json are published to this release, with the updater-latest feed refreshed after the installer is available.

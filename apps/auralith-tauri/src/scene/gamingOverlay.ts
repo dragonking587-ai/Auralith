@@ -1,5 +1,7 @@
 export type GamingOverlayKind = "web" | "panel" | "text";
 export type GamingOverlayWebFit = "fit" | "fill" | "stretch" | "native";
+export type GamingOverlayEffect = "none" | "glow" | "pulse" | "chase";
+export type GamingOverlayAudioBand = "fullMix" | "bass" | "low" | "mid" | "high" | "beat" | "transient";
 
 export type GamingOverlayItem = {
   id: string;
@@ -32,6 +34,14 @@ export type GamingOverlayItem = {
   borderColor?: string;
   borderWidth?: number;
   glow?: number;
+  fillOpacity?: number;
+  effect?: GamingOverlayEffect;
+  effectColor?: string;
+  effectIntensity?: number;
+  effectSpeed?: number;
+  audioReactive?: boolean;
+  audioBand?: GamingOverlayAudioBand;
+  audioSensitivity?: number;
   text?: string;
   textColor?: string;
   fontSize?: number;
@@ -83,6 +93,17 @@ export function createGamingOverlay(kind: GamingOverlayKind, projectWidth = 1920
     opacity: 1,
     zIndex: 10,
     borderRadius: 18,
+    borderColor: "#8b6cff",
+    borderWidth: 0,
+    glow: 0,
+    fillOpacity: 0,
+    effect: "none",
+    effectColor: "#31d8ef",
+    effectIntensity: 1,
+    effectSpeed: 0.35,
+    audioReactive: false,
+    audioBand: "bass",
+    audioSensitivity: 1,
   };
   if (kind === "web") {
     return {
@@ -99,9 +120,9 @@ export function createGamingOverlay(kind: GamingOverlayKind, projectWidth = 1920
     };
   }
   if (kind === "panel") {
-    return { ...base, fillColor: "#0d0f14", borderColor: "#d4af37", borderWidth: 4, glow: 18, opacity: 0.72 };
+    return { ...base, fillColor: "#0d0f14", borderWidth: 3, glow: 18, fillOpacity: 0.14, effect: "glow" };
   }
-  return { ...base, text: "OBSIDIAN WOLF", textColor: "#f4d27a", fillColor: "#000000", borderColor: "#d4af37", borderWidth: 1, fontSize: 48, fontWeight: 800, align: "center", opacity: 0.95 };
+  return { ...base, text: "OBSIDIAN WOLF", textColor: "#ffffff", fillColor: "#000000", fontSize: 48, fontWeight: 800, align: "center", opacity: 0.95 };
 }
 
 export function normalizeGamingOverlay(raw: unknown, projectWidth = 1920, projectHeight = 1080): GamingOverlayItem {
@@ -114,6 +135,9 @@ export function normalizeGamingOverlay(raw: unknown, projectWidth = 1920, projec
     r.webFit === "fit" || r.webFit === "fill" || r.webFit === "stretch" || r.webFit === "native"
       ? r.webFit
       : "fit";
+  const effect: GamingOverlayEffect =
+    r.effect === "glow" || r.effect === "pulse" || r.effect === "chase" ? r.effect : "none";
+  const audioBands: GamingOverlayAudioBand[] = ["fullMix", "bass", "low", "mid", "high", "beat", "transient"];
   return {
     ...d,
     id: text(r.id, d.id, 96),
@@ -143,9 +167,18 @@ export function normalizeGamingOverlay(raw: unknown, projectWidth = 1920, projec
     brightness: kind === "web" ? clamp(r.brightness, d.brightness ?? 1, 0.2, 3) : undefined,
     contrast: kind === "web" ? clamp(r.contrast, d.contrast ?? 1, 0.2, 3) : undefined,
     fillColor: kind !== "web" ? color(r.fillColor, d.fillColor || "#000000") : undefined,
-    borderColor: kind !== "web" ? color(r.borderColor, d.borderColor || "#d4af37") : undefined,
-    borderWidth: kind !== "web" ? clamp(r.borderWidth, d.borderWidth ?? 0, 0, 40) : undefined,
-    glow: kind === "panel" ? clamp(r.glow, d.glow ?? 0, 0, 80) : undefined,
+    borderColor: color(r.borderColor, d.borderColor || "#8b6cff"),
+    borderWidth: clamp(r.borderWidth, kind === "panel" ? 4 : kind === "text" ? 1 : 0, 0, 40),
+    glow: clamp(r.glow, kind === "panel" ? 18 : 0, 0, 80),
+    // Missing fields are legacy projects: preserve their fill and static glow.
+    fillOpacity: clamp(r.fillOpacity, kind === "web" ? 0 : 1, 0, 1),
+    effect,
+    effectColor: color(r.effectColor, "#31d8ef"),
+    effectIntensity: clamp(r.effectIntensity, 1, 0, 2),
+    effectSpeed: clamp(r.effectSpeed, 0.35, 0.05, 3),
+    audioReactive: r.audioReactive === true,
+    audioBand: audioBands.includes(r.audioBand as GamingOverlayAudioBand) ? r.audioBand as GamingOverlayAudioBand : "bass",
+    audioSensitivity: clamp(r.audioSensitivity, 1, 0, 3),
     text: kind === "text" ? text(r.text, d.text || "Overlay Text", 300) : undefined,
     textColor: kind === "text" ? color(r.textColor, d.textColor || "#ffffff") : undefined,
     fontSize: kind === "text" ? clamp(r.fontSize, d.fontSize ?? 48, 10, 240) : undefined,

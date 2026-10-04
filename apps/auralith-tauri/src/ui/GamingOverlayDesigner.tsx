@@ -1,4 +1,5 @@
-import { createGamingOverlay, safeOverlayUrl, type GamingOverlayItem, type GamingOverlayKind, type GamingOverlayWebFit } from "../scene/gamingOverlay";
+import { createGamingOverlay, safeOverlayUrl, type GamingOverlayItem, type GamingOverlayKind, type GamingOverlayWebFit, type GamingOverlayEffect, type GamingOverlayAudioBand } from "../scene/gamingOverlay";
+import { OVERLAY_STYLE_PRESETS } from "../scene/overlayEffects";
 
 type Props = {
   items: GamingOverlayItem[];
@@ -37,7 +38,7 @@ export function GamingOverlayDesigner(props: Props) {
 
   return (
     <div className="pane gaming-overlay-designer">
-      <h3>GAMING OVERLAY <span className="badge">FIRST STEP</span></h3>
+      <h3>GAMING OVERLAY <span className="badge">CUSTOM STYLES</span></h3>
       <p className="muted">Build stream/gaming overlays directly over the scene. Web cards can be angled to match signs, monitors, walls, desks, or other perspective in the background.</p>
       <div className="row">
         <button className="gold" onClick={() => add("web")}>+ Web / Song Card</button>
@@ -85,12 +86,43 @@ export function GamingOverlayDesigner(props: Props) {
             <label>Align <select value={selected.align || "center"} onChange={(e) => patch(selected.id, { align: e.target.value as GamingOverlayItem["align"] })}><option>left</option><option>center</option><option>right</option></select></label>
           </>}
 
+          <h4>BOX STYLE</h4>
+          <div className="overlay-style-presets">
+            {OVERLAY_STYLE_PRESETS.map((preset) => <button key={preset.name} style={{ borderColor: preset.style.borderColor }} onClick={() => patch(selected.id, preset.style)}>{preset.name}</button>)}
+          </div>
+          <label>Border Color <input type="color" value={selected.borderColor || "#8b6cff"} onChange={(e) => patch(selected.id, { borderColor: e.target.value })} /></label>
+          <label>Effect Color <input type="color" value={selected.effectColor || "#31d8ef"} onChange={(e) => patch(selected.id, { effectColor: e.target.value })} /></label>
+          <label>Border Width <input type="range" min={0} max={40} step={1} value={selected.borderWidth ?? 0} onChange={(e) => patch(selected.id, { borderWidth: number(e.target.value, 0) })} /></label>
           {(selected.kind === "panel" || selected.kind === "text") && <>
             <label>Fill <input type="color" value={selected.fillColor || "#000000"} onChange={(e) => patch(selected.id, { fillColor: e.target.value })} /></label>
-            <label>Border <input type="color" value={selected.borderColor || "#d4af37"} onChange={(e) => patch(selected.id, { borderColor: e.target.value })} /></label>
-            <label>Border Width <input type="range" min={0} max={40} step={1} value={selected.borderWidth || 0} onChange={(e) => patch(selected.id, { borderWidth: number(e.target.value, 0) })} /></label>
+            <label>Fill Opacity {Math.round((selected.fillOpacity ?? 1) * 100)}% <input type="range" min={0} max={1} step={0.01} value={selected.fillOpacity ?? 1} onChange={(e) => patch(selected.id, { fillOpacity: number(e.target.value, 1) })} /></label>
           </>}
-          {selected.kind === "panel" && <label>Glow <input type="range" min={0} max={80} step={1} value={selected.glow || 0} onChange={(e) => patch(selected.id, { glow: number(e.target.value, 0) })} /></label>}
+          <h4>BOX EFFECTS</h4>
+          <label>Border Effect
+            <select value={selected.effect || "none"} onChange={(e) => {
+              const effect = e.target.value as GamingOverlayEffect;
+              const enableFrame = effect !== "none" && !selected.borderWidth && !selected.glow;
+              patch(selected.id, { effect, ...(enableFrame ? { borderWidth: 3, glow: 18 } : {}) });
+            }}>
+              <option value="none">Static</option>
+              <option value="glow">Neon Glow</option>
+              <option value="pulse">Breathing Pulse</option>
+              <option value="chase">Border Chase</option>
+            </select>
+          </label>
+          <label>Glow <input type="range" min={0} max={80} step={1} value={selected.glow ?? 0} onChange={(e) => patch(selected.id, { glow: number(e.target.value, 0) })} /></label>
+          <label>Effect Intensity <input type="range" min={0} max={2} step={0.05} value={selected.effectIntensity ?? 1} onChange={(e) => patch(selected.id, { effectIntensity: number(e.target.value, 1) })} /></label>
+          {(selected.effect === "pulse" || selected.effect === "chase") && <label>Effect Speed <input type="range" min={0.05} max={3} step={0.05} value={selected.effectSpeed ?? 0.35} onChange={(e) => patch(selected.id, { effectSpeed: number(e.target.value, 0.35) })} /></label>}
+          <label className="chk"><input type="checkbox" checked={!!selected.audioReactive} onChange={(e) => patch(selected.id, { audioReactive: e.target.checked })} /> Audio Reactive</label>
+          {selected.audioReactive && <>
+            <label>Audio Band
+              <select value={selected.audioBand || "bass"} onChange={(e) => patch(selected.id, { audioBand: e.target.value as GamingOverlayAudioBand })}>
+                <option value="fullMix">Full Mix</option><option value="bass">Bass</option><option value="low">Low</option><option value="mid">Mid</option><option value="high">High</option><option value="beat">Beat</option><option value="transient">Transient</option>
+              </select>
+            </label>
+            <label>Audio Sensitivity <input type="range" min={0} max={3} step={0.05} value={selected.audioSensitivity ?? 1} onChange={(e) => patch(selected.id, { audioSensitivity: number(e.target.value, 1) })} /></label>
+            <p className="muted">Uses the active Auralith audio input. This box has its own response settings.</p>
+          </>}
 
           <h4>POSITION & SIZE</h4>
           <label>X <input type="number" value={Math.round(selected.x)} onChange={(e) => patch(selected.id, { x: number(e.target.value, selected.x) })} /></label>
@@ -126,8 +158,8 @@ export function GamingOverlayDesigner(props: Props) {
       )}
 
       <div className="hint">
-        <b>Gaming Mode foundation</b><br/>
-        This first overlay step is designed for stream frames, labels, HUD panels, sponsor/music cards and embedded web cards. Future gaming-mode work can build event/game reactions on top of the same overlay scene model.
+        <b>Independent box styles</b><br/>
+        Select a box to change its colors and effects. Styles save with your project and stay visible in Clean Capture. Web cards keep their own content while their surrounding frame can glow or react to audio.
       </div>
     </div>
   );

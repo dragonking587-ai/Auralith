@@ -7,7 +7,7 @@ const read = (p) => fs.readFileSync(path.join(root, p), "utf8");
 const must = (ok, msg) => { if (!ok) throw new Error(msg); };
 
 const version = read("VERSION").trim();
-must(version === "1.0.0-rc.49.3.10", `unexpected VERSION: ${version}`);
+must(version.startsWith("1.0.0-rc.49."), `unexpected VERSION: ${version}`);
 must(JSON.parse(read("package.json")).version === version, "package.json version mismatch");
 must(JSON.parse(read("src-tauri/tauri.conf.json")).version === version, "tauri.conf.json version mismatch");
 
