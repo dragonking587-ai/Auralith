@@ -31,7 +31,21 @@ export function GamingOverlaySurface(props: Props) {
   const animated = props.items.some((item) => item.visible && (item.effect === "pulse" || item.effect === "chase" || item.audioReactive));
 
   useEffect(() => {
-    if (!animated) return;
+    if (!animated) {
+      const current = live.current;
+      const viewportScale = Math.min(current.viewport.w / Math.max(1, current.projectWidth), current.viewport.h / Math.max(1, current.projectHeight));
+      for (const item of current.items) {
+        const element = elements.current.get(item.id);
+        if (!element) continue;
+        const effect = overlayEffectState(item, 0);
+        element.style.setProperty("--overlay-border-color", effect.borderColor);
+        element.style.setProperty("--overlay-glow-color", effect.glowColor);
+        element.style.setProperty("--overlay-glow", effect.glow * viewportScale + "px");
+        element.style.setProperty("--overlay-chase-opacity", String(effect.chaseOpacity));
+        element.style.setProperty("--overlay-angle", "0deg");
+      }
+      return;
+    }
     let frame = 0;
     let previousTime = performance.now();
     const envelopes = new Map<string, number>();

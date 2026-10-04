@@ -3,7 +3,7 @@ import fs from "node:fs";
 import { build } from "esbuild";
 
 const bundled = await build({
-  stdin: { contents: 'export * from "./src/scene/gamingOverlay.ts"; export * from "./src/scene/overlayEffects.ts"; export { semverNewer } from "./src/scene/updater.ts"; import { GamingOverlaySurface } from "./src/ui/GamingOverlaySurface.tsx"; import { createElement } from "react"; import { renderToStaticMarkup } from "react-dom/server.browser"; export const renderSurface = (props) => renderToStaticMarkup(createElement(GamingOverlaySurface, props));', resolveDir: process.cwd() },
+  stdin: { contents: 'export * from "./src/scene/gamingOverlay.ts"; export * from "./src/scene/overlayEffects.ts"; export { semverNewer } from "./src/scene/updater.ts"; import { GamingOverlaySurface } from "./src/ui/GamingOverlaySurface.tsx"; import { createElement } from "react"; import { renderToStaticMarkup } from "react-dom/server.browser"; export { act as surfaceAct, create as createSurfaceRenderer } from "react-test-renderer"; export const surfaceElement = (props) => createElement(GamingOverlaySurface, props); export const renderSurface = (props) => renderToStaticMarkup(surfaceElement(props));', resolveDir: process.cwd() },
   bundle: true, write: false, platform: "node", format: "esm",
 });
 const module = await import("data:text/javascript;base64," + Buffer.from(bundled.outputFiles[0].text).toString("base64"));
@@ -71,10 +71,44 @@ assert.match(cleanHtml, /--overlay-border-width:1.5px/, "borders must scale with
 const editHtml = renderSurface({ ...surfaceProps, edit: true });
 assert.match(editHtml, /gaming-overlay-edit-hit/, "box selection and dragging remain available in Edit");
 
+// Run the actual component lifecycle with a controlled animation clock. In
+// particular, disabling the last animated box must reset its imperative CSS.
+const frames = new Map();
+const styles = new Map();
+const previousRaf = globalThis.requestAnimationFrame;
+const previousCancel = globalThis.cancelAnimationFrame;
+let nextFrame = 0;
+globalThis.requestAnimationFrame = (callback) => { frames.set(++nextFrame, callback); return nextFrame; };
+globalThis.cancelAnimationFrame = (id) => frames.delete(id);
+const node = { style: { setProperty: (name, value) => styles.set(name, value) } };
+const { surfaceAct, createSurfaceRenderer, surfaceElement } = module;
+let renderer;
+try {
+  const liveProps = { ...surfaceProps, items: [bassBox], getAudioSnapshot: () => audio };
+  surfaceAct(() => { renderer = createSurfaceRenderer(surfaceElement(liveProps), { createNodeMock: () => node }); });
+  assert.equal(frames.size, 1);
+  const tick = frames.values().next().value;
+  frames.clear();
+  surfaceAct(() => tick(performance.now() + 100));
+  assert.notEqual(styles.get("--overlay-border-color"), overlayEffectState(bassBox, 0, 0).borderColor);
+  const stoppedBox = { ...bassBox, effect: "none", audioReactive: false };
+  surfaceAct(() => renderer.update(surfaceElement({ ...liveProps, items: [stoppedBox] })));
+  assert.equal(frames.size, 0, "disabling animation must cancel its scheduled frame");
+  assert.equal(styles.get("--overlay-border-color"), overlayEffectState(stoppedBox, 0).borderColor, "stopping must restore the selected base color");
+  assert.equal(styles.get("--overlay-chase-opacity"), "0");
+  surfaceAct(() => renderer.update(surfaceElement(liveProps)));
+  assert.equal(frames.size, 1);
+  surfaceAct(() => renderer.unmount());
+  assert.equal(frames.size, 0, "unmount must not leave an animation loop running");
+} finally {
+  globalThis.requestAnimationFrame = previousRaf;
+  globalThis.cancelAnimationFrame = previousCancel;
+}
+
 // Exercise the actual comparison shipped in older clients. The new version
 // must be visible even to clients that compare prerelease strings lexically.
 const version = fs.readFileSync("VERSION", "utf8").trim();
 for (const installed of ["1.0.0-rc.49", "1.0.0-rc.49.1", "1.0.0-rc.49.2", "1.0.0-rc.49.3.7", "1.0.0-rc.49.3.8", "1.0.0-rc.49.3.9", "1.0.0-rc.49.3.10"]) {
   assert.ok(semverNewer(version, installed), installed + " must detect " + version);
 }
-console.log("OVERLAY_EFFECTS_VERIFY_OK save/open=preserved legacy=preserved independent-audio=passed animations=passed clean-capture=passed older-client-update=passed");
+console.log("OVERLAY_EFFECTS_VERIFY_OK save/open=preserved legacy=preserved independent-audio=passed animations=passed animation-stop=passed clean-capture=passed older-client-update=passed");
