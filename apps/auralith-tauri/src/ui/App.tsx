@@ -17,7 +17,7 @@ import { save as saveDialog, open as openDialog } from "@tauri-apps/plugin-dialo
 import { writeTextFile, readTextFile } from "@tauri-apps/plugin-fs";
 import { GlRenderer } from "../render/renderer";
 import {
-  applyVote, clearVotes, defaultPollConfig, defaultPollRuntime, effectIndex, endPoll,
+  applyVote, clearVotes, normalizePollConfig, defaultPollRuntime, effectIndex, endPoll,
   persistablePoll, resetPoll, restoreEffects, startPoll, applyOverride, resolveLeader,
   type PollConfig, type PollOption, type PollRuntime
 } from "../scene/poll";
@@ -39,6 +39,7 @@ import {
 import { normalizeGamingOverlays, type GamingOverlayItem } from "../scene/gamingOverlay";
 import { GamingOverlaySurface } from "./GamingOverlaySurface";
 import { GamingOverlayDesigner } from "./GamingOverlayDesigner";
+import { PollDisplayToggle, PollHud } from "./PollHud";
 
 const audio = new AudioEngine();
 const readOverlayAudio = () => audio.snapshot;
@@ -223,7 +224,7 @@ export function App() {
   const [activity, setActivity] = useState<string[]>([]);
   const logAct = (msg: string) => setActivity((rows) => [`${new Date().toLocaleTimeString()}  ${msg}`, ...rows].slice(0, 40));
   const [helpMode, setHelpMode] = useState<"off" | "welcome" | "tour" | "help">(() => tutorialDone() ? "off" : "welcome");
-  const [pollCfg, setPollCfg] = useState<PollConfig>(() => project.poll || defaultPollConfig());
+  const [pollCfg, setPollCfg] = useState<PollConfig>(() => normalizePollConfig(project.poll));
   const [pollRt, setPollRt] = useState<PollRuntime>(defaultPollRuntime);
   const [viewer, setViewer] = useState({ state: "STOPPED", port: 0, local_url: "", lan_url: "", lan_ip: "", health: "STOPPED", error: "", msg: "" });
   const [viewerMode, setViewerMode] = useState<"lan"|"public">(() => (localStorage.getItem("auralith.viewerMode") as any) || "lan");
@@ -427,6 +428,10 @@ export function App() {
     setPollCfg(cfg);
     pollCfgRef.current = cfg;
     setProject((p) => ({ ...p, poll: persistablePoll(cfg) }));
+  };
+  const setPollDisplayVisible = (visible: boolean) => {
+    const cfg = pollCfgRef.current;
+    setPollAndProject({ ...cfg, display: { ...cfg.display, visible } });
   };
   const applyRt = (rt: PollRuntime) => { setPollRt(rt); pollRtRef.current = rt; publishPoll(pollCfgRef.current, rt); syncViewerHub(pollCfgRef.current, rt); publishHostSync(rt); };
   const publishHostSync = (rt = pollRtRef.current) => {
@@ -921,8 +926,10 @@ export function App() {
   const applyLoadedProject = (p: Project) => {
     if (p.version !== 1) throw new Error("unsupported project");
     const validQuality: Project["quality"] = (["Low","Medium","High","Ultra"] as const).includes(p.quality as any) ? p.quality : "High";
-    setProject({ ...p, quality: validQuality, overlays: normalizeGamingOverlays(p.overlays, p.width, p.height) });
-    setPollCfg(p.poll || defaultPollConfig());
+    const poll = normalizePollConfig(p.poll);
+    setProject({ ...p, poll, quality: validQuality, overlays: normalizeGamingOverlays(p.overlays, p.width, p.height) });
+    setPollCfg(poll);
+    pollCfgRef.current = poll;
     setPollRt(defaultPollRuntime());
     pollVotes.current = new Map();
     try { rxEngine.restore(p.reactions); rxEngine.clear(); } catch { /* ignore */ }
@@ -1262,6 +1269,7 @@ export function App() {
           <option value="1440x2560">1440×2560</option>
         </select>
         <label className="chk"><input type="checkbox" checked={project.showMarkers} onChange={(e)=>setProject({...project, showMarkers:e.target.checked})}/> Editor Markers</label>
+        <PollDisplayToggle visible={pollCfg.display.visible} onChange={setPollDisplayVisible} />
         <span className="grp">VIEW</span>
         <select value={viewZoom==="fit"?"fit":String(viewZoom)} onChange={(e)=>{ const v=e.target.value; if(v==="fit"){ setViewZoom("fit"); setPan({x:0,y:0}); } else setViewZoom(Number(v)); }}>
           <option value="fit">Fit</option>
@@ -1358,48 +1366,22 @@ export function App() {
             const vp = currentVp(wrap);
             const d = pollCfg.display;
             const pos = sceneToCanvas(d.x, d.y, vp, project.width, project.height);
-            const tot = pollRt.red + pollRt.green;
-            const rp = tot ? Math.round(pollRt.red / tot * 100) : 0;
-            const gp = tot ? Math.round(pollRt.green / tot * 100) : 0;
             const w = (d.w / project.width) * vp.w * d.scale;
             return (
-              <div className="poll-hud" style={{
-                position: "absolute", left: pos.x, top: pos.y, width: w, opacity: d.opacity,
-                background: `rgba(18,12,8,${d.bgOpacity})`, color: d.textColor, padding: d.pad,
-                borderRadius: d.radius, border: d.border ? `${d.borderW}px solid #d4af37` : "none",
-                textAlign: d.align, fontSize: d.fontSize, pointerEvents: clean ? "none" : "auto",
-                fontFamily: "Georgia, serif"
-              }} onPointerDown={(e) => {
-                if (clean) return;
-                e.stopPropagation();
-                const start = sceneFromEvent(e);
-                const ox = d.x, oy = d.y;
-                const move = (ev: PointerEvent) => {
-                  const s = sceneFromEvent(ev);
-                  setPollAndProject({ ...pollCfgRef.current, display: { ...pollCfgRef.current.display, x: ox + (s.x - start.x), y: oy + (s.y - start.y) } });
-                };
-                const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
-                window.addEventListener("pointermove", move);
-                window.addEventListener("pointerup", up);
-              }}>
-                {d.showQuestion && <div style={{ letterSpacing: 1, marginBottom: 8 }}>{pollCfg.question}</div>}
-                <div style={{ display: "flex", gap: 16, justifyContent: d.align === "center" ? "center" : d.align === "right" ? "flex-end" : "flex-start" }}>
-                  <div>
-                    <div style={{ color: d.redAccent, fontWeight: 700 }}>{pollCfg.redLabel}{d.showLeader && pollRt.leader==="red" ? " ●" : ""}</div>
-                    {d.showCounts && <div>{pollRt.red}</div>}
-                    {d.showPct && <div>{rp}%</div>}
-                  </div>
-                  <div>
-                    <div style={{ color: d.greenAccent, fontWeight: 700 }}>{pollCfg.greenLabel}{d.showLeader && pollRt.leader==="green" ? " ●" : ""}</div>
-                    {d.showCounts && <div>{pollRt.green}</div>}
-                    {d.showPct && <div>{gp}%</div>}
-                  </div>
-                </div>
-                {d.showTotal && <div style={{ marginTop: 6, opacity: 0.75 }}>Total {tot}</div>}
-                <div style={{ marginTop: 8, fontSize: Math.max(12, d.fontSize * 0.7), opacity: 0.8 }}>
-                  Vote on your phone{relayRoom ? " · " + relayRoom : ""}
-                </div>
-              </div>
+              <PollHud config={pollCfg} runtime={pollRt} left={pos.x} top={pos.y} width={w}
+                clean={clean} room={relayRoom} onPointerDown={(e) => {
+                  if (clean) return;
+                  e.stopPropagation();
+                  const start = sceneFromEvent(e);
+                  const ox = d.x, oy = d.y;
+                  const move = (ev: PointerEvent) => {
+                    const s = sceneFromEvent(ev);
+                    setPollAndProject({ ...pollCfgRef.current, display: { ...pollCfgRef.current.display, x: ox + (s.x - start.x), y: oy + (s.y - start.y) } });
+                  };
+                  const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); };
+                  window.addEventListener("pointermove", move);
+                  window.addEventListener("pointerup", up);
+                }} />
             );
           })()}
           {!clean && (
@@ -1425,7 +1407,8 @@ export function App() {
               <div className="home-grid">
                 <div className="card">
                   <h3>WHAT'S NEW</h3>
-                  <p><strong>Gaming Overlay foundation.</strong> Create frames, text, and transformable web/song cards directly over your scene, including perspective and angle matching.</p>
+                  <p><strong>Poll Display toggle.</strong> Show or hide the poll card from the main toolbar or Server page. Votes and poll settings are preserved, and visibility saves with your scene.</p>
+                  <p><strong>Custom overlay colors and effects.</strong> Style each frame, text item, or web/song card with its own colors, transparent fill, glow, pulse, border chase, and audio response.</p>
                   <p>Particle, volumetric, electrical, optical, pulse/energy, digital, shadow, ice/symbol and environmental effect families are integrated.</p>
                   <p className="muted">Effect visual tuning found during real-world testing can be corrected independently without redesigning the app.</p>
                 </div>
@@ -1895,6 +1878,8 @@ export function App() {
 <h3>LIVE CONTROL</h3>
               <p className="coach">Polls, reactions, and Fireworks are controlled in Auralith Host Console. This window stays the renderer and Public Server.</p>
               <p>Poll: {pollRt.running ? "LIVE" : "STOPPED"} · RED {pollRt.red} · GREEN {pollRt.green}</p>
+              <PollDisplayToggle visible={pollCfg.display.visible} onChange={setPollDisplayVisible} />
+              <p className="muted">Show the poll card when you are ready. Hiding it keeps votes, effect mapping, and display settings.</p>
               <p>Audience Reactions: {rxEngine.enabled ? "ENABLED" : "DISABLED"}</p>
               <div className="card">
                 <h3>QUICK STATUS</h3>

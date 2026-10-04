@@ -1,4 +1,15 @@
-# Auralith 1.0.0-rc.49.4.1 — Custom Overlay Colors & Effects
+# Auralith 1.0.0-rc.49.4.2 — Poll Display Toggle
+
+## Show the poll when you are ready
+Use **Poll Display** in the main toolbar, beside **Editor Markers**, to show or hide the “Which color?” poll card. The same toggle is available near the top of **Server**.
+
+- The card starts **hidden** in new scenes and older scenes that have no saved visibility choice.
+- Turning it off removes the card from Edit, Preview, and Clean Capture, freeing the space underneath for your scene.
+- Hiding the card keeps the current votes, live round, effect mappings, question, labels, and display position. Voting continues while it is hidden.
+- Turning it back on shows the current results. Starting or ending a poll does not change the display choice.
+- The choice saves with your .auralith project and is restored when you open it.
+
+## Custom Overlay Colors & Effects
 
 Overlay boxes now have independent styles and live effects. New frames start with a subtle obsidian fill and violet/cyan border instead of a solid gold box.
 
@@ -21,11 +32,11 @@ Disabling the last animated or audio-reactive box now restores its selected base
 ## Projects and output
 Colors, effects, transparency, and audio settings save in normal .auralith projects. Existing saved frames retain their colors, solid fills, and static behavior. Changing one box does not change another.
 
-The overlay remains visible in Preview and Clean Capture. Editor outlines and labels stay out of Clean Capture. These HTML overlay surfaces use the existing window/clean-capture path; the current Virtual Camera framebuffer does not include HTML overlays or embedded iframe content.
+Visible overlay boxes and the enabled poll card appear in Preview and Clean Capture. Editor outlines and labels stay out of Clean Capture. These HTML overlay surfaces use the existing window/clean-capture path; the current Virtual Camera framebuffer does not include HTML overlays or embedded iframe content.
 
 The existing Neon Glow center fix, natural flame rebuild, 80 effects, quality controls, and editor workflows remain included.
 
 ## Update compatibility
-The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4.1** is newer than **1.0.0-rc.49.3.10**, and **1.0.0-rc.49.4**, including with the comparison used by older clients.
+The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4.2** is newer than **1.0.0-rc.49.4.1**, **1.0.0-rc.49.4**, and **1.0.0-rc.49.3.10**, including with the comparison used by older clients.
 
 Use **Settings → Check for Updates → Download & Install**. The update saves the current project recovery data before installing and restarting. The signed installer and latest.json are published to this release, with the updater-latest feed refreshed after the installer is available.

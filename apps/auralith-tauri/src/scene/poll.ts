@@ -4,6 +4,7 @@ export type TieBehavior = "keep" | "none";
 export type OnEndBehavior = "restore" | "hold";
 
 export type PollDisplay = {
+  visible: boolean;
   x: number; y: number; w: number; h: number;
   scale: number; opacity: number;
   showQuestion: boolean; showCounts: boolean; showPct: boolean; showTotal: boolean; showLeader: boolean;
@@ -43,6 +44,7 @@ export type PollRuntime = {
 
 export function defaultPollDisplay(): PollDisplay {
   return {
+    visible: false,
     x: 80, y: 80, w: 520, h: 180, scale: 1, opacity: 1,
     showQuestion: true, showCounts: true, showPct: true, showTotal: true, showLeader: true,
     layout: "horizontal", fontSize: 22, textColor: "#f4e4b0",
@@ -61,6 +63,21 @@ export function defaultPollConfig(): PollConfig {
     reaction: "live", tie: "keep", onEnd: "restore",
     allowChange: false, transitionMs: 250,
     display: defaultPollDisplay()
+  };
+}
+
+export function normalizePollConfig(cfg?: (Partial<Omit<PollConfig, "display">> & { display?: Partial<PollDisplay> }) | null): PollConfig {
+  const defaults = defaultPollConfig();
+  return {
+    ...defaults,
+    ...cfg,
+    display: {
+      ...defaults.display,
+      ...cfg?.display,
+      // Older scenes have no visibility preference. Keep their card out of the
+      // way until the host chooses to show it; preserve an explicit saved choice.
+      visible: cfg?.display?.visible === true
+    }
   };
 }
 
@@ -172,5 +189,5 @@ export function resetPoll(cfg: PollConfig): { rt: PollRuntime; votes: Map<string
 }
 
 export function persistablePoll(cfg: PollConfig): PollConfig {
-  return JSON.parse(JSON.stringify(cfg));
+  return JSON.parse(JSON.stringify(normalizePollConfig(cfg)));
 }
