@@ -108,7 +108,7 @@ try {
 // Exercise the actual comparison shipped in older clients. The new version
 // must be visible even to clients that compare prerelease strings lexically.
 const version = fs.readFileSync("VERSION", "utf8").trim();
-for (const installed of ["1.0.0-rc.49", "1.0.0-rc.49.1", "1.0.0-rc.49.2", "1.0.0-rc.49.3.7", "1.0.0-rc.49.3.8", "1.0.0-rc.49.3.9", "1.0.0-rc.49.3.10"]) {
+for (const installed of ["1.0.0-rc.49", "1.0.0-rc.49.1", "1.0.0-rc.49.2", "1.0.0-rc.49.3.7", "1.0.0-rc.49.3.8", "1.0.0-rc.49.3.9", "1.0.0-rc.49.3.10", "1.0.0-rc.49.4"]) {
   assert.ok(semverNewer(version, installed), installed + " must detect " + version);
 }
 console.log("OVERLAY_EFFECTS_VERIFY_OK save/open=preserved legacy=preserved independent-audio=passed animations=passed animation-stop=passed clean-capture=passed older-client-update=passed");

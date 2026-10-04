@@ -1,4 +1,4 @@
-# Auralith 1.0.0-rc.49.4 — Custom Overlay Colors & Effects
+# Auralith 1.0.0-rc.49.4.1 — Custom Overlay Colors & Effects
 
 Overlay boxes now have independent styles and live effects. New frames start with a subtle obsidian fill and violet/cyan border instead of a solid gold box.
 
@@ -15,6 +15,9 @@ Open **Overlay**, select a Frame / Panel, Text item, or Web / Song Card, then us
 
 Web cards retain their stable source viewport, Fit/Fill/Stretch/Native behavior, and perspective controls while their surrounding frame can have its own colors and effects.
 
+## Animation reset correction
+Disabling the last animated or audio-reactive box now restores its selected base colors and stops its animation loop, instead of leaving the frame at its last animated color.
+
 ## Projects and output
 Colors, effects, transparency, and audio settings save in normal .auralith projects. Existing saved frames retain their colors, solid fills, and static behavior. Changing one box does not change another.
 
@@ -23,6 +26,6 @@ The overlay remains visible in Preview and Clean Capture. Editor outlines and la
 The existing Neon Glow center fix, natural flame rebuild, 80 effects, quality controls, and editor workflows remain included.
 
 ## Update compatibility
-The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4** is newer than **1.0.0-rc.49.3.10**, including with the comparison used by older rc.49.3 clients.
+The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4.1** is newer than **1.0.0-rc.49.3.10**, and **1.0.0-rc.49.4**, including with the comparison used by older clients.
 
 Use **Settings → Check for Updates → Download & Install**. The update saves the current project recovery data before installing and restarting. The signed installer and latest.json are published to this release, with the updater-latest feed refreshed after the installer is available.
