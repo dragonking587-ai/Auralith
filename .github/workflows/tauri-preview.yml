@@ -42,7 +42,7 @@ jobs:
           echo "version=$v" >> $env:GITHUB_OUTPUT
           echo "tag=v$v" >> $env:GITHUB_OUTPUT
           echo "file=Auralith-Reborn-$v-x64-Setup.exe" >> $env:GITHUB_OUTPUT
-          $releaseName = if ($v -eq '1.0.0-rc.50.0') { 'Auralith Reborn rc50.00' } else { "Auralith Reborn $v" }
+          $releaseName = if ($v -match '^1\.0\.0-rc\.(50)\.(\d+)$') { 'Auralith Reborn rc{0}.{1:D2}' -f $Matches[1], [int]$Matches[2] } else { "Auralith Reborn $v" }
           echo "releaseName=$releaseName" >> $env:GITHUB_OUTPUT
           echo "REBORN_VERSION=$v"
       - name: Install frontend

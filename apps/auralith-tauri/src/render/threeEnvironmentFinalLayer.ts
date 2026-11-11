@@ -44,6 +44,7 @@ const FRAG = /* glsl */`
   uniform float uFlameReady;
   uniform float uFlare;
   uniform float uSparks;
+  uniform float uTintFlame;
   varying vec2 vUv;
 
   float hash21(vec2 p) {
@@ -86,6 +87,16 @@ const FRAG = /* glsl */`
     return mix(current, flameFrame(atlas, frame - 30.0, uv), (frame - 29.0) / 6.0);
   }
 
+  vec3 tintFlame(vec3 light) {
+    float heat = max(light.r, max(light.g, light.b));
+    float tintPeak = max(uColorA.r, max(uColorA.g, uColorA.b));
+    vec3 tint = tintPeak > 0.001 ? uColorA / tintPeak : vec3(0.0);
+    // Color the body of the flame while keeping the hottest highlights pale.
+    float hotCore = smoothstep(0.61, 1.0, heat) * 0.72;
+    vec3 colored = mix(tint, vec3(1.0), hotCore) * heat * (0.35 + 0.65 * sqrt(tintPeak));
+    return mix(light, colored, uTintFlame);
+  }
+
   vec4 renderedFlame() {
     const float base = 0.10;
     float width = clamp(0.57 + uP1 * 0.55, 0.32, 1.6);
@@ -96,7 +107,7 @@ const FRAG = /* glsl */`
       float clock = uTime * 30.0;
       float frame = floor(mod(clock, 30.0)) + 6.0;
       vec3 current = mix(flameLoop(uFlameCalm, frame, uv), flameLoop(uFlameFlare, frame, uv), uFlare);
-      light = current;
+      light = tintFlame(current);
     }
 
     vec2 ground = (vUv - vec2(0.5, base)) / vec2(0.40 + uFlare * 0.10, 0.11);
@@ -268,7 +279,7 @@ function makeMaterial(kind: EffectKind) {
       uBass: { value: 0 }, uLow: { value: 0 }, uMid: { value: 0 }, uHigh: { value: 0 }, uBeat: { value: 0 }, uTransient: { value: 0 },
       uOpacity: { value: kind === "RealisticFlame" ? 0.88 : 0.42 }, uColorA: { value: new THREE.Color("#ff9a24") }, uColorB: { value: new THREE.Color("#4c8cff") }, uColorC: { value: new THREE.Color("#ffffff") },
       uFlameCalm: { value: atlas?.calm ?? null }, uFlameFlare: { value: atlas?.flare ?? null },
-      uFlameReady: { value: 0 }, uFlare: { value: 0 }, uSparks: { value: 0 },
+      uFlameReady: { value: 0 }, uFlare: { value: 0 }, uSparks: { value: 0 }, uTintFlame: { value: 0 },
     },
     transparent: true,
     blending: kind === "RealisticFlame" ? THREE.NormalBlending : THREE.AdditiveBlending,
@@ -362,17 +373,19 @@ export class ThreeEnvironmentFinalLayer {
     u.uHigh.value = entry.env.high;
     u.uBeat.value = entry.env.beat;
     u.uTransient.value = entry.env.transient;
+    const color = colorOverrides?.[effect.id] || effect.color || (effect.kind === "RealisticFlame" ? "#ffad00" : "#c6e7ff");
     if (effect.kind === "RealisticFlame") {
       const influence = effect.audio === "Manual" ? 0 : Math.max(0, Math.min(1, effect.audioInfluence));
       const signal = effect.audio === "Bass" ? entry.env.bass : band(snapshot, effect.audio);
       u.uFlameReady.value = Number(flameAtlasesReady());
       u.uFlare.value = Math.max(0, Math.min(1, signal * influence));
       u.uSparks.value = Math.max(0, Math.min(1, entry.env.high * influence * project.masters.density));
+      u.uTintFlame.value = color.toLowerCase() === "#ffad00" ? 0 : 1;
     }
     u.uOpacity.value = effect.kind === "RealisticFlame"
       ? Math.max(0, Math.min(1, effect.opacity * effect.brightness * effect.intensity * project.masters.brightness * project.masters.intensity))
       : Math.max(0, Math.min(0.60, effect.opacity * effect.brightness * project.masters.brightness * 0.48));
-    u.uColorA.value.set(colorOverrides?.[effect.id] || effect.color || (effect.kind === "RealisticFlame" ? "#ff9a24" : "#c6e7ff"));
+    u.uColorA.value.set(color);
     u.uColorB.value.set(effect.color2 || (effect.kind === "RealisticFlame" ? "#ff3a00" : "#4c8cff"));
     u.uColorC.value.set(effect.color3 || "#ffffff");
   }

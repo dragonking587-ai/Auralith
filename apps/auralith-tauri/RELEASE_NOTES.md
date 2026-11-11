@@ -1,7 +1,5 @@
-# Auralith Reborn rc50.00
+# Auralith Reborn rc50.01
 
-**Realistic Flame** now uses two animated passes rendered in Blender. The fire flickers in silence, responds to the selected audio band with a brighter flare and warmer light spill, and emits extra sparks when treble rises.
+Realistic Flame now applies the primary color picker to the body of the flame. Blue, green, and other colors are visible through the flame while its hottest highlights stay bright. The default amber swatch retains the original Blender colors.
 
-Select a stamp or emitter and add **Realistic Flame**. New flames use **Bass** by default. Adjust **Flame Height**, **Flame Width**, and **Fire Motion Speed** to fit the scene. Set audio to **Manual** for a steady, animated flame.
-
-The flame assets are bundled with the Windows installer. Existing projects keep their placements and audio settings. The signed Reborn updater recognizes this release as version `1.0.0-rc.50.0`.
+Bass still drives the flare, and treble still drives extra sparks. The change appears in the editor and Clean Capture.
