@@ -130,7 +130,7 @@ export function newProject(): Project {
 export function defaultEffect(kind: EffectKind): EffectInstance {
   return {
     id: crypto.randomUUID(), kind, enabled: true, intensity: 0.8, brightness: 1, opacity: 1,
-    speed: 1, scale: 1, audio: "Manual", audioInfluence: 0.7,
+    speed: 1, scale: 1, audio: kind === "RealisticFlame" ? "Bass" : "Manual", audioInfluence: 0.7,
     color: kind === "RealisticFlame" ? "#ffad00" : "#f4d27a",
     color2: kind === "RealisticFlame" ? "#ff3a00" : "#7ad0ff",
     color3: kind === "RealisticFlame" ? "#fff1b0" : "#ffffff",

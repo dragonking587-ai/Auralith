@@ -1,42 +1,7 @@
-# Auralith 1.0.0-rc.49.4.2 — Poll Display Toggle
+# Auralith Reborn rc50.00
 
-## Show the poll when you are ready
-Use **Poll Display** in the main toolbar, beside **Editor Markers**, to show or hide the “Which color?” poll card. The same toggle is available near the top of **Server**.
+**Realistic Flame** now uses two animated passes rendered in Blender. The fire flickers in silence, responds to the selected audio band with a brighter flare and warmer light spill, and emits extra sparks when treble rises.
 
-- The card starts **hidden** in new scenes and older scenes that have no saved visibility choice.
-- Turning it off removes the card from Edit, Preview, and Clean Capture, freeing the space underneath for your scene.
-- Hiding the card keeps the current votes, live round, effect mappings, question, labels, and display position. Voting continues while it is hidden.
-- Turning it back on shows the current results. Starting or ending a poll does not change the display choice.
-- The choice saves with your .auralith project and is restored when you open it.
+Select a stamp or emitter and add **Realistic Flame**. New flames use **Bass** by default. Adjust **Flame Height**, **Flame Width**, and **Fire Motion Speed** to fit the scene. Set audio to **Manual** for a steady, animated flame.
 
-## Custom Overlay Colors & Effects
-
-Overlay boxes now have independent styles and live effects. New frames start with a subtle obsidian fill and violet/cyan border instead of a solid gold box.
-
-## Customize each box
-Open **Overlay**, select a Frame / Panel, Text item, or Web / Song Card, then use **Box Style** and **Box Effects**.
-
-- Choose **Border Color** and a separate **Effect Color**.
-- Set border width, corner radius, overall opacity, and glow.
-- Set fill color and **Fill Opacity** independently of the border and text; zero gives a transparent center.
-- Apply **Obsidian**, **Ice**, **Crimson**, or **Gold** presets, then customize any setting.
-- Select **Static**, **Neon Glow**, **Breathing Pulse**, or **Border Chase**.
-- Give every animated box its own speed and intensity.
-- Enable **Audio Reactive** per box and choose Full Mix, Bass, Low, Mid, High, Beat, or Transient, with independent sensitivity and a smooth attack/release response.
-
-Web cards retain their stable source viewport, Fit/Fill/Stretch/Native behavior, and perspective controls while their surrounding frame can have its own colors and effects.
-
-## Animation reset correction
-Disabling the last animated or audio-reactive box now restores its selected base colors and stops its animation loop, instead of leaving the frame at its last animated color.
-
-## Projects and output
-Colors, effects, transparency, and audio settings save in normal .auralith projects. Existing saved frames retain their colors, solid fills, and static behavior. Changing one box does not change another.
-
-Visible overlay boxes and the enabled poll card appear in Preview and Clean Capture. Editor outlines and labels stay out of Clean Capture. These HTML overlay surfaces use the existing window/clean-capture path; the current Virtual Camera framebuffer does not include HTML overlays or embedded iframe content.
-
-The existing Neon Glow center fix, natural flame rebuild, 80 effects, quality controls, and editor workflows remain included.
-
-## Update compatibility
-The release retains the existing application identity, updater public key, and signed Windows installer flow. Version **1.0.0-rc.49.4.2** is newer than **1.0.0-rc.49.4.1**, **1.0.0-rc.49.4**, and **1.0.0-rc.49.3.10**, including with the comparison used by older clients.
-
-Use **Settings → Check for Updates → Download & Install**. The update saves the current project recovery data before installing and restarting. The signed installer and latest.json are published to this release, with the updater-latest feed refreshed after the installer is available.
+The flame assets are bundled with the Windows installer. Existing projects keep their placements and audio settings. The signed Reborn updater recognizes this release as version `1.0.0-rc.50.0`.

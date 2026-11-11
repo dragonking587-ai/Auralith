@@ -1,6 +1,7 @@
 import * as THREE from "three";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectInstance, EffectKind, Project, Region } from "../scene/types";
+import { flameAtlasesReady, getFlameAtlases } from "./flameTextures";
 
 export const ENVIRONMENT_FINAL_KINDS = new Set<EffectKind>([
   "RealisticFlame", "Rain", "CelestialStars"
@@ -38,6 +39,11 @@ const FRAG = /* glsl */`
   uniform vec3 uColorA;
   uniform vec3 uColorB;
   uniform vec3 uColorC;
+  uniform sampler2D uFlameCalm;
+  uniform sampler2D uFlameFlare;
+  uniform float uFlameReady;
+  uniform float uFlare;
+  uniform float uSparks;
   varying vec2 vUv;
 
   float hash21(vec2 p) {
@@ -68,7 +74,59 @@ const FRAG = /* glsl */`
     return v;
   }
 
+  vec3 flameFrame(sampler2D atlas, float frame, vec2 uv) {
+    vec2 cell = vec2(mod(frame, 6.0), 5.0 - floor(frame / 6.0));
+    vec2 inset = vec2(0.5 / 320.0, 0.5 / 448.0);
+    return texture2D(atlas, (cell + mix(inset, 1.0 - inset, uv)) / 6.0).rgb;
+  }
+
+  vec3 flameLoop(sampler2D atlas, float frame, vec2 uv) {
+    vec3 current = flameFrame(atlas, frame, uv);
+    if (frame < 30.0) return current;
+    return mix(current, flameFrame(atlas, frame - 30.0, uv), (frame - 29.0) / 6.0);
+  }
+
+  vec4 renderedFlame() {
+    const float base = 0.10;
+    float width = clamp(0.57 + uP1 * 0.55, 0.32, 1.6);
+    float height = clamp(0.51 + uP0 * 0.60, 0.32, 1.6);
+    vec2 uv = vec2((vUv.x - 0.5) / width + 0.5, (vUv.y - base) / height + base);
+    vec3 light = vec3(0.0);
+    if (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) {
+      float clock = uTime * 30.0;
+      float frame = floor(mod(clock, 30.0)) + 6.0;
+      vec3 current = mix(flameLoop(uFlameCalm, frame, uv), flameLoop(uFlameFlare, frame, uv), uFlare);
+      light = current;
+    }
+
+    vec2 ground = (vUv - vec2(0.5, base)) / vec2(0.40 + uFlare * 0.10, 0.11);
+    float spill = max(0.0, 1.0 - length(ground));
+    light += uColorA * spill * spill * (0.11 + uFlare * 0.21);
+
+    if (uSparks > 0.01) {
+      for (int i = 0; i < 14; ++i) {
+        float j = float(i);
+        float age = fract(uTime * (0.72 + j * 0.057) + j * 0.618);
+        float drift = (0.07 + clamp(uP2, 0.0, 1.5) * 0.10) * sin(j * 31.7);
+        vec2 pos = vec2(0.5 + width * (0.08 * sin(j * 4.7) + drift * age), base + height * age * 0.85);
+        float distance = length((vUv - pos) * vec2(1.0, 0.65));
+        float dotLight = (1.0 - smoothstep(0.0006, 0.004, distance)) * sin(age * 3.14159);
+        float reveal = clamp(uSparks * 14.0 - j, 0.0, 1.0);
+        light += mix(uColorC, uColorB, age) * dotLight * reveal;
+      }
+    }
+
+    light = clamp(light, 0.0, 1.0);
+    float alpha = max(light.r, max(light.g, light.b));
+    return vec4(light / max(alpha, 0.001), alpha * uOpacity);
+  }
+
   void main() {
+    if (uMode < 1.5 && uFlameReady > 0.5) {
+      gl_FragColor = renderedFlame();
+      if (gl_FragColor.a < 0.002) discard;
+      return;
+    }
     vec2 q = (vUv - 0.5) * 2.0;
     float r = length(q);
     float drive = clamp(uDrive, 0.0, 2.5);
@@ -201,6 +259,7 @@ function drive(effect: EffectInstance, snapshot: AudioSnapshot, project: Project
 }
 
 function makeMaterial(kind: EffectKind) {
+  const atlas = kind === "RealisticFlame" ? getFlameAtlases() : undefined;
   return new THREE.ShaderMaterial({
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -208,6 +267,8 @@ function makeMaterial(kind: EffectKind) {
       uTime: { value: 0 }, uMode: { value: MODE[kind] || 1 }, uP0: { value: 0.65 }, uP1: { value: 0.5 }, uP2: { value: 0.4 }, uDrive: { value: 1 },
       uBass: { value: 0 }, uLow: { value: 0 }, uMid: { value: 0 }, uHigh: { value: 0 }, uBeat: { value: 0 }, uTransient: { value: 0 },
       uOpacity: { value: kind === "RealisticFlame" ? 0.88 : 0.42 }, uColorA: { value: new THREE.Color("#ff9a24") }, uColorB: { value: new THREE.Color("#4c8cff") }, uColorC: { value: new THREE.Color("#ffffff") },
+      uFlameCalm: { value: atlas?.calm ?? null }, uFlameFlare: { value: atlas?.flare ?? null },
+      uFlameReady: { value: 0 }, uFlare: { value: 0 }, uSparks: { value: 0 },
     },
     transparent: true,
     blending: kind === "RealisticFlame" ? THREE.NormalBlending : THREE.AdditiveBlending,
@@ -301,8 +362,15 @@ export class ThreeEnvironmentFinalLayer {
     u.uHigh.value = entry.env.high;
     u.uBeat.value = entry.env.beat;
     u.uTransient.value = entry.env.transient;
+    if (effect.kind === "RealisticFlame") {
+      const influence = effect.audio === "Manual" ? 0 : Math.max(0, Math.min(1, effect.audioInfluence));
+      const signal = effect.audio === "Bass" ? entry.env.bass : band(snapshot, effect.audio);
+      u.uFlameReady.value = Number(flameAtlasesReady());
+      u.uFlare.value = Math.max(0, Math.min(1, signal * influence));
+      u.uSparks.value = Math.max(0, Math.min(1, entry.env.high * influence * project.masters.density));
+    }
     u.uOpacity.value = effect.kind === "RealisticFlame"
-      ? Math.max(0, Math.min(0.92, effect.opacity * effect.brightness * project.masters.brightness * 0.88))
+      ? Math.max(0, Math.min(1, effect.opacity * effect.brightness * effect.intensity * project.masters.brightness * project.masters.intensity))
       : Math.max(0, Math.min(0.60, effect.opacity * effect.brightness * project.masters.brightness * 0.48));
     u.uColorA.value.set(colorOverrides?.[effect.id] || effect.color || (effect.kind === "RealisticFlame" ? "#ff9a24" : "#c6e7ff"));
     u.uColorB.value.set(effect.color2 || (effect.kind === "RealisticFlame" ? "#ff3a00" : "#4c8cff"));
