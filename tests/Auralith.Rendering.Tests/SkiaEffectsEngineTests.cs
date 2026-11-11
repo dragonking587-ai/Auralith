@@ -92,6 +92,41 @@ public sealed class SkiaEffectsEngineTests
         AssertEffectChangesFrame(EffectKind.RealisticFlame);
     }
 
+    [Fact]
+    public void Realistic_flame_burns_in_silence_and_responds_to_bass_and_treble()
+    {
+        const int width = 320;
+        const int height = 300;
+        var scene = new Scene { CanvasWidth = width, CanvasHeight = height, TargetFps = 30 };
+        var region = new Region { X = 60, Y = 25, Width = 200, Height = 220 };
+        region.Effects.Add(EffectKind.RealisticFlame);
+        var flame = Assert.Single(region.Effects.Items);
+        Assert.Equal(AudioSource.Bass, flame.Audio);
+        flame.Sensitivity = 1f;
+        flame.Attack = 0.01f;
+
+        byte[] Render(AudioBands audio)
+        {
+            using var engine = new SkiaEffectsEngine();
+            var pixels = NewFrame(width, height);
+            for (var i = 0; i <= 12; i++)
+            {
+                pixels = NewFrame(width, height);
+                engine.Apply(pixels, width, height, [region], audio, scene, i / 30f);
+            }
+            return pixels;
+        }
+
+        var silent = Render(new AudioBands());
+        var bass = Render(new AudioBands { Bass = 1f });
+        var treble = Render(new AudioBands { High = 1f });
+        Assert.False(NewFrame(width, height).SequenceEqual(silent));
+        Assert.True(bass.Where((_, i) => i % 4 == 2).Sum(value => (int)value) >
+                    silent.Where((_, i) => i % 4 == 2).Sum(value => (int)value));
+        Assert.False(silent.SequenceEqual(treble));
+        Assert.True(silent.Take(4).SequenceEqual(NewFrame(width, height).Take(4)));
+    }
+
     private static void AssertEffectChangesFrame(EffectKind kind)
     {
         const int width = 240;

@@ -100,11 +100,12 @@ jobs:
             assetName = $env:SETUP
             sha256 = $hash
             publishedAt = (Get-Date).ToUniversalTime().ToString("o")
-            releaseNotes = "Auralith $env:VER — SkiaSharp Effects Engine 2"
+            releaseNotes = "Auralith $env:VER — Blender-rendered Realistic Flame with bass-driven flares and treble-driven sparks."
           } | ConvertTo-Json
           Set-Content artifacts/update.json $manifest
           echo "SHA=$hash" >> $env:GITHUB_ENV
       - uses: actions/upload-artifact@v4
+        if: ${{ !startsWith(github.ref, 'refs/tags/Auralith-Native-') }}
         with:
           name: Auralith-Main-Windows
           path: |
@@ -121,15 +122,9 @@ jobs:
           prerelease: true
           name: Auralith — ${{ env.VER }} Installer
           body: |
-            Release candidate built from the main branch.
+            **Realistic Flame** uses two animated flame passes rendered in Blender. The flame burns during silence, bass brings in a stronger flare and warmer light spill, and treble sends up more embers. The assets are included in the Windows installer.
 
-            Auralith Effects Engine 2:
-            - SkiaSharp CPU raster rendering and layered compositing.
-            - Persistent particles, audio envelopes, and lightning simulation.
-            - Upgraded sparks, embers, swarm/firefly behavior, flame, rain, snow, fog, aurora, water, energy and outline effects.
-            - Direct3D 11 remains the Windows presentation/output transport only.
-            - CI audits every visible XAML button/event handler and dynamically-created effect button wiring.
-            - All 80 EffectKind values are exercised through multi-frame rendering regression tests.
+            Draw or select a region and add **Realistic Flame**. Place the bottom edge where the flame should start. Use **Width** and **Height** to fit the flame to the scene. The same effect appears in the editor and Clean Capture.
 
             Per-user install: %LOCALAPPDATA%\Programs\Auralith
           files: |

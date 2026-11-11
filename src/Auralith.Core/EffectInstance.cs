@@ -47,7 +47,9 @@ public sealed class EffectInstance
 public sealed class EffectStack
 {
     public List<EffectInstance> Items { get; set; } = new();
-    public void Add(EffectKind kind) => Items.Add(new EffectInstance { Kind = kind });
+    public void Add(EffectKind kind) => Items.Add(kind == EffectKind.RealisticFlame
+        ? new EffectInstance { Kind = kind, Audio = AudioSource.Bass }
+        : new EffectInstance { Kind = kind });
     public void Remove(Guid id) => Items.RemoveAll(i => i.Id == id);
     public void Move(int from, int to)
     {
@@ -88,7 +90,7 @@ public static class EffectCatalog
             => ["Density","Brightness","Radius","Lifetime","Speed","Spread","PrimaryColor","Audio"],
         EffectKind.LightningArc or EffectKind.ElectricCrawl => ["Brightness","WidthAmt","Randomness","Frequency","PrimaryColor","Audio"],
         EffectKind.ThunderFlash or EffectKind.BeatFlash or EffectKind.TransientBurst => ["Brightness","Count","HoldTime","Threshold","Audio"],
-        EffectKind.RealisticFlame => ["Intensity","Brightness","HeightAmt","WidthAmt","Turbulence","Speed","PrimaryColor","AudioInfluence","Quality"],
+        EffectKind.RealisticFlame => ["Intensity","Brightness","HeightAmt","WidthAmt","Turbulence","Speed","PrimaryColor","AudioInfluence","Audio","Quality"],
         EffectKind.HeatDistortion or EffectKind.Refraction or EffectKind.HolographicDistortion or EffectKind.GlitchLight
             => ["Distortion","Speed","Turbulence","WidthAmt","Audio"],
         EffectKind.SmokeFog or EffectKind.Mist or EffectKind.AtmosphericHaze => ["Density","Opacity","Speed","Turbulence","PrimaryColor","Quality"],

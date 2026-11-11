@@ -10,4 +10,8 @@
     <PackageReference Include="SkiaSharp" Version="4.151.2" />
     <PackageReference Include="SkiaSharp.NativeAssets.Win32" Version="4.151.2" />
   </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Assets/flame-calm.webp" LogicalName="Auralith.Flame.calm.webp" />
+    <EmbeddedResource Include="Assets/flame-flare.webp" LogicalName="Auralith.Flame.flare.webp" />
+  </ItemGroup>
 </Project>

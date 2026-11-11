@@ -52,6 +52,17 @@ public sealed class SkiaEffectsEngine : IDisposable
                     liveIds.Add(fx.Id);
 
                     var drive = Drive(fx, audio, scene.MasterSensitivity, dt);
+                    if (fx.Kind == EffectKind.RealisticFlame)
+                    {
+                        var influence = Math.Clamp(fx.AudioInfluence, 0f, 1f);
+                        var flare = Math.Clamp(drive - (1f - influence), 0f, 1f);
+                        var treble = Math.Clamp(audio.High * fx.Sensitivity * scene.MasterSensitivity * influence, 0f, 1f);
+                        var strength = Math.Clamp(fx.Intensity * fx.Brightness * fx.Opacity *
+                            scene.MasterIntensity * scene.MasterBrightness, 0f, 2f);
+                        FlameSprites.Draw(canvas, regionPath.Bounds, fx, flare, treble, strength,
+                            scene.MasterParticleDensity, time * Math.Max(0f, fx.Speed * scene.MasterMotionSpeed));
+                        continue;
+                    }
                     var amount = Math.Clamp(
                         fx.Intensity * fx.Brightness * fx.Opacity * drive *
                         scene.MasterIntensity * scene.MasterBrightness,
@@ -245,9 +256,6 @@ public sealed class SkiaEffectsEngine : IDisposable
             case EffectKind.LightningArc:
             case EffectKind.ElectricCrawl:
                 DrawLightning(canvas, path, r, fx, drive, amount, time, dt);
-                break;
-            case EffectKind.RealisticFlame:
-                DrawFlame(canvas, path, r, fx, drive, amount, particleDensity, motionSpeed, time, dt);
                 break;
             case EffectKind.SmokeFog:
             case EffectKind.Mist:
@@ -613,52 +621,6 @@ public sealed class SkiaEffectsEngine : IDisposable
         }
     }
 
-    private void DrawFlame(
-        SKCanvas c, SKPath clip, Region r, EffectInstance fx,
-        float drive, float amount, float masterDensity, float motionSpeed,
-        float time, float dt)
-    {
-        var state = GetParticleState(fx);
-        var rate = (28f + fx.Density * 95f) * Math.Max(0.3f, masterDensity) * (0.45f + drive * 0.8f);
-        state.Carry += dt * rate;
-        var spawn = Math.Min(80, (int)state.Carry);
-        state.Carry -= spawn;
-        var max = fx.Quality switch { QualityLevel.Low => 120, QualityLevel.High => 650, _ => 340 };
-        while (spawn-- > 0 && state.Items.Count < max)
-            state.Items.Add(SpawnFlame(state.Rng, r, fx));
-
-        var baseColor = Color(fx.PrimaryColor);
-        for (var i = state.Items.Count - 1; i >= 0; i--)
-        {
-            var p = state.Items[i];
-            p.Prev = p.Pos;
-            p.Age += dt;
-            if (p.Age >= p.Life)
-            {
-                state.Items.RemoveAt(i);
-                continue;
-            }
-            var life = 1f - p.Age / p.Life;
-            p.Vel.X += MathF.Sin(time * 4.1f + p.Phase * 4f) * (5f + fx.Turbulence * 38f) * dt;
-            p.Vel.Y -= (8f + drive * 16f) * dt;
-            p.Pos += p.Vel * dt * Math.Max(0.15f, motionSpeed);
-            state.Items[i] = p;
-
-            var warm = Mix(new SKColor(255, 58, 8), baseColor, 0.35f);
-            var hot = Mix(new SKColor(255, 188, 35), SKColors.White, Math.Clamp(life * 0.55f, 0f, 0.7f));
-            var col = Mix(warm, hot, life);
-            var alpha = Math.Clamp(amount * life * 0.42f, 0f, 0.82f);
-            using var glow = NewPaint(fx, Alpha(col, alpha), SKPaintStyle.Fill);
-            var blur = 4f + p.Size * 0.75f;
-            glow.ImageFilter = SKImageFilter.CreateBlur(blur, blur);
-            c.DrawOval(new SKRect(p.Pos.X - p.Size, p.Pos.Y - p.Size * 1.6f,
-                p.Pos.X + p.Size, p.Pos.Y + p.Size * 1.6f), glow);
-            using var core = NewPaint(fx, Alpha(hot, Math.Clamp(alpha * 1.5f, 0f, 0.9f)), SKPaintStyle.Fill);
-            c.DrawOval(new SKRect(p.Pos.X - p.Size * 0.28f, p.Pos.Y - p.Size,
-                p.Pos.X + p.Size * 0.28f, p.Pos.Y + p.Size), core);
-        }
-    }
-
     private void DrawLightning(
         SKCanvas c, SKPath clip, Region r, EffectInstance fx,
         float drive, float amount, float time, float dt)
@@ -931,25 +893,6 @@ public sealed class SkiaEffectsEngine : IDisposable
             Size = 1.2f + rng.NextSingle() * Math.Max(2f, fx.Radius * 0.055f),
             Phase = rng.NextSingle(),
             Spin = (rng.NextSingle() - 0.5f) * 2f
-        };
-    }
-
-    private static Particle SpawnFlame(Random rng, Region r, EffectInstance fx)
-    {
-        var b = RegionBounds(r);
-        var x = b.MidX + (rng.NextSingle() - 0.5f) * b.Width * Math.Clamp(fx.WidthAmt, 0.12f, 1.1f);
-        var y = b.Bottom - rng.NextSingle() * Math.Max(4f, b.Height * 0.08f);
-        var pos = new Vector2(x, y);
-        return new Particle
-        {
-            Pos = pos,
-            Prev = pos,
-            Vel = new Vector2((rng.NextSingle() - 0.5f) * 24f, -(35f + rng.NextSingle() * 95f) * (0.4f + fx.Speed * 0.7f)),
-            Age = 0f,
-            Life = Math.Max(0.22f, fx.Lifetime * (0.65f + rng.NextSingle() * 0.8f)),
-            Size = 4f + rng.NextSingle() * Math.Max(6f, b.Width * 0.035f),
-            Phase = rng.NextSingle(),
-            Spin = 0f
         };
     }
 
