@@ -9,7 +9,7 @@ export type EffectKind =
   | "Pulse" | "Flicker" | "LightSurge" | "Strobe" | "GlowBloom" | "BreathingGlow" | "Afterglow" | "EchoPulse" | "WaveSweep" | "Spotlight"
   | "Halo" | "LightRays" | "GodRays" | "LensFlare" | "Starburst"
   | "EnergyFlow" | "EnergyRipple" | "Shockwave" | "MagicEnergy" | "Plasma" | "VoidEnergy" | "Portal" | "Vortex" | "EnergyBeam" | "EnergySparks"
-  | "SpectralAura" | "LightningArc" | "ElectricCrawl" | "ThunderFlash" | "Laser"
+  | "SpectralAura" | "LightningArc" | "EmeraldBolt" | "ElectricCrawl" | "ThunderFlash" | "Laser"
   | "RealisticFlame" | "Embers" | "Sparks" | "HeatDistortion" | "SmokeFog" | "Mist"
   | "HueShift" | "ChromaticPulse" | "PrismaticLight" | "NeonGlow" | "NeonChase" | "Shimmer" | "GlitterSparkle" | "HolographicDistortion" | "GlitchLight"
   | "ShadowPulse" | "RoomDim" | "LocalDim" | "ContrastSurge"
@@ -23,7 +23,7 @@ export const ALL_EFFECTS: EffectKind[] = [
   "Pulse","Flicker","LightSurge","Strobe","GlowBloom","BreathingGlow","Afterglow","EchoPulse","WaveSweep","Spotlight",
   "Halo","LightRays","GodRays","LensFlare","Starburst",
   "EnergyFlow","EnergyRipple","Shockwave","MagicEnergy","Plasma","VoidEnergy","Portal","Vortex","EnergyBeam","EnergySparks",
-  "SpectralAura","LightningArc","ElectricCrawl","ThunderFlash","Laser",
+  "SpectralAura","LightningArc","EmeraldBolt","ElectricCrawl","ThunderFlash","Laser",
   "RealisticFlame","Embers","Sparks","HeatDistortion","SmokeFog","Mist",
   "HueShift","ChromaticPulse","PrismaticLight","NeonGlow","NeonChase","Shimmer","GlitterSparkle","HolographicDistortion","GlitchLight",
   "ShadowPulse","RoomDim","LocalDim","ContrastSurge",
@@ -33,6 +33,19 @@ export const ALL_EFFECTS: EffectKind[] = [
   "GravityWell","SpatialWarp","Kaleidoscope","MirrorFracture","PixelDissolve",
   "ScanlinePulse","RgbSplit","FilmBurn","CelestialStars","CosmicNebula"
 ];
+
+export const BOLT_BANDS = ["Bass", "Low", "Mid", "High"] as const;
+export const DEFAULT_BOLT_COLORS = { Bass: "#32ff65", Low: "#34dfff", Mid: "#ff67ba", High: "#ffba44" };
+export type BoltColors = typeof DEFAULT_BOLT_COLORS;
+
+export function normalizeBoltColors(colors?: Partial<BoltColors>): BoltColors {
+  const result = { ...DEFAULT_BOLT_COLORS };
+  for (const band of BOLT_BANDS) {
+    const value = colors?.[band];
+    if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) result[band] = value;
+  }
+  return result;
+}
 
 export type EffectInstance = {
   id: string;
@@ -48,6 +61,7 @@ export type EffectInstance = {
   color: string;
   color2: string;
   color3?: string;
+  boltColors?: BoltColors;
   realismQuality?: EffectRealismQuality;
   bassInfluence?: number;
   lowMidPlasma?: number;
@@ -130,14 +144,15 @@ export function newProject(): Project {
 export function defaultEffect(kind: EffectKind): EffectInstance {
   return {
     id: crypto.randomUUID(), kind, enabled: true, intensity: 0.8, brightness: 1, opacity: 1,
-    speed: 1, scale: 1, audio: kind === "RealisticFlame" ? "Bass" : "Manual", audioInfluence: 0.7,
-    color: kind === "RealisticFlame" ? "#ffad00" : "#f4d27a",
+    speed: 1, scale: 1, audio: kind === "RealisticFlame" || kind === "EmeraldBolt" ? "Bass" : "Manual", audioInfluence: 0.7,
+    color: kind === "EmeraldBolt" ? DEFAULT_BOLT_COLORS.Bass : kind === "RealisticFlame" ? "#ffad00" : "#f4d27a",
     color2: kind === "RealisticFlame" ? "#ff3a00" : "#7ad0ff",
     color3: kind === "RealisticFlame" ? "#fff1b0" : "#ffffff",
     p0: kind === "RealisticFlame" ? 0.82 : 0.65,
     p1: kind === "RealisticFlame" ? 0.78 : 0.5,
     p2: kind === "RealisticFlame" ? 0.58 : 0.4,
     preset: "Default",
+    ...(kind === "EmeraldBolt" ? { boltColors: { ...DEFAULT_BOLT_COLORS }, p0: 1, p1: 1, p2: 1 } : {}),
     ...(kind === "MagicEnergy" ? {
       realismQuality: "Cinematic" as EffectRealismQuality,
       bassInfluence: 1.0, lowMidPlasma: 1.0, midMotion: 1.0, highSparkDensity: 1.0,
@@ -185,6 +200,7 @@ export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): 
     color: e.color || d.color,
     color2: e.color2 || d.color2,
     color3: e.color3 || d.color3,
+    boltColors: kind === "EmeraldBolt" ? normalizeBoltColors(e.boltColors) : undefined,
     realismQuality: e.realismQuality === "Performance" || e.realismQuality === "High" || e.realismQuality === "Cinematic" ? e.realismQuality : d.realismQuality,
     bassInfluence: Number.isFinite(e.bassInfluence as number) ? e.bassInfluence : d.bassInfluence,
     lowMidPlasma: Number.isFinite(e.lowMidPlasma as number) ? e.lowMidPlasma : d.lowMidPlasma,

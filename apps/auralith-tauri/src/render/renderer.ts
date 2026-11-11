@@ -683,7 +683,7 @@ const KIND_INDEX: Record<EffectKind, number> = {
   Pulse:1,Flicker:2,LightSurge:3,Strobe:4,GlowBloom:5,BreathingGlow:6,Afterglow:7,EchoPulse:8,WaveSweep:9,Spotlight:10,
   Halo:11,LightRays:12,GodRays:13,LensFlare:14,Starburst:15,
   EnergyFlow:16,EnergyRipple:17,Shockwave:18,MagicEnergy:19,Plasma:20,VoidEnergy:21,Portal:22,Vortex:23,EnergyBeam:24,EnergySparks:25,
-  SpectralAura:26,LightningArc:27,ElectricCrawl:28,ThunderFlash:29,Laser:30,
+  SpectralAura:26,LightningArc:27,EmeraldBolt:27,ElectricCrawl:28,ThunderFlash:29,Laser:30,
   RealisticFlame:31,Embers:32,Sparks:33,HeatDistortion:34,SmokeFog:35,Mist:36,
   HueShift:37,ChromaticPulse:38,PrismaticLight:39,NeonGlow:40,NeonChase:41,Shimmer:42,GlitterSparkle:43,HolographicDistortion:44,GlitchLight:45,
   ShadowPulse:46,RoomDim:47,LocalDim:48,ContrastSurge:49,

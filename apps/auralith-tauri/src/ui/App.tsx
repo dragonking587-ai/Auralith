@@ -3,6 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
+import { BOLT_BANDS, DEFAULT_BOLT_COLORS } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
@@ -55,6 +56,7 @@ const PARAM_LABELS: Record<string, [string, string, string]> = {
   EnergySparks: ["Spark Rate", "Spark Size", "Spread"],
   SpectralAura: ["Aura Radius", "Thickness", "Wisp Motion"],
   LightningArc: ["Bolt Rate", "Bolt Width", "Branching"],
+  EmeraldBolt: ["Bolt Height", "Bolt Width", "Audio Branch Spread"],
   ElectricCrawl: ["Crawl Speed", "Arc Width", "Density"],
   ThunderFlash: ["Flash Rate", "Flash Strength", "Decay"],
   Laser: ["Beam Length", "Core Sharpness", "Glow Width"],
@@ -1010,7 +1012,8 @@ export function App() {
   const clean = view === "CleanCapture";
   const managementPage = tab === "home" || tab === "server" || tab === "devices" || tab === "settings";
   const snap = audio.snapshot;
-  const filteredFx = ALL_EFFECTS.filter((k) => !fxQuery || k.toLowerCase().includes(fxQuery.toLowerCase()));
+  const effectLabel = (kind: EffectKind) => kind === "EmeraldBolt" ? "Emerald Bolt" : kind;
+  const filteredFx = ALL_EFFECTS.filter((k) => !fxQuery || effectLabel(k).toLowerCase().includes(fxQuery.toLowerCase()));
   const patchFx = (id: string, patch: Record<string, unknown>) => {
     setProject({ ...project, regions: project.regions.map((r) => r.id!==sel?r:{...r, effects: r.effects.map((x)=>x.id===id?{...x, ...patch}:x)}) });
   };
@@ -1686,7 +1689,7 @@ export function App() {
                           <button key={k} className="pick" onClick={()=>{
                             pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:[...r.effects, defaultEffect(k)]}) });
                             setPicker(false); setFxQuery("");
-                          }}>{String(ALL_EFFECTS.indexOf(k)+1).padStart(2,"0")} {k}</button>
+                          }}>{String(ALL_EFFECTS.indexOf(k)+1).padStart(2,"0")} {effectLabel(k)}</button>
                         ))}
                       </div>
                     </div>
@@ -1713,13 +1716,20 @@ export function App() {
                               <label>Opacity <input type="range" min={0} max={1} step={0.01} value={ef.opacity} onChange={(e)=>patchFx(ef.id,{opacity:Number(e.target.value)})} /></label>
                               <label>Speed <input type="range" min={0.05} max={4} step={0.01} value={ef.speed} onChange={(e)=>patchFx(ef.id,{speed:Number(e.target.value)})} /></label>
                               <label>Kind <select value={ef.kind} onChange={(e)=>pushHist({ ...project, regions: project.regions.map((r)=> r.id!==sel?r:{...r, effects:r.effects.map((x)=>x.id===ef.id?{...x,kind:e.target.value as EffectKind}:x)}) })}>
-                                {ALL_EFFECTS.map((k)=><option key={k} value={k}>{k}</option>)}
+                                {ALL_EFFECTS.map((k)=><option key={k} value={k}>{effectLabel(k)}</option>)}
                               </select></label>
                             </>}
                             {fxSub==="color" && <>
+                              {ef.kind === "EmeraldBolt" ? <>
+                                {(ef.audio === "FullMix" ? BOLT_BANDS : BOLT_BANDS.filter((band) => band === ef.audio)).map((band) => (
+                                  <label key={band}>{band} Color <input type="color" value={(ef.boltColors ?? DEFAULT_BOLT_COLORS)[band]} onChange={(e) => patchFx(ef.id, { boltColors: { ...(ef.boltColors ?? DEFAULT_BOLT_COLORS), [band]: e.target.value } })} /></label>
+                                ))}
+                                {ef.audio !== "FullMix" && !BOLT_BANDS.some((band) => band === ef.audio) && <label>Bolt Color <input type="color" value={ef.color} onChange={(e) => patchFx(ef.id, { color: e.target.value })} /></label>}
+                              </> : <>
                               <label>{ef.kind==="MagicEnergy"?"Core Color":"Primary"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color)?ef.color:"#f4d27a"} onChange={(e)=>patchFx(ef.id,{color:e.target.value})} /></label>
                               <label>{ef.kind==="MagicEnergy"?"Plasma Color":"Secondary"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color2)?ef.color2:"#7ad0ff"} onChange={(e)=>patchFx(ef.id,{color2:e.target.value})} /></label>
                               <label>{ef.kind==="MagicEnergy"?"Arc / Spark Highlight":"Highlight"} <input type="color" value={/^#[0-9a-fA-F]{6}$/.test(ef.color3||"")?(ef.color3 as string):"#e8ffff"} onChange={(e)=>patchFx(ef.id,{color3:e.target.value})} /></label>
+                              </>}
                               <label>Preset <select value={ef.preset || "Default"} onChange={(e)=>{
                                 const spec = VORTEX_PRESETS.find((p)=>p.name===e.target.value);
                                 const patch = spec ? spec.apply(ef.kind) : { preset: e.target.value };
@@ -2541,7 +2551,7 @@ export function App() {
               </div>
               <h3>ABOUT</h3>
               <p>Auralith Reborn {APP_VERSION}</p>
-              <p>80 effects registered</p>
+              <p>{ALL_EFFECTS.length} effects registered</p>
               {err && (
                 <div className="errbox">
                   <p>Renderer ⚠ {err.split("\n")[0]}</p>

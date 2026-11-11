@@ -1,5 +1,7 @@
-# Auralith Reborn rc50.01
+# Auralith Reborn rc50.02
 
-Realistic Flame now applies the primary color picker to the body of the flame. Blue, green, and other colors are visible through the flame while its hottest highlights stay bright. The default amber swatch retains the original Blender colors.
+**Emerald Bolt** brings the upright lightning effect from Blender into Reborn. The core stays in place while irregular strikes and sparks move through it. Louder audio pushes the branches outward.
 
-Bass still drives the flare, and treble still drives extra sparks. The change appears in the editor and Clean Capture.
+Add **Emerald Bolt** to a stamp or emitter. Use **Bolt Height**, **Bolt Width**, and **Audio Branch Spread** to fit the effect. Choose Bass, Low, Mid, or High and edit that band’s color. **Full Mix** shows four editable colors and drives each branch group with its own band.
+
+The effect is bundled in the installer and appears in the editor and Clean Capture.

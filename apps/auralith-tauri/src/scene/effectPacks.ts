@@ -1,4 +1,4 @@
-import { ALL_EFFECTS, defaultEffect, type AudioMap, type EffectInstance, type EffectKind, type Project } from "./types";
+import { ALL_EFFECTS, defaultEffect, normalizeBoltColors, type AudioMap, type BoltColors, type EffectInstance, type EffectKind, type Project } from "./types";
 
 export type EffectPackManifest = {
   format: 1;
@@ -66,6 +66,7 @@ function sanitizeEffect(raw: unknown, index: number): EffectInstance {
     color: cleanColor(r.color, d.color),
     color2: cleanColor(r.color2, d.color2),
     color3: cleanColor(r.color3, d.color3 || "#ffffff"),
+    ...(kind === "EmeraldBolt" ? { boltColors: normalizeBoltColors(r.boltColors as Partial<BoltColors> | undefined) } : {}),
     realismQuality,
     bassInfluence: r.bassInfluence == null ? d.bassInfluence : clamp(r.bassInfluence, d.bassInfluence ?? 1, 0, 2),
     lowMidPlasma: r.lowMidPlasma == null ? d.lowMidPlasma : clamp(r.lowMidPlasma, d.lowMidPlasma ?? 1, 0, 2),

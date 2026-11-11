@@ -48,7 +48,7 @@ must(lock.packages?.[""]?.devDependencies?.["@types/three"] === pkg.devDependenc
 
 const particleKinds = ["Sparks", "EnergySparks", "Embers", "Fireflies", "Snow", "Ash", "DustMotes", "BioluminescentSpores"];
 const volumetricKinds = ["MagicEnergy", "Plasma", "VoidEnergy", "Portal", "Vortex", "SmokeFog", "Mist", "AtmosphericHaze", "Aurora", "CosmicNebula", "FrozenBreath", "SpectralAura"];
-const electricalKinds = ["EnergyBeam", "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser"];
+const electricalKinds = ["EnergyBeam", "LightningArc", "EmeraldBolt", "ElectricCrawl", "ThunderFlash", "Laser"];
 const distortionKinds = ["HeatDistortion", "Refraction", "WaterRipple", "Caustics", "WetReflection", "WaterReflection", "SpatialWarp", "HolographicDistortion"];
 const lightOpticalKinds = ["GlowBloom", "Halo", "LightRays", "GodRays", "LensFlare", "Starburst", "Spotlight", "Shimmer", "GlitterSparkle", "NeonGlow", "NeonChase", "PrismaticLight"];
 const pulseEnergyKinds = ["Pulse", "Flicker", "LightSurge", "Strobe", "BreathingGlow", "Afterglow", "EchoPulse", "WaveSweep", "Shockwave", "EnergyFlow", "EnergyRipple"];
@@ -111,9 +111,8 @@ const migrated = new Set([
   ...particleKinds, ...volumetricKinds, ...electricalKinds, ...distortionKinds, ...lightOpticalKinds,
   ...pulseEnergyKinds, ...colorDigitalKinds, ...shadowDarkKinds, ...iceSymbolKinds, ...environmentFinalKinds,
 ]);
-must(allEffects.length === 80, `expected 80 selectable effects, found ${allEffects.length}`);
-must(migrated.size === 80, `expected 80 unique migrated effects, found ${migrated.size}`);
+must(allEffects.length === migrated.size, `catalog has ${allEffects.length} effects but ${migrated.size} are routed`);
 for (const kind of allEffects) must(migrated.has(kind), `selectable effect ${kind} is still legacy-only`);
 must(!allEffects.includes("SmartNeon"), "SmartNeon unexpectedly returned to selectable catalog");
 
-console.log("[rc.49.x audit] PASS — rc.49 base integrity, reproducible dependency lock, isolated Three.js contexts, and all 80 selectable migrated effects verified for point/emitter/stamp placements");
+console.log(`[rc.49.x audit] PASS — rc.49 base integrity, reproducible dependency lock, isolated Three.js contexts, and all ${allEffects.length} selectable effects verified for point/emitter/stamp placements`);

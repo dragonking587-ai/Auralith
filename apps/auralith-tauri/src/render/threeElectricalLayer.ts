@@ -1,9 +1,10 @@
 import * as THREE from "three";
+import { makeEmeraldBoltMaterial, updateEmeraldBoltMaterial } from "./emeraldBolt";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectInstance, EffectKind, Project, Region } from "../scene/types";
 
 export const ELECTRICAL_KINDS = new Set<EffectKind>([
-  "EnergyBeam", "LightningArc", "ElectricCrawl", "ThunderFlash", "Laser"
+  "EnergyBeam", "LightningArc", "EmeraldBolt", "ElectricCrawl", "ThunderFlash", "Laser"
 ]);
 
 const MODE: Partial<Record<EffectKind, number>> = {
@@ -204,6 +205,8 @@ type Entry = {
   material: THREE.ShaderMaterial;
   env: Envelope;
   lastSeen: number;
+  kind: EffectKind;
+  started: number;
 };
 
 function band(snapshot: AudioSnapshot, name: string) {
@@ -294,13 +297,19 @@ export class ThreeElectricalLayer {
 
   private updateEffect(region: Region, effect: EffectInstance, project: Project, snapshot: AudioSnapshot, width: number, height: number, viewport: { x: number; y: number; w: number; h: number }, time: number, colorOverrides?: Record<string, string>) {
     let entry = this.entries.get(effect.id);
+    if (entry && entry.kind !== effect.kind) {
+      this.scene.remove(entry.mesh);
+      entry.material.dispose();
+      entry = undefined;
+    }
+    const emerald = effect.kind === "EmeraldBolt";
     if (!entry) {
-      const material = makeMaterial(effect.kind);
+      const material = emerald ? makeEmeraldBoltMaterial(VERT) : makeMaterial(effect.kind);
       const mesh = new THREE.Mesh(this.geometry, material);
       mesh.frustumCulled = false;
       mesh.renderOrder = 34;
       this.scene.add(mesh);
-      entry = { mesh, material, env: { bass: 0, low: 0, mid: 0, high: 0, beat: 0, transient: 0, last: performance.now() / 1000 }, lastSeen: this.frame };
+      entry = { mesh, material, env: { bass: 0, low: 0, mid: 0, high: 0, beat: 0, transient: 0, last: time }, lastSeen: this.frame, kind: effect.kind, started: time };
       this.entries.set(effect.id, entry);
     }
     entry.lastSeen = this.frame;
@@ -311,11 +320,22 @@ export class ThreeElectricalLayer {
     const baseRadius = Math.max(12, region.radius + (effect.expansion || 0) + (effect.spread || 0));
     const sx = Math.max(0.05, effect.fxScaleX || effect.scale || region.sx || 1);
     const sy = Math.max(0.05, effect.fxScaleY || effect.scale || region.sy || 1);
-    const beamLike = effect.kind === "LightningArc" || effect.kind === "Laser" || effect.kind === "EnergyBeam";
+    const beamLike = emerald || effect.kind === "LightningArc" || effect.kind === "Laser" || effect.kind === "EnergyBeam";
     const defaultW = beamLike ? baseRadius * 1.15 : baseRadius * 2.0;
     const defaultH = beamLike ? baseRadius * 3.2 : baseRadius * 2.0;
     const rx = Math.max(12, ((effect.fxW || region.width || defaultW) / 2) * (viewport.w / project.width) * sx);
     const ry = Math.max(12, ((effect.fxH || region.height || defaultH) / 2) * (viewport.h / project.height) * sy);
+
+    if (emerald) {
+      const halfWidth = Math.max(rx, ry * 0.68) * Math.max(0.15, effect.p1 ?? 1);
+      const halfHeight = ry * Math.max(0.15, effect.p0 ?? 1);
+      entry.mesh.position.set((x / width) * 2 - 1, 1 - (y / height) * 2, 0.16);
+      entry.mesh.scale.set((halfWidth / width) * 2, (halfHeight / height) * 2, 1);
+      entry.mesh.rotation.z = 0;
+      const { bass, low, mid, high } = entry.env;
+      updateEmeraldBoltMaterial(entry.material, effect, project, snapshot, [bass, low, mid, high], time - entry.started, colorOverrides?.[effect.id]);
+      return;
+    }
 
     entry.mesh.position.set((x / width) * 2 - 1, 1 - (y / height) * 2, 0.16);
     entry.mesh.scale.set((rx / width) * 2, (ry / height) * 2, 1);
