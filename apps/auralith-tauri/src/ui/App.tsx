@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { emit, listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
-import { BOLT_BANDS, DEFAULT_BOLT_COLORS } from "../scene/types";
+import { BOLT_BANDS, DEFAULT_BOLT_COLORS, MAX_BOLT_WISPS, normalizeBoltWispCount } from "../scene/types";
 import { VORTEX_PRESETS } from "../scene/presets";
 import { canvasToScene, sceneToCanvas, sceneViewport } from "../scene/transform";
 import { closestSegment, chaikin, rdp, pathLength, rasterizeClosed } from "../scene/traceMath";
@@ -1721,6 +1721,7 @@ export function App() {
                             </>}
                             {fxSub==="color" && <>
                               {ef.kind === "EmeraldBolt" ? <>
+                                <label>Wisp Count {normalizeBoltWispCount(ef.boltWispCount)} <input type="range" min={0} max={MAX_BOLT_WISPS} step={1} value={normalizeBoltWispCount(ef.boltWispCount)} onChange={(e) => patchFx(ef.id, { boltWispCount: Number(e.target.value) })} /></label>
                                 {(ef.audio === "FullMix" ? BOLT_BANDS : BOLT_BANDS.filter((band) => band === ef.audio)).map((band) => (
                                   <label key={band}>{band} Color <input type="color" value={(ef.boltColors ?? DEFAULT_BOLT_COLORS)[band]} onChange={(e) => patchFx(ef.id, { boltColors: { ...(ef.boltColors ?? DEFAULT_BOLT_COLORS), [band]: e.target.value } })} /></label>
                                 ))}

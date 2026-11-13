@@ -35,6 +35,12 @@ export const ALL_EFFECTS: EffectKind[] = [
 ];
 
 export const BOLT_BANDS = ["Bass", "Low", "Mid", "High"] as const;
+export const MAX_BOLT_WISPS = 12;
+export function normalizeBoltWispCount(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value)
+    ? Math.max(0, Math.min(MAX_BOLT_WISPS, Math.round(value)))
+    : MAX_BOLT_WISPS;
+}
 export const DEFAULT_BOLT_COLORS = { Bass: "#32ff65", Low: "#34dfff", Mid: "#ff67ba", High: "#ffba44" };
 export type BoltColors = typeof DEFAULT_BOLT_COLORS;
 
@@ -62,6 +68,7 @@ export type EffectInstance = {
   color2: string;
   color3?: string;
   boltColors?: BoltColors;
+  boltWispCount?: number;
   realismQuality?: EffectRealismQuality;
   bassInfluence?: number;
   lowMidPlasma?: number;
@@ -201,6 +208,7 @@ export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): 
     color2: e.color2 || d.color2,
     color3: e.color3 || d.color3,
     boltColors: kind === "EmeraldBolt" ? normalizeBoltColors(e.boltColors) : undefined,
+    boltWispCount: kind === "EmeraldBolt" ? normalizeBoltWispCount(e.boltWispCount) : undefined,
     realismQuality: e.realismQuality === "Performance" || e.realismQuality === "High" || e.realismQuality === "Cinematic" ? e.realismQuality : d.realismQuality,
     bassInfluence: Number.isFinite(e.bassInfluence as number) ? e.bassInfluence : d.bassInfluence,
     lowMidPlasma: Number.isFinite(e.lowMidPlasma as number) ? e.lowMidPlasma : d.lowMidPlasma,

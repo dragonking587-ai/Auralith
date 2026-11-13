@@ -206,7 +206,8 @@ type Entry = {
   env: Envelope;
   lastSeen: number;
   kind: EffectKind;
-  started: number;
+  boltOnset?: number;
+  lastBoltSignal?: number;
 };
 
 function band(snapshot: AudioSnapshot, name: string) {
@@ -309,7 +310,7 @@ export class ThreeElectricalLayer {
       mesh.frustumCulled = false;
       mesh.renderOrder = 34;
       this.scene.add(mesh);
-      entry = { mesh, material, env: { bass: 0, low: 0, mid: 0, high: 0, beat: 0, transient: 0, last: time }, lastSeen: this.frame, kind: effect.kind, started: time };
+      entry = { mesh, material, env: { bass: 0, low: 0, mid: 0, high: 0, beat: 0, transient: 0, last: time }, lastSeen: this.frame, kind: effect.kind };
       this.entries.set(effect.id, entry);
     }
     entry.lastSeen = this.frame;
@@ -329,11 +330,20 @@ export class ThreeElectricalLayer {
     if (emerald) {
       const halfWidth = Math.max(rx, ry * 0.68) * Math.max(0.15, effect.p1 ?? 1);
       const halfHeight = ry * Math.max(0.15, effect.p0 ?? 1);
-      entry.mesh.position.set((x / width) * 2 - 1, 1 - (y / height) * 2, 0.16);
+      // The Unreal strike's root sits at 12% of the image height from the bottom.
+      const rootOffset = halfHeight * (1 - 2 * 0.12);
+      entry.mesh.position.set((x / width) * 2 - 1, 1 - ((y - rootOffset) / height) * 2, 0.16);
       entry.mesh.scale.set((halfWidth / width) * 2, (halfHeight / height) * 2, 1);
       entry.mesh.rotation.z = 0;
       const { bass, low, mid, high } = entry.env;
-      updateEmeraldBoltMaterial(entry.material, effect, project, snapshot, [bass, low, mid, high], time - entry.started, colorOverrides?.[effect.id]);
+      if (effect.audio === "Manual" || Math.max(snapshot.raw, snapshot.rms, snapshot.fullMix) > 0.018) {
+        entry.boltOnset ??= time;
+        entry.lastBoltSignal = time;
+      } else if (entry.lastBoltSignal !== undefined && time - entry.lastBoltSignal > 0.65) {
+        entry.boltOnset = undefined;
+      }
+      const elapsed = entry.boltOnset === undefined ? -1 : time - entry.boltOnset;
+      updateEmeraldBoltMaterial(entry.material, effect, project, snapshot, [bass, low, mid, high], elapsed, colorOverrides?.[effect.id]);
       return;
     }
 

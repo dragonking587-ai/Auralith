@@ -1,7 +1,6 @@
-# Auralith Reborn rc50.02
+# Auralith Reborn RC 50.0.3
 
-**Emerald Bolt** brings the upright lightning effect from Blender into Reborn. The core stays in place while irregular strikes and sparks move through it. Louder audio pushes the branches outward.
-
-Add **Emerald Bolt** to a stamp or emitter. Use **Bolt Height**, **Bolt Width**, and **Audio Branch Spread** to fit the effect. Choose Bass, Low, Mid, or High and edit that band’s color. **Full Mix** shows four editable colors and drives each branch group with its own band.
-
-The effect is bundled in the installer and appears in the editor and Clean Capture.
+- Emerald Bolt uses the cinematic Unreal render, with separate core, fork, wake, spark, and wisp layers.
+- When music is detected, the bolt rises from its placement point. After a short pause in the signal, it can rise again.
+- Choose Bass, Lows, Mids, Highs, or Full Mix, edit the band colors, and set Wisp Count from 0 to 12.
+- Existing Emerald Bolt placements and colors carry over.
