@@ -1,4 +1,5 @@
 import { ALL_EFFECTS, defaultEffect, normalizeBoltColors, normalizeBoltWispCount, type AudioMap, type BoltColors, type EffectInstance, type EffectKind, type Project } from "./types";
+import { normalizePortalComponents, normalizePortalMistSpeed } from "./types";
 
 export type EffectPackManifest = {
   format: 1;
@@ -71,6 +72,10 @@ function sanitizeEffect(raw: unknown, index: number): EffectInstance {
       boltWispCount: normalizeBoltWispCount(r.boltWispCount),
     } : {}),
     realismQuality,
+    ...(kind === "Portal" ? {
+      portalComponents: r.portalComponents == null ? undefined : normalizePortalComponents(r.portalComponents),
+      portalMistSpeed: normalizePortalMistSpeed(r.portalMistSpeed),
+    } : {}),
     bassInfluence: r.bassInfluence == null ? d.bassInfluence : clamp(r.bassInfluence, d.bassInfluence ?? 1, 0, 2),
     lowMidPlasma: r.lowMidPlasma == null ? d.lowMidPlasma : clamp(r.lowMidPlasma, d.lowMidPlasma ?? 1, 0, 2),
     midMotion: r.midMotion == null ? d.midMotion : clamp(r.midMotion, d.midMotion ?? 1, 0, 2),

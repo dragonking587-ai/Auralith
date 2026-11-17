@@ -1,4 +1,5 @@
 import * as THREE from "three";
+import { makeCinematicPortal, updateCinematicPortal } from "./cinematicPortal";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectInstance, EffectKind, Project, Region } from "../scene/types";
 
@@ -184,6 +185,7 @@ const FRAG = /* glsl */`
 
 type Envelope = { bass:number; low:number; mid:number; high:number; beat:number; transient:number; last:number };
 type Entry = {
+  portal: boolean;
   mesh: THREE.Mesh<THREE.PlaneGeometry, THREE.ShaderMaterial>;
   material: THREE.ShaderMaterial;
   env: Envelope;
@@ -280,16 +282,23 @@ export class ThreeVolumetricLayer {
 
   private updateEffect(region:Region,effect:EffectInstance,project:Project,snapshot:AudioSnapshot,width:number,height:number,viewport:{x:number;y:number;w:number;h:number},time:number,colorOverrides?:Record<string,string>){
     let entry=this.entries.get(effect.id);
+    const portal = effect.kind === "Portal";
+    if (entry && entry.portal !== portal) {
+      this.scene.remove(entry.mesh);
+      entry.material.dispose();
+      entry = undefined;
+    }
     if(!entry){
-      const material=makeMaterial(effect.kind);
+      const material=portal ? makeCinematicPortal(VERT) : makeMaterial(effect.kind);
       const mesh=new THREE.Mesh(this.geometry,material);
       mesh.frustumCulled=false;
       mesh.renderOrder=18;
       this.scene.add(mesh);
-      entry={mesh,material,env:{bass:0,low:0,mid:0,high:0,beat:0,transient:0,last:performance.now()/1000},lastSeen:this.frame};
+      entry={portal,mesh,material,env:{bass:0,low:0,mid:0,high:0,beat:0,transient:0,last:time},lastSeen:this.frame};
       this.entries.set(effect.id,entry);
     }
     entry.lastSeen=this.frame;
+    const dt = Math.max(0, Math.min(0.1, time - entry.env.last));
     smoothEnvelope(entry,effect,snapshot);
 
     const x=viewport.x+((region.x+(effect.offsetX||0))/project.width)*viewport.w;
@@ -298,6 +307,13 @@ export class ThreeVolumetricLayer {
     const ry=Math.max(12,(effect.fxH||region.height||region.radius*2)/2*(viewport.h/project.height)*Math.max(0.05,effect.fxScaleY||effect.scale||region.sy||1));
     entry.mesh.position.set((x/width)*2-1,1-(y/height)*2,0.08);
     entry.mesh.scale.set((rx/width)*2,(ry/height)*2,1);
+
+    if (portal) {
+      updateCinematicPortal(entry.material, effect, time * effect.speed * project.masters.motion, dt,
+        effect.opacity * effect.brightness * effect.intensity * project.masters.brightness * project.masters.intensity,
+        (source) => band(snapshot, source), colorOverrides?.[effect.id]);
+      return;
+    }
 
     const u=entry.material.uniforms;
     u.uTime.value=time*effect.speed*project.masters.motion;

@@ -3,6 +3,30 @@ export type ViewMode = "Edit" | "Preview" | "CleanCapture";
 export type RegionKind = "Trace" | "Stamp" | "Emitter" | "Shape" | "Prop";
 export type ShapeKind = "circle" | "ellipse" | "rect" | "roundrect" | "triangle" | "line" | "ring" | "polygon" | "diamond";
 export type AudioMap = "Manual" | "Raw" | "Bass" | "Low" | "Mid" | "High" | "FullMix" | "Beat" | "Transient";
+
+export const PORTAL_AUDIO = ["Bass", "Low", "Mid", "High", "FullMix", "Manual", "Raw", "Beat", "Transient"] as const;
+export const PORTAL_LABELS = ["Rim", "Outer Wisps", "Sparks", "Inner Mist", "Inner Lightning"] as const;
+export const PORTAL_MIST = 3;
+type PortalComponent = { color: string; audio: AudioMap };
+const portalDefaults: readonly PortalComponent[] = [
+  { color: "#42cfff", audio: "Bass" }, { color: "#5d81ff", audio: "High" },
+  { color: "#b5eaff", audio: "High" }, { color: "#8195ff", audio: "Bass" },
+  { color: "#95b8ff", audio: "Mid" },
+];
+
+export function normalizePortalComponents(value: unknown): PortalComponent[] {
+  return portalDefaults.map((fallback, index) => {
+    const component = Array.isArray(value) ? value[index] : undefined;
+    return {
+      color: typeof component?.color === "string" && /^#[0-9a-f]{6}$/i.test(component.color) ? component.color : fallback.color,
+      audio: PORTAL_AUDIO.includes(component?.audio) ? component.audio : fallback.audio,
+    };
+  });
+}
+
+export function normalizePortalMistSpeed(value: unknown) {
+  return typeof value === "number" && Number.isFinite(value) ? Math.min(0.25, Math.max(0, value)) : 1 / 18;
+}
 export type EffectRealismQuality = "Performance" | "High" | "Cinematic";
 
 export type EffectKind =
@@ -68,6 +92,8 @@ export type EffectInstance = {
   color2: string;
   color3?: string;
   boltColors?: BoltColors;
+  portalComponents?: PortalComponent[];
+  portalMistSpeed?: number;
   boltWispCount?: number;
   realismQuality?: EffectRealismQuality;
   bassInfluence?: number;
@@ -208,6 +234,8 @@ export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): 
     color2: e.color2 || d.color2,
     color3: e.color3 || d.color3,
     boltColors: kind === "EmeraldBolt" ? normalizeBoltColors(e.boltColors) : undefined,
+    portalComponents: kind === "Portal" && e.portalComponents != null ? normalizePortalComponents(e.portalComponents) : undefined,
+    portalMistSpeed: kind === "Portal" ? normalizePortalMistSpeed(e.portalMistSpeed) : undefined,
     boltWispCount: kind === "EmeraldBolt" ? normalizeBoltWispCount(e.boltWispCount) : undefined,
     realismQuality: e.realismQuality === "Performance" || e.realismQuality === "High" || e.realismQuality === "Cinematic" ? e.realismQuality : d.realismQuality,
     bassInfluence: Number.isFinite(e.bassInfluence as number) ? e.bassInfluence : d.bassInfluence,
@@ -222,4 +250,15 @@ export function normalizeEffect(e: Partial<EffectInstance> & { kind: string }): 
     p1: Number.isFinite(e.p1 as number) ? e.p1 : d.p1,
     p2: Number.isFinite(e.p2 as number) ? e.p2 : d.p2,
   };
+}
+
+export function portalComponents(effect: EffectInstance) {
+  const components = normalizePortalComponents(effect.portalComponents);
+  if (!effect.portalComponents) {
+    if (effect.audio !== "Manual") for (const component of components) component.audio = effect.audio;
+    if (/^#[0-9a-f]{6}$/i.test(effect.color) && effect.color !== "#f4d27a") components[0].color = effect.color;
+    if (/^#[0-9a-f]{6}$/i.test(effect.color2) && effect.color2 !== "#7ad0ff") components[1].color = effect.color2;
+    if (effect.color3 && /^#[0-9a-f]{6}$/i.test(effect.color3) && effect.color3 !== "#ffffff") components[2].color = effect.color3;
+  }
+  return components;
 }

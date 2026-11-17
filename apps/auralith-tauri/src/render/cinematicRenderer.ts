@@ -64,7 +64,7 @@ function legacyProjectWithoutNativeNeon(project: Project): { project: Project; r
     const effects = region.effects.filter((effect) => {
       const hideLegacyNeon = effect.kind === "NeonGlow" && isThreeNativePlacement(region, effect);
       const hideLegacyFlame = flameReady && effect.kind === "RealisticFlame" && isThreeNativePlacement(region, effect);
-      const hideLegacyBolt = effect.kind === "EmeraldBolt" && isThreeNativePlacement(region, effect);
+      const hideLegacyBolt = (effect.kind === "EmeraldBolt" || effect.kind === "Portal") && isThreeNativePlacement(region, effect);
       if (hideLegacyNeon || hideLegacyFlame || hideLegacyBolt) removed++;
       return !hideLegacyNeon && !hideLegacyFlame && !hideLegacyBolt;
     });
