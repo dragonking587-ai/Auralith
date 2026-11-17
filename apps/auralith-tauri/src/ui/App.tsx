@@ -1754,7 +1754,7 @@ export function App() {
                                   </select></label>
                                 )) : <label>Source <select value={ef.audio} onChange={(e)=>patchFx(ef.id,{audio:e.target.value})}>
                                 {["Manual","Raw","Bass","Low","Mid","High","FullMix","Beat","Transient"].map((a)=><option key={a}>{a}</option>)}
-                              </select></label>
+                              </select></label>}
                               <label>Influence <input type="range" min={0} max={1} step={0.01} value={ef.audioInfluence} onChange={(e)=>patchFx(ef.id,{audioInfluence:Number(e.target.value)})} /></label>
                             </>}
                             {fxSub==="motion" && <>
@@ -1767,7 +1767,7 @@ export function App() {
                                 <option value="inside">Inside</option>
                                 <option value="boundary">Boundary</option>
                                 <option value="outside">Outside</option>
-                              </select></label>}
+                              </select></label>
                               <label>Boundary Width <input type="range" min={0.05} max={1.5} step={0.01} value={ef.boundaryWidth??0.35} onChange={(e)=>patchFx(ef.id,{boundaryWidth:Number(e.target.value)})} /></label>
                               <label>Effect Scale <input type="range" min={0.1} max={8} step={0.05} value={ef.fxScaleX??ef.scale??1} onChange={(e)=>patchFx(ef.id,{fxScaleX:Number(e.target.value), fxScaleY:Number(e.target.value)})} /></label>
                               <label>Expansion <input type="range" min={0} max={2000} step={1} value={ef.expansion??0} onChange={(e)=>patchFx(ef.id,{expansion:Number(e.target.value)})} /></label>

@@ -16,7 +16,7 @@ if (app.includes("RC49_HOTFIX_SHAPES")) {
 }
 
 const locked = {
-  "src/ui/App.tsx": "022ebe754dbff5a1fd25ea807548ae61347a97eb",
+  "src/ui/App.tsx": "936f60c048fcfbd87ae6849717b2e3d8cbc471a7",
   "src/ui/HelpOverlay.tsx": "0df3ac17d5fca4c774e957340804b71fc1c25a51",
   "src/ui/HostPage.tsx": "ee11ca39ddf74b9088a189c18fd2f39f50ca18ae",
   "src/ui/QrPanel.tsx": "76ed933b176ef51da6a029d4d45f895cadb99154",
