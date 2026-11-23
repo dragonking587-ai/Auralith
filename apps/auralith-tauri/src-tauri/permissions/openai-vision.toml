@@ -1,0 +1,4 @@
+[[permission]]
+identifier = "allow-analyze-backdrop"
+description = "Allows the editor to analyze the loaded backdrop through OpenAI."
+commands.allow = ["analyze_backdrop"]

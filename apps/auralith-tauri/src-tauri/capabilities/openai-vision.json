@@ -1,0 +1,6 @@
+{
+  "identifier": "openai-vision",
+  "description": "OpenAI backdrop analysis in the main Reborn editor.",
+  "windows": ["main"],
+  "permissions": ["allow-analyze-backdrop"]
+}
