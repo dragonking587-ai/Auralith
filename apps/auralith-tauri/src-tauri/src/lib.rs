@@ -1,5 +1,6 @@
 mod vcam;
 mod poll_server;
+mod openai_vision;
 
 #[cfg(windows)]
 mod capture {
@@ -64,6 +65,7 @@ pub fn run() {
         .plugin(tauri_plugin_process::init())
         .manage(std::sync::Arc::new(poll_server::PollServer::default()))
         .invoke_handler(tauri::generate_handler![
+            openai_vision::analyze_backdrop,
             vcam::vcam_status,
             vcam::vcam_install,
             vcam::vcam_start,

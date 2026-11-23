@@ -23,8 +23,7 @@ must(cinematic.includes('effect.kind === "NeonGlow" && isThreeNativePlacement'),
 must(cinematic.includes("if (legacyNeon.removed > 0)"), "Neon fallback redraw missing");
 
 const flame = read("src/render/threeEnvironmentFinalLayer.ts");
-must(flame.includes("for (int i = 0; i < 9; i++)"), "nine-tongue flame missing");
-must(flame.includes("tipWisps"), "flame tip wisps missing");
+must(flame.includes("fireFlame(uv,uTime)") && flame.includes("fireSmoke(uv,uTime)") && flame.includes("fireEmbers(uv,uTime)"), "Unreal fire layers missing");
 must(flame.includes('blending: kind === "RealisticFlame" ? THREE.NormalBlending'), "natural flame blending missing");
 
 const designer = read("src/ui/GamingOverlayDesigner.tsx");
@@ -44,4 +43,4 @@ must(overlayModel.includes('webFit: "fit"'), "new web cards must default to Fit"
 must(overlayModel.includes("sourceWidth: 640"), "web-card source width default missing");
 must(overlayModel.includes("sourceHeight: 360"), "web-card source height default missing");
 
-console.log("RC49.3.10_VERIFY_OK neon=fixed flame=multi-tongue gaming-overlay=enabled song-card-fit=fixed");
+console.log("RC49.3.10_VERIFY_OK neon=fixed flame=unreal gaming-overlay=enabled song-card-fit=fixed");

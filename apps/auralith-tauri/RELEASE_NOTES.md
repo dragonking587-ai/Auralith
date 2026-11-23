@@ -1,5 +1,7 @@
-# Auralith Reborn RC 50.04
+# Auralith Reborn RC 50.05
 
-- The cinematic Portal brings Unreal-authored plasma, wisps, sparks, swirling mist, and continuous inner lightning to point placements.
-- Set a separate color and audio source for the rim, outer wisps, sparks, inner mist, and inner lightning.
-- Adjust the mist's audio-driven color cycle in the Color tab. Existing path and mask placements retain their original Portal rendering.
+- OpenAI Vision recognizes requested objects in the loaded backdrop and proposes editable outlines with effect, color, and audio assignments.
+- Review and select detections before applying them. Applied objects use normal editor regions and support Undo.
+- Enter an OpenAI API key in the editor's OpenAI Vision panel. The key stays in memory. Each analysis sends the backdrop and request to OpenAI and uses your API account.
+- Realistic Flame point placements now use the Unreal-authored flowing fire material with fine golden filaments, transparent gaps, and live color and audio response.
+- Import Backdrop accepts rendered PNG, JPEG, WebP, and BMP files from Blender, Unreal, and other apps.

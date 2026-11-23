@@ -1,7 +1,7 @@
 import * as THREE from "three";
 import type { AudioSnapshot } from "../audio/engine";
 import type { EffectInstance, EffectKind, Project, Region } from "../scene/types";
-import { flameAtlasesReady, getFlameAtlases } from "./flameTextures";
+import { unrealFire } from "./unrealFire";
 
 export const ENVIRONMENT_FINAL_KINDS = new Set<EffectKind>([
   "RealisticFlame", "Rain", "CelestialStars"
@@ -39,9 +39,6 @@ const FRAG = /* glsl */`
   uniform vec3 uColorA;
   uniform vec3 uColorB;
   uniform vec3 uColorC;
-  uniform sampler2D uFlameCalm;
-  uniform sampler2D uFlameFlare;
-  uniform float uFlameReady;
   uniform float uFlare;
   uniform float uSparks;
   uniform float uTintFlame;
@@ -53,39 +50,7 @@ const FRAG = /* glsl */`
     return fract(p.x * p.y);
   }
 
-  float noise21(vec2 p) {
-    vec2 i = floor(p);
-    vec2 f = fract(p);
-    f = f * f * (3.0 - 2.0 * f);
-    float a = hash21(i);
-    float b = hash21(i + vec2(1.0, 0.0));
-    float c = hash21(i + vec2(0.0, 1.0));
-    float d = hash21(i + vec2(1.0, 1.0));
-    return mix(mix(a, b, f.x), mix(c, d, f.x), f.y);
-  }
-
-  float fbm(vec2 p) {
-    float v = 0.0;
-    float a = 0.5;
-    for (int i = 0; i < 5; i++) {
-      v += a * noise21(p);
-      p = p * 2.03 + vec2(4.1, 7.3);
-      a *= 0.5;
-    }
-    return v;
-  }
-
-  vec3 flameFrame(sampler2D atlas, float frame, vec2 uv) {
-    vec2 cell = vec2(mod(frame, 6.0), 5.0 - floor(frame / 6.0));
-    vec2 inset = vec2(0.5 / 320.0, 0.5 / 448.0);
-    return texture2D(atlas, (cell + mix(inset, 1.0 - inset, uv)) / 6.0).rgb;
-  }
-
-  vec3 flameLoop(sampler2D atlas, float frame, vec2 uv) {
-    vec3 current = flameFrame(atlas, frame, uv);
-    if (frame < 30.0) return current;
-    return mix(current, flameFrame(atlas, frame - 30.0, uv), (frame - 29.0) / 6.0);
-  }
+  ${unrealFire}
 
   vec3 tintFlame(vec3 light) {
     float heat = max(light.r, max(light.g, light.b));
@@ -99,20 +64,18 @@ const FRAG = /* glsl */`
 
   vec4 renderedFlame() {
     const float base = 0.10;
-    float width = clamp(0.57 + uP1 * 0.55, 0.32, 1.6);
-    float height = clamp(0.51 + uP0 * 0.60, 0.32, 1.6);
+    float width = clamp(0.57 + uP1 * 0.55 + uFlare * 0.10, 0.32, 1.6);
+    float height = clamp(0.51 + uP0 * 0.60 + uFlare * 0.19, 0.32, 1.6);
     vec2 uv = vec2((vUv.x - 0.5) / width + 0.5, (vUv.y - base) / height + base);
     vec3 light = vec3(0.0);
     if (all(greaterThanEqual(uv, vec2(0.0))) && all(lessThanEqual(uv, vec2(1.0)))) {
-      float clock = uTime * 30.0;
-      float frame = floor(mod(clock, 30.0)) + 6.0;
-      vec3 current = mix(flameLoop(uFlameCalm, frame, uv), flameLoop(uFlameFlare, frame, uv), uFlare);
-      light = tintFlame(current);
+      vec3 flame = fireFlame(uv,uTime);
+      vec3 ember = fireEmbers(uv,uTime);
+      float emberPower = 1.0 + uSparks * 1.8;
+      light = tintFlame(flame) * (1.0 + uFlare * 0.65)
+        + fireSmoke(uv,uTime)
+        + mix(ember, mix(uColorC,uColorB,0.75)*ember.r, uTintFlame) * emberPower;
     }
-
-    vec2 ground = (vUv - vec2(0.5, base)) / vec2(0.40 + uFlare * 0.10, 0.11);
-    float spill = max(0.0, 1.0 - length(ground));
-    light += uColorA * spill * spill * (0.11 + uFlare * 0.21);
 
     if (uSparks > 0.01) {
       for (int i = 0; i < 14; ++i) {
@@ -133,7 +96,7 @@ const FRAG = /* glsl */`
   }
 
   void main() {
-    if (uMode < 1.5 && uFlameReady > 0.5) {
+    if (uMode < 1.5) {
       gl_FragColor = renderedFlame();
       if (gl_FragColor.a < 0.002) discard;
       return;
@@ -148,60 +111,7 @@ const FRAG = /* glsl */`
     float hot = 0.0;
     vec3 col = uColorA;
 
-    if (uMode < 1.5) {
-      vec2 p = q;
-      p.y += 0.10;
-      float rise = uTime * (0.48 + p0 * 1.05 + uBass * 0.12);
-      float fire = 0.0;
-      float core = 0.0;
-      float tipWisps = 0.0;
-
-      // Broad open-fire bed: dense near the fuel line rather than a single nozzle/jet.
-      float bedNoise = fbm(vec2(p.x * (3.2 + p1), p.y * 4.0 - rise * 0.65));
-      float bedX = 1.0 - smoothstep(0.58, 0.94, abs(p.x));
-      float bedY = exp(-pow((p.y + 0.72) * 4.2, 2.0));
-      float bed = bedX * bedY * (0.72 + bedNoise * 0.55);
-      fire += bed * 0.92;
-      core += bed * (0.46 + 0.28 * (1.0 - abs(p.x)));
-
-      // Nine independently moving tongues. Each has its own base, height, curl and breakup.
-      for (int i = 0; i < 9; i++) {
-        float fi = float(i);
-        float seed = hash21(vec2(fi * 7.13 + 2.1, fi * 3.71 + 9.4));
-        float seed2 = hash21(vec2(fi * 2.37 + 5.8, fi * 8.19 + 1.2));
-        float baseX = mix(-0.68, 0.68, fi / 8.0) + (seed - 0.5) * 0.10;
-        float height = 0.72 + seed * 0.58 + p0 * 0.20 + uBass * 0.10;
-        float localY = (p.y + 0.76) / max(height, 0.25);
-        float alive = smoothstep(-0.03, 0.07, localY) * (1.0 - smoothstep(0.78, 1.04, localY));
-        float turbulence = fbm(vec2(fi * 2.7 + p.y * (2.8 + p1), p.y * 4.4 - rise * (0.82 + seed * 0.44)));
-        float curl = sin(uTime * (1.55 + seed * 1.55) + fi * 1.73 + p.y * (2.1 + p2 * 1.8));
-        float center = baseX + curl * (0.025 + localY * 0.075) + (turbulence - 0.5) * (0.10 + localY * 0.15);
-        float width = mix(0.145 + seed2 * 0.055, 0.018 + seed * 0.024, clamp(localY, 0.0, 1.0));
-        float dist = abs(p.x - center);
-        float body = 1.0 - smoothstep(width * 0.42, width, dist);
-        float breakup = smoothstep(0.22, 0.82, turbulence + (1.0 - clamp(localY, 0.0, 1.0)) * 0.22);
-        float tongue = body * alive * (0.48 + breakup * 0.78);
-        fire += tongue * (0.66 + seed * 0.42);
-
-        float coreWidth = width * mix(0.45, 0.20, clamp(localY, 0.0, 1.0));
-        float coreBody = 1.0 - smoothstep(coreWidth * 0.35, coreWidth, dist);
-        core += coreBody * alive * (1.0 - smoothstep(0.42, 0.86, localY)) * (0.46 + breakup * 0.30);
-
-        float tipBand = smoothstep(0.62, 0.84, localY) * (1.0 - smoothstep(0.88, 1.05, localY));
-        tipWisps += body * tipBand * smoothstep(0.48, 0.82, turbulence) * (0.12 + seed * 0.12);
-      }
-
-      fire = clamp(fire, 0.0, 1.55);
-      core = clamp(core, 0.0, 1.20);
-      float edgeFlicker = 0.88 + 0.12 * sin(uTime * (4.1 + p0 * 2.8) + bedNoise * 7.0) + uTransient * 0.07;
-      float audioBody = 0.48 + drive * 0.62 + uBass * 0.12 + uLow * 0.07;
-      float detail = 1.0 + uMid * 0.07 + uHigh * 0.04;
-      intensity = (fire * 0.84 + core * 0.90 + tipWisps) * edgeFlicker * audioBody * detail;
-      hot = clamp(core * 1.12 + bed * 0.28 + uTransient * 0.04, 0.0, 1.0);
-      float bodyMix = clamp(fire * 0.72 + bed * 0.30, 0.0, 1.0);
-      col = mix(uColorB, uColorA, bodyMix);
-      col = mix(col, uColorC, hot);
-    } else if (uMode < 2.5) {
+    if (uMode < 2.5) {
       vec2 p = vUv;
       float slant = 0.10 + p2 * 0.20;
       float speed = 0.55 + p0 * 1.75 + uHigh * 0.20;
@@ -270,7 +180,6 @@ function drive(effect: EffectInstance, snapshot: AudioSnapshot, project: Project
 }
 
 function makeMaterial(kind: EffectKind) {
-  const atlas = kind === "RealisticFlame" ? getFlameAtlases() : undefined;
   return new THREE.ShaderMaterial({
     vertexShader: VERT,
     fragmentShader: FRAG,
@@ -278,8 +187,7 @@ function makeMaterial(kind: EffectKind) {
       uTime: { value: 0 }, uMode: { value: MODE[kind] || 1 }, uP0: { value: 0.65 }, uP1: { value: 0.5 }, uP2: { value: 0.4 }, uDrive: { value: 1 },
       uBass: { value: 0 }, uLow: { value: 0 }, uMid: { value: 0 }, uHigh: { value: 0 }, uBeat: { value: 0 }, uTransient: { value: 0 },
       uOpacity: { value: kind === "RealisticFlame" ? 0.88 : 0.42 }, uColorA: { value: new THREE.Color("#ff9a24") }, uColorB: { value: new THREE.Color("#4c8cff") }, uColorC: { value: new THREE.Color("#ffffff") },
-      uFlameCalm: { value: atlas?.calm ?? null }, uFlameFlare: { value: atlas?.flare ?? null },
-      uFlameReady: { value: 0 }, uFlare: { value: 0 }, uSparks: { value: 0 }, uTintFlame: { value: 0 },
+      uFlare: { value: 0 }, uSparks: { value: 0 }, uTintFlame: { value: 0 },
     },
     transparent: true,
     blending: kind === "RealisticFlame" ? THREE.NormalBlending : THREE.AdditiveBlending,
@@ -377,7 +285,6 @@ export class ThreeEnvironmentFinalLayer {
     if (effect.kind === "RealisticFlame") {
       const influence = effect.audio === "Manual" ? 0 : Math.max(0, Math.min(1, effect.audioInfluence));
       const signal = effect.audio === "Bass" ? entry.env.bass : band(snapshot, effect.audio);
-      u.uFlameReady.value = Number(flameAtlasesReady());
       u.uFlare.value = Math.max(0, Math.min(1, signal * influence));
       u.uSparks.value = Math.max(0, Math.min(1, entry.env.high * influence * project.masters.density));
       u.uTintFlame.value = color.toLowerCase() === "#ffad00" ? 0 : 1;

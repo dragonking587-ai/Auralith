@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { OpenAiVisionPanel } from "./OpenAiVisionPanel";
 import { emit, listen } from "@tauri-apps/api/event";
 import { AudioEngine } from "../audio/engine";
 import { ALL_EFFECTS, defaultEffect, newProject, type EffectKind, type Project, type Region, type ViewMode } from "../scene/types";
@@ -916,8 +917,9 @@ export function App() {
       };
       img.onerror = () => {
         URL.revokeObjectURL(url);
+        if (gen !== loadGen.current) return;
         console.error("[ImageLoad] DECODE_FAILED", file.name);
-        setErr("Could not decode image: " + file.name);
+        setErr("Could not read backdrop: " + file.name + ". Export it as PNG or JPEG from Blender or Unreal and try again.");
       };
       img.src = url;
     } catch (e) {
@@ -1242,7 +1244,7 @@ export function App() {
         <button className="ghost" onClick={()=>setTab("settings")}>Settings</button>
         <button className="ghost" onClick={()=>setHelpMode("help")}>Help</button>
         <span className="grp">PROJECT</span>
-        <button onClick={() => document.getElementById("file")?.click()}>Load Image</button>
+        <button title="Import a rendered backdrop from Blender, Unreal, or another app (PNG, JPEG, WebP, BMP)" onClick={() => document.getElementById("file")?.click()}>Import Backdrop</button>
         <input id="file" type="file" accept="image/png,image/jpeg,image/jpg,image/webp,image/bmp,.png,.jpg,.jpeg,.webp,.bmp" hidden onChange={(e) => { const f=e.target.files?.[0]; e.target.value=""; loadImage(f); }} />
         <button onClick={() => { void saveProjectFile(); }}>Save</button>
         <button onClick={() => { void openProjectFile(); }}>Open</button>
@@ -1457,6 +1459,12 @@ export function App() {
 
           {tab==="editor" && (
             <div className="pane">
+              <OpenAiVisionPanel project={project} getBackdrop={() => imgRef.current} onApply={(regions) => {
+                const current = projectRef.current;
+                pushHist({ ...current, regions: [...current.regions, ...regions] });
+                setSel(regions[0]?.id ?? null);
+                setTool("Edit");
+              }} />
               <h3>MASTERS</h3>
               {selected && (selected.kind==="Shape" || selected.kind==="Prop") && (
                 <div className="acc on">

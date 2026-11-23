@@ -1,6 +1,6 @@
 export const MAIN_TUTORIAL = [
   { title: "Main workspace", body: "The center is your scene. The toolbar loads images and tools. The right inspector holds Effects, Audio, Output, and Settings. Clean Output is what the audience sees. Public Server and Help live in Output/Settings." },
-  { title: "Load a scene", body: "Load Image places the backdrop. Save/Open store the project. Add Shapes, Props, Emitters, and Stamps as targets. Effects attach to those targets, not to a hidden second scene." },
+  { title: "Load a scene", body: "Import Backdrop places a rendered PNG, JPEG, WebP, or BMP from Blender, Unreal, or another app. Save/Open store the project. Add Shapes, Props, Emitters, and Stamps as targets for live effects." },
   { title: "Effects", body: "Add an effect, then use its named sliders, colors, presets, and audio bands. Changes are live. Audience poll colors are temporary overrides and do not permanently rewrite the saved effect color." },
   { title: "Clean Output", body: "Clean Output / Clean Capture show only the finished scene. Editor handles, menus, and Host QR never appear there. Use this window for OBS / Streamlabs / TikTok LIVE Studio." },
   { title: "Public Server", body: "Choose a room name such as OBSIDIAN-WOLF, Check Availability, then Start Public Server. Stopping the server does not give the name away. Release Room Name is the destructive action that frees the name." },
@@ -16,7 +16,7 @@ export const MAIN_TUTORIAL = [
 export const MAIN_HELP: { id: string; title: string; body: string }[] = [
   { id: "start", title: "Getting Started", body: "Load an image, add targets, stack effects, then Start Public Server if you want audience voting. Use Help anytime. Reset Tutorials from Settings to see the walkthrough again." },
   { id: "workspace", title: "Main Workspace", body: "Canvas is the scene. Tools select Shapes, Props, Emitters, and Stamps. Inspector tabs are Effects, Audio, Output, and Settings." },
-  { id: "load", title: "Load Scene", body: "Load Image opens a file picker. Props use PNG/WebP alpha as the effect silhouette. Shapes are geometry targets. Emitters and Stamps are point targets." },
+  { id: "load", title: "Import Backdrop", body: "Render a still from your camera in Blender or Unreal and export it as PNG or JPEG. Import Backdrop opens the file picker. Place effects over the image using Shapes, Props, Emitters, or Stamps." },
   { id: "resize", title: "Resize a Prop", body: "Select a Prop to see a gold box and eight handles. Drag a corner to scale proportionally. Drag an edge to change width or height only. Drag the Prop body to move it. Handles are editor-only and never appear in Clean Capture." },
   { id: "effects", title: "Effects", body: "Each stacked effect has its own accordion. Named sliders only. Audio mapping uses Bass / Low / Mid / High / Beat / Transient. Poll colors are runtime overrides." },
   { id: "save", title: "Save / Open", body: "Save writes the project including backdrop, targets, effects, poll config, and fireworks settings. Active fireworks, votes, and cooldowns are not saved." },

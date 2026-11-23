@@ -16,14 +16,14 @@ if (app.includes("RC49_HOTFIX_SHAPES")) {
 }
 
 const locked = {
-  "src/ui/App.tsx": "936f60c048fcfbd87ae6849717b2e3d8cbc471a7",
+  "src/ui/App.tsx": "773ac9d682dd77da9b2e2f76210b2676b44d8adc",
   "src/ui/HelpOverlay.tsx": "0df3ac17d5fca4c774e957340804b71fc1c25a51",
   "src/ui/HostPage.tsx": "ee11ca39ddf74b9088a189c18fd2f39f50ca18ae",
   "src/ui/QrPanel.tsx": "76ed933b176ef51da6a029d4d45f895cadb99154",
   "src/ui/ViewerPage.tsx": "bf5d482af469abd8f3c42a41f1c71a7836665303",
   "src/ui/dropdown-theme.css": "fd21ba90c7fc8dc9262283f8425ec3c11354f79e",
   "src/ui/effect-controls-cleanup.css": "f544b806b6be83033942489143ec59992738001a",
-  "src/ui/helpContent.ts": "2bef40cacea5a596accd4d9dd066a50588e06a1f",
+  "src/ui/helpContent.ts": "a852cedbe97cdce2ddb57ae8ee45605c0bf92383",
   "src/ui/reference-layout.css": "6f5feb1a058ff4845d5505bb768891034dbf26c3",
   "src/ui/referenceChrome.ts": "6186875b47f0fde2d6d47002c68f74741c3d999b",
   "src/ui/styles.css": "b16065e2b83231b87fa1b6a4e60c742d5141870e",

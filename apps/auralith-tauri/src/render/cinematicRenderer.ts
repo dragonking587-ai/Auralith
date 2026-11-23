@@ -3,7 +3,6 @@ import type { EffectInstance, EffectKind, Project, Region } from "../scene/types
 import { sceneViewport } from "../scene/transform";
 import { GlRenderer as LegacyGlRenderer } from "./renderer";
 import { CinematicPipelineV2 } from "./cinematicPipelineV2";
-import { flameAtlasesReady } from "./flameTextures";
 
 const THREE_PARTICLE_KINDS = new Set<EffectKind>([
   "Sparks", "EnergySparks", "Embers", "Fireflies", "Snow", "Ash", "DustMotes", "BioluminescentSpores"
@@ -59,11 +58,10 @@ function nativeProject(project: Project): { project: Project; count: number } {
 
 function legacyProjectWithoutNativeNeon(project: Project): { project: Project; removed: number } {
   let removed = 0;
-  const flameReady = flameAtlasesReady();
   const regions = project.regions.map((region) => {
     const effects = region.effects.filter((effect) => {
       const hideLegacyNeon = effect.kind === "NeonGlow" && isThreeNativePlacement(region, effect);
-      const hideLegacyFlame = flameReady && effect.kind === "RealisticFlame" && isThreeNativePlacement(region, effect);
+      const hideLegacyFlame = effect.kind === "RealisticFlame" && isThreeNativePlacement(region, effect);
       const hideLegacyBolt = (effect.kind === "EmeraldBolt" || effect.kind === "Portal") && isThreeNativePlacement(region, effect);
       if (hideLegacyNeon || hideLegacyFlame || hideLegacyBolt) removed++;
       return !hideLegacyNeon && !hideLegacyFlame && !hideLegacyBolt;
